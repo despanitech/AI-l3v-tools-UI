@@ -7,6 +7,7 @@ const {default:Page}=await import('./.html-page.mjs');
 const css=readFileSync('app/globals.css','utf8').replace('@import "tailwindcss";','');
 const logo='data:image/png;base64,'+readFileSync('public/l3v-mark.png').toString('base64');
 let content=renderToStaticMarkup(React.createElement(Page,{standalone:true})).replaceAll('/l3v-mark.png',logo);
+content=content.replace(/src="(\/genre-frames\/[^"]+)"/g,(_,url)=>'src="data:image/jpeg;base64,'+readFileSync('public'+url).toString('base64')+'"');
 const runtime=await build({entryPoints:['app/theme-standalone.ts'],bundle:true,write:false,minify:true});
 const script=runtime.outputFiles[0].text;
 mkdirSync('public',{recursive:true});
