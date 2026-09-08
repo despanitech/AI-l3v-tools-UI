@@ -1,5 +1,6 @@
 import base64, hashlib, hmac, json, os, sqlite3, subprocess, tempfile, time, uuid
 from pathlib import Path
+from contextlib import closing
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import BoundedSemaphore
 
@@ -9,7 +10,7 @@ MAX_BODY=1500000
 
 def charge(db,visitor):
     day=time.strftime('%Y-%m-%d',time.gmtime())
-    with sqlite3.connect(db,timeout=5,isolation_level=None) as conn:
+    with closing(sqlite3.connect(db,timeout=5,isolation_level=None)) as conn:
         conn.execute('CREATE TABLE IF NOT EXISTS usage(day TEXT, visitor TEXT, count INTEGER, PRIMARY KEY(day,visitor))')
         conn.execute('BEGIN IMMEDIATE')
         try:
