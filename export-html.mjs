@@ -1,0 +1,13 @@
+import {build} from 'esbuild';
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+await build({entryPoints:['app/page.tsx'],bundle:true,platform:'node',format:'esm',outfile:'.html-page.mjs',packages:'external',jsx:'automatic'});
+const React=await import('react');
+const {renderToStaticMarkup}=await import('react-dom/server');
+const {default:Page}=await import('./.html-page.mjs');
+const css=readFileSync('app/globals.css','utf8').replace('@import "tailwindcss";','');
+const content=renderToStaticMarkup(React.createElement(Page));
+mkdirSync('public',{recursive:true});
+writeFileSync('public/ai-video-model-guide.html','<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Video Model Field Guide · September 2026</title><style>'+css+'</style></head><body>'+content.replace('href="/ai-video-model-guide.html"','href="ai-video-model-guide.html"')+'</body></html>');
+const models=JSON.parse(readFileSync('app/guide.json','utf8'));
+for(const m of models)for(const key of ['strengths','weaknesses','best','worst','sources'])if(!m[key]?.length)throw new Error('Missing '+key+' for '+m.name);
+console.log('Exported complete HTML with '+models.length+' validated profiles.');

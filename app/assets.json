@@ -1,0 +1,234 @@
+{
+  "checked": "2026-09-08",
+  "method": "Official page image links and browser DOM video poster/source attributes. No media downloaded. URLs prove official association; scene visual inspection is not complete. Current model demo version caveats preserved.",
+  "assets": [
+    {
+      "family": "Seedance",
+      "version": "2.5",
+      "kind": "official demo video poster",
+      "url": "https://p3-sign.douyinpic.com/tos-cn-p-13c08f/oIpECIcrgSlQAEOHe9qf714BWkJUzs7HqDkRAP~tplv-noop.image?dy_q=1783591925&l=202607091812042D9F5CEA2B002AC2FF19&x-expires=2098951955&x-signature=ocNIBaeGTbp7LOpN%2BV47JFO7qY8%3D",
+      "source": "https://seed.bytedance.com/en/seedance2_5",
+      "description": "First video poster on official Seedance 2.5 page; scene not visually inspected."
+    },
+    {
+      "family": "Seedance",
+      "version": "2.5",
+      "kind": "official demo video poster",
+      "url": "https://p26-sign.douyinpic.com/tos-cn-p-13c08f/oI9BiaALGesRJFahNqRaSCDrAoI7QfXP10SG2g~tplv-noop.image?dy_q=1785416592&l=20260730210312AF53B27ABA6C31273950&x-expires=2100776854&x-signature=ML7bXpk85Rr5lmhgVdLDq5R1qOg%3D",
+      "source": "https://seed.bytedance.com/en/seedance2_5",
+      "description": "Second video poster on official Seedance 2.5 page; scene not visually inspected."
+    },
+    {
+      "family": "Veo",
+      "version": "3/3.1",
+      "kind": "official demo video poster",
+      "url": "https://lh3.googleusercontent.com/ZiwH_wa1LfkkOwklJ874qQBiNdhxukLDOasXDAOIvj_myLyX8RgewbtrCiB-GYYeGHwV54tZ8M8CY3bBmqZ3qikQliW7hpIfotfdgiQXSUOgR79s8VE%3Dw1440-h810-n-nu",
+      "source": "https://deepmind.google/models/veo/",
+      "description": "Old sailor speaks by the ocean. Current Veo page mixes Veo 3 and 3.1 demo descriptions; label family demo."
+    },
+    {
+      "family": "Veo",
+      "version": "3/3.1",
+      "kind": "official demo video poster",
+      "url": "https://lh3.googleusercontent.com/A08gsh94hhJF-TlQem3Rqln8GvVJ4SYqVMTEMKCDu4ylTDOqNq4drbksnEGtWs3ZiTSOaiA2PEc4l4QLDcDSZsZ4kEdJ9GIP8PjbAxFRSiFciY44QA%3Dw1440-h810-n-nu",
+      "source": "https://deepmind.google/models/veo/",
+      "description": "Stop-motion camper and bear. Current Veo page mixes Veo 3 and 3.1 demo descriptions; label family demo."
+    },
+    {
+      "family": "Runway",
+      "version": "Gen-4.5",
+      "kind": "official announcement video poster",
+      "url": "https://d3phaj0sisr2ct.cloudfront.net/site/images/research/gen/launch-post/gen-launch-poster-01.jpg",
+      "source": "https://runway.com/research/introducing-runway-gen-4.5",
+      "description": "Gen-4.5 announcement poster; not an independently extracted frame."
+    },
+    {
+      "family": "LTX",
+      "version": "2.5",
+      "kind": "official trailer thumbnail",
+      "url": "https://i.ytimg.com/vi/ZDfjZae7Da0/hqdefault.jpg",
+      "source": "https://ltx.io/model",
+      "description": "LTX-2.5: The World Model the World Builds On, official LTX_io trailer embedded on model page."
+    },
+    {
+      "family": "LTX",
+      "version": "2.5 page, asset version unconfirmed",
+      "kind": "official feature demo still",
+      "url": "https://cdn.prod.website-files.com/68872d15af29880764eac4aa/6a8bf9dc7eab4bd21b6b9d95_HDR-New_frame.avif",
+      "source": "https://ltx.io/model",
+      "description": "Volcano erupting with lava flowing down dark rocky terrain under a dusky sky. Native HDR feature image."
+    },
+    {
+      "family": "Vidu",
+      "version": "current landing showcase; Q4 filename",
+      "kind": "official demo poster",
+      "url": "https://image01.cf.vidu.studio/vidu/media-asset/Q4-1-8e93fdaa.webp",
+      "source": "https://www.vidu.com/",
+      "description": "Two futuristic hoverbikes and armored riders racing on a circular elevated track. Do not label Q3; current page includes real-time model."
+    },
+    {
+      "family": "Vidu",
+      "version": "Q3 filename",
+      "kind": "official feature showcase image",
+      "url": "https://image01.cf.vidu.studio/vidu/media-asset/Q3-1-56c8df2f.webp",
+      "source": "https://www.vidu.com/",
+      "description": "Smart Cuts showcase. URL verified in official link; media fetch cache miss."
+    },
+    {
+      "family": "PixVerse",
+      "version": "not stated",
+      "kind": "officially featured creator video thumbnail",
+      "url": "https://img.youtube.com/vi/XvNm-OuRZcw/maxresdefault.jpg",
+      "source": "https://pixverse.ai/en",
+      "description": "Mars Landings by AI Video School, featured under Made with PixVerse. Model version unspecified; media fetch cache miss."
+    },
+    {
+      "family": "PixVerse",
+      "version": "not stated",
+      "kind": "officially featured creator video thumbnail",
+      "url": "https://img.youtube.com/vi/DhrGjnanvqg/maxresdefault.jpg",
+      "source": "https://pixverse.ai/en",
+      "description": "The Reckless Play by Maria Zozulia, featured under Made with PixVerse. Model version unspecified; media fetch cache miss."
+    },
+    {
+      "family": "Luma",
+      "version": "Ray3.14",
+      "kind": "official demo video (no poster available)",
+      "url": "https://static.cdn-luma.com/files/sanity/8b63e116-31a6-4563-b06c-51d7399e340a.mp4#t=0.001",
+      "source": "https://lumalabs.ai/news/ray3_14",
+      "description": "A penguin wearing business outfit going through TSA."
+    },
+    {
+      "family": "Luma",
+      "version": "Ray3.14",
+      "kind": "official demo video (no poster available)",
+      "url": "https://static.cdn-luma.com/files/sanity/ec34b0df-529e-4f94-bbcb-09aab5a415a1.mp4#t=0.001",
+      "source": "https://lumalabs.ai/news/ray3_14",
+      "description": "Macro cinematic cherry pie landscape with syrup lava and tiny hikers."
+    },
+    {
+      "family": "Mochi / Genmo",
+      "version": "not identified in individual demo metadata",
+      "kind": "official homepage demo poster",
+      "url": "https://cdn.genmo.dev/poster/results/text-to-video-v4/2025-10-16/cmgtp5oz302gv0es65lnhgeee/poster.webp?width=300",
+      "source": "https://www.genmo.ai/",
+      "description": "Official Genmo homepage demo poster. Homepage promotes Mochi 1; individual asset uses text-to-video-v4 path, so do not assert specific model version."
+    },
+    {
+      "family": "Mochi / Genmo",
+      "version": "not identified in individual demo metadata",
+      "kind": "official homepage demo poster",
+      "url": "https://cdn.genmo.dev/poster/results/text-to-video-v4/2025-10-09/cmgjzj09p03i80es6428aa0c9/poster.webp?width=300",
+      "source": "https://www.genmo.ai/",
+      "description": "Official Genmo homepage demo poster. Homepage promotes Mochi 1; individual asset uses text-to-video-v4 path, so do not assert specific model version."
+    },
+    {
+      "family": "Grok Imagine",
+      "version": "Imagine API Jan 2026",
+      "kind": "official demo poster",
+      "url": "https://data.x.ai/releases/imagine/camera-motions/camera-motions-5.poster.webp",
+      "source": "https://x.ai/news/grok-imagine-api",
+      "description": "Official camera motion demonstration poster. Scene not visually inspected."
+    },
+    {
+      "family": "Grok Imagine",
+      "version": "Imagine API Jan 2026",
+      "kind": "official demo poster",
+      "url": "https://data.x.ai/releases/imagine/hero/hero-5.poster.webp",
+      "source": "https://x.ai/news/grok-imagine-api",
+      "description": "Official hero demo poster. Scene not visually inspected."
+    },
+    {
+      "family": "Hailuo / MiniMax",
+      "version": "H3 family; exact variant not specified",
+      "kind": "official documentation example output video",
+      "url": "https://filecdn.minimax.chat/docs/video-generation-v2/text-to-video.mp4",
+      "source": "https://platform.minimax.io/docs/guides/video-generation",
+      "description": "Text-to-video example output on current H3/H3 Max generation guide."
+    },
+    {
+      "family": "Hailuo / MiniMax",
+      "version": "H3 family; exact variant not specified",
+      "kind": "official documentation example output video",
+      "url": "https://filecdn.minimax.chat/docs/video-generation-v2/first-last-frame.mp4",
+      "source": "https://platform.minimax.io/docs/guides/video-generation",
+      "description": "First/last-frame image-to-video example output on current H3/H3 Max guide."
+    },
+    {
+      "family": "Moonvalley",
+      "version": "Marey",
+      "kind": "official homepage showcase video",
+      "url": "https://framerusercontent.com/assets/boCxZxT4qkyvmIr0BJdam9HfOYQ.mp4",
+      "source": "https://www.moonvalley.com/",
+      "description": "First unique homepage showcase video. Scene not visually inspected."
+    },
+    {
+      "family": "Moonvalley",
+      "version": "Marey",
+      "kind": "official homepage showcase video",
+      "url": "https://framerusercontent.com/assets/sMIkeVHCrbPxj7rwkMQJ2HtGY.mp4",
+      "source": "https://www.moonvalley.com/",
+      "description": "Second unique homepage showcase video. Scene not visually inspected."
+    },
+    {
+      "family": "Pika",
+      "version": "Pikaffects; not a specific base model",
+      "kind": "official effects product demo poster",
+      "url": "https://cdn.pika.art/v2/files/agent/6d1b9c62-3ad9-4c14-af45-73fdd06f46b5/pikaffects-phone-poster.jpg",
+      "video": "https://cdn.pika.art/v2/files/agent/4d5ea66f-f4b0-40fd-bd51-4928c4887738/pikaffects-phone.webm",
+      "source": "https://experiment.pika.art/pikaffects",
+      "description": "Official Pikaffects phone demo, potentially UI presentation rather than pure output frame."
+    },
+    {
+      "family": "Adobe Firefly",
+      "version": "Firefly Video Model launch Feb 2025",
+      "kind": "official model demo video",
+      "url": "https://blog.adobe.com/en/publish/2025/02/12/media_13a4e386aab55adb1ca35c57f218d8ec5cb2e7f09.mp4",
+      "source": "https://blog.adobe.com/en/publish/2025/02/12/meet-firefly-video-model-ai-powered-creation-with-unparalleled-creative-control",
+      "description": "Official launch generation example 1. DOM href verified before video hydration. Blog explicitly states all generations created with Firefly Video Model; exact scene not visually inspected."
+    },
+    {
+      "family": "Adobe Firefly",
+      "version": "Firefly Video Model launch Feb 2025",
+      "kind": "official model demo video",
+      "url": "https://blog.adobe.com/en/publish/2025/02/12/media_1cae7c8d1fa8f3f118e8ea134cffe0ecf9d152106.mp4",
+      "source": "https://blog.adobe.com/en/publish/2025/02/12/meet-firefly-video-model-ai-powered-creation-with-unparalleled-creative-control",
+      "description": "Official launch generation example 2. DOM href verified before video hydration. Blog explicitly states all generations created with Firefly Video Model; exact scene not visually inspected."
+    },
+    {
+      "family": "Kling",
+      "version": "3.0 series",
+      "kind": "official demo video poster",
+      "url": "https://s16-kling.klingai.com/kos/s101/nlav112918/kling-homepage-aio/assets/images/page1-poster-0-en-__scq5Xs.jpg",
+      "video": "https://v16-kling.klingai.com/kos/s101/nlav112918/kling-website/page1-v3-0-en.mp4",
+      "source": "https://klingai.com/",
+      "description": "First official Kling 3.0 homepage demo; nearby prompt says in-car POV, handheld, focused on road ahead."
+    },
+    {
+      "family": "Kling",
+      "version": "3.0 series",
+      "kind": "official homepage demo video",
+      "url": "https://v16-kling.klingai.com/kos/s101/nlav112918/kling-website/page1-v3-1.mp4",
+      "source": "https://klingai.com/",
+      "description": "Second official Kling 3.0 homepage demo, verified data-src attribute. Scene not visually inspected."
+    },
+    {
+      "family": "Wan",
+      "version": "3.0",
+      "kind": "official demo video poster",
+      "url": "https://img.alicdn.com/imgextra/i1/6000000008059/O1CN01M28Vu829P53FNb5YD_!!6000000008059-0-tbvideo.jpg",
+      "video": "https://cdn.wanxai.com/static/demo-wan3/material/introducing-wan3-01.mp4",
+      "source": "https://wan.video/",
+      "description": "Introducing Wan3.0 first example poster; exact scene not visually inspected."
+    },
+    {
+      "family": "Wan",
+      "version": "3.0",
+      "kind": "official demo video poster",
+      "url": "https://img.alicdn.com/imgextra/i1/6000000005638/O1CN01OAmFZIMmkdE2b876_!!6000000005638-0-tbvideo.jpg",
+      "video": "https://cdn.wanxai.com/static/demo-wan3/material/introducing-wan3-02.mp4",
+      "source": "https://wan.video/",
+      "description": "Introducing Wan3.0 second example poster; exact scene not visually inspected."
+    }
+  ]
+}
