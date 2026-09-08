@@ -41,7 +41,15 @@ The first command regenerates `public/ai-video-model-guide.html`, including the 
 - `app/themes.json`: appearance palettes
 - `app/globals.css`: shared styles
 
-The live site is currently hosted with Sites and connected to the custom domain. A GitHub push does not automatically deploy it. `.openai/hosting.json` identifies the existing Sites project; it contains no credentials. Forks should use their own hosting configuration.
+Production is hosted directly on Cloudflare Workers Static Assets at `video.l3v.ai`. The full standalone guide includes the interactive genre selector, frame browsing, expandable details, and saved appearance preferences.
+
+```sh
+pnpm deploy:production
+```
+
+Authenticate Wrangler to your Cloudflare account before deployment. `production/wrangler.jsonc` defines the existing Worker and custom domain. Forks should replace the account, Worker name, and domain with their own values. GitHub pushes do not automatically deploy.
+
+The original Sites project configuration is retained in `.openai/hosting.json` for reference, but its publishing/domain tools failed with callback conflicts. Do not use Sites domain tools to manage production; the domain now belongs to the direct Cloudflare Worker.
 
 ## Contributions
 

@@ -10,7 +10,9 @@
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "build:production": "node prepare-production.mjs",
+    "deploy:production": "node prepare-production.mjs && wrangler deploy --config production/wrangler.jsonc"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
