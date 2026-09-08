@@ -1,9 +1,9 @@
 import themes from './themes.json';
 export function initializeThemes(){
- const root=document.documentElement;let selected='arctic';let mode='dark';
+ const root=document.documentElement;let selected='fern';let mode='dark';
  try{selected=localStorage.getItem('modelpedia-theme')||selected;mode=localStorage.getItem('modelpedia-mode')==='light'?'light':'dark'}catch{}
  function apply(){
-  const theme=themes.find(t=>t.id===selected)||themes[0];selected=theme.id;
+  const theme=themes.find(t=>t.id===selected)||themes.find(t=>t.id==='fern')!;selected=theme.id;
   const accent=mode==='light'?'#'+theme.accent.slice(1).match(/../g)!.map(x=>Math.round(parseInt(x,16)*.46).toString(16).padStart(2,'0')).join(''):theme.accent;
   root.dataset.mode=mode;root.style.colorScheme=mode;
   root.style.setProperty('--accent',accent);
