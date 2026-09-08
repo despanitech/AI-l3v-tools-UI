@@ -1,0 +1,538 @@
+[
+  {
+    "id": "build",
+    "name": "Building / construction timelapse",
+    "first": "wan27",
+    "alternatives": [
+      "seedance25",
+      "gen45"
+    ],
+    "why": "Start/end and reference workflows can anchor planned construction stages; Runway documents a timelapse example, but not a construction-accuracy benchmark.",
+    "workflow": "Create foundation, structure and finished-building frames from the same locked view. Animate adjacent stages, then edit them together.",
+    "risk": "Walls can morph, materials can appear from nowhere and structures can change shape. Use real footage or a 3D build for factual progress reporting.",
+    "popularity": "Requested niche; adjacent miniature/craft audience",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://www.alibabacloud.com/help/en/model-studio/video-to-video-guide"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://docs.dev.runwayml.com/guides/using-the-api/"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/miniatures-on-youtube/"
+      }
+    ]
+  },
+  {
+    "id": "renovation",
+    "name": "Room makeovers & desk transformations",
+    "first": "ray32",
+    "alternatives": [
+      "wan27",
+      "seedance25"
+    ],
+    "why": "Footage-guided editing suits a room that must retain its layout; frame references help stage the before/after.",
+    "workflow": "Keep the camera fixed, preserve windows and room dimensions, and split furnishing from lighting changes.",
+    "risk": "Generative edits can change dimensions and furniture identity. Avoid using invented transformations as evidence of a real renovation.",
+    "popularity": "Direct desk/makeover trend evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://lumalabs.ai/learning-center/articles/luma-video-models-field-guide"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://www.alibabacloud.com/help/en/model-studio/video-to-video-guide"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/desk-setup-videos/"
+      }
+    ]
+  },
+  {
+    "id": "animals",
+    "name": "Realistic animals & wildlife shorts",
+    "first": "veo",
+    "alternatives": [
+      "gen45",
+      "kling3"
+    ],
+    "why": "Veo is a useful first audiovisual trial; Gen-4.5 is an alternative for directed motion. No retrieved source establishes an animal-specific winner.",
+    "workflow": "Start with one animal in a clean reference image and one simple behavior. Use short clips and inspect paws, gait, eyes and fur.",
+    "risk": "Quadruped motion, eating and animal-to-animal contact can fail even when a still looks convincing.",
+    "popularity": "Adjacent AI-pet trend; realism is a separate execution choice",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://deepmind.google/models/veo/"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://help.runwayml.com/hc/en-us/articles/46974685288467-Creating-with-Gen-4-5"
+      },
+      {
+        "label": "Reported pet trend",
+        "url": "https://www.tomsguide.com/ai/ai-image-video/ai-cat-videos-are-suddenly-everywhere-heres-why-the-internet-cant-stop-watching"
+      }
+    ]
+  },
+  {
+    "id": "petstory",
+    "name": "Funny animal characters & mini-stories",
+    "first": "seedance25",
+    "alternatives": [
+      "vidu",
+      "veo"
+    ],
+    "why": "Reference-led story beats suit a recurring animal character; Vidu supports short narrative and dialogue workflows.",
+    "workflow": "Reuse a character sheet, separate the setup and payoff into shots, and keep props consistent.",
+    "risk": "Humanlike gestures can distort anatomy; identity may drift after a cut.",
+    "popularity": "Reported AI-cat short-video trend",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://seed.bytedance.com/en/seedance2_5"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://go.vidu.com/vidu-q3"
+      },
+      {
+        "label": "Reported pet trend",
+        "url": "https://www.tomsguide.com/ai/ai-image-video/ai-cat-videos-are-suddenly-everywhere-heres-why-the-internet-cant-stop-watching"
+      }
+    ]
+  },
+  {
+    "id": "anime",
+    "name": "Anime & 2D micro-dramas",
+    "first": "vidu",
+    "alternatives": [
+      "seedance25",
+      "pixverse"
+    ],
+    "why": "Vidu explicitly targets comic/manga-style drama; reference-led alternatives suit short recurring-character stories.",
+    "workflow": "Approve a style frame and character sheet, then make one scene at a time with a limited palette.",
+    "risk": "Linework, costume details and mouths can change between frames; multi-character dialogue needs review.",
+    "popularity": "Direct animation audience evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://go.vidu.com/vidu-q3"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://seed.bytedance.com/en/seedance2_5"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/independent-animation-trends-report/"
+      }
+    ]
+  },
+  {
+    "id": "animated",
+    "name": "3D animated character scenes",
+    "first": "seedance25",
+    "alternatives": [
+      "veo",
+      "vidu"
+    ],
+    "why": "Mixed references and sequence planning support recurring stylized characters. Veo offers documented style-reference examples.",
+    "workflow": "Lock character proportions and materials in a reference; stage one readable action and add reaction shots separately.",
+    "risk": "Style drift, rubbery limbs and eye direction can break the performance.",
+    "popularity": "Broad animation audience evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://seed.bytedance.com/en/seedance2_5"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://deepmind.google/models/veo/"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/independent-animation-trends-report/"
+      }
+    ]
+  },
+  {
+    "id": "miniature",
+    "name": "Miniature worlds & stop-motion looks",
+    "first": "veo",
+    "alternatives": [
+      "gen45",
+      "midjourney"
+    ],
+    "why": "Veo's stylized examples make it a useful first trial; image-led alternatives can preserve an approved diorama look.",
+    "workflow": "Use a detailed miniature still, shallow depth of field and small, deliberate movements. Add stepped timing in editing if needed.",
+    "risk": "A stop-motion appearance does not guarantee accurate frame-by-frame stop-motion timing.",
+    "popularity": "Direct miniature community evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://deepmind.google/models/veo/"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://help.runwayml.com/hc/en-us/articles/46974685288467-Creating-with-Gen-4-5"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/miniatures-on-youtube/"
+      }
+    ]
+  },
+  {
+    "id": "asmr",
+    "name": "Surreal ASMR: glass, jelly & impossible food",
+    "first": "veo",
+    "alternatives": [
+      "h3",
+      "seedance25"
+    ],
+    "why": "Native audiovisual models reduce the effort of aligning a visual event and its sound.",
+    "workflow": "Stage one slice, crack or squish. Describe the material and sound together; inspect the exact contact moment.",
+    "risk": "The sound may not match the cut, and fragments or tools can merge. A viral look is not proof of physical realism.",
+    "popularity": "Direct AI-ASMR Shorts trend evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://deepmind.google/models/veo/"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://platform.minimax.io/docs/guides/video-generation"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/trending-now-august-2025/"
+      }
+    ]
+  },
+  {
+    "id": "satisfying",
+    "name": "Satisfying assembly, loops & transformations",
+    "first": "pika",
+    "alternatives": [
+      "wan27",
+      "gen45"
+    ],
+    "why": "Pika's effects are useful for playful transformations; endpoint references help where a particular start/end state matters.",
+    "workflow": "Choose a single repeating action or transition. Match the closing composition to the opening and check the edit seam.",
+    "risk": "A similar first/last frame does not guarantee seamless motion or audio.",
+    "popularity": "Established satisfying/craft format",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://pika.art/"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://www.alibabacloud.com/help/en/model-studio/video-to-video-guide"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/miniatures-on-youtube/"
+      }
+    ]
+  },
+  {
+    "id": "food",
+    "name": "Food macros & recipe-style beauty shots",
+    "first": "ray314",
+    "alternatives": [
+      "veo",
+      "gen45"
+    ],
+    "why": "Luma's detail and output controls suit close-up food visuals; Veo is an alternative when synchronized sound matters.",
+    "workflow": "Use separate shots for steam, pouring and cutting; keep exact recipe steps in real footage or verified graphics.",
+    "risk": "Liquids, utensils and hands can merge. Generated preparation is not a reliable cooking demonstration.",
+    "popularity": "Food category and creative guidance",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://lumalabs.ai/learning-center/articles/luma-video-models-field-guide"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://deepmind.google/models/veo/"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://ads.tiktok.com/business/creativecenter/quicktok/online/creative_tips_travel/pc/en"
+      }
+    ]
+  },
+  {
+    "id": "product",
+    "name": "Product reveals & luxury ads",
+    "first": "gen45",
+    "alternatives": [
+      "h3",
+      "ray314"
+    ],
+    "why": "Camera direction and a supplied product frame suit a controlled reveal; H3 offers reference-led alternatives.",
+    "workflow": "Anchor the product with approved imagery, use one camera move, and add logos and fine print in post.",
+    "risk": "Labels, geometry and reflections can deform. Review packaging against the real product.",
+    "popularity": "Commerce and product-ad evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://help.runwayml.com/hc/en-us/articles/46974685288467-Creating-with-Gen-4-5"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://platform.minimax.io/docs/guides/video-generation"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://ads.tiktok.com/business/en/inspiration"
+      }
+    ]
+  },
+  {
+    "id": "fashion",
+    "name": "Fashion & beauty transformations",
+    "first": "h3",
+    "alternatives": [
+      "seedance25",
+      "kling3"
+    ],
+    "why": "Multimodal references help carry a look through a short sequence; narrative alternatives support reveal beats.",
+    "workflow": "Keep pose and framing stable across outfit references; generate the transition separately from the beauty close-up.",
+    "risk": "Faces, fabric and accessories may drift. Avoid treating a generated cosmetic result as demonstrated performance.",
+    "popularity": "Direct beauty trend plus commerce evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://platform.minimax.io/docs/guides/video-generation"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://seed.bytedance.com/en/seedance2_5"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/trending-now-homebody-living-unrecognizable-makeup-anxiety-more/"
+      }
+    ]
+  },
+  {
+    "id": "travel",
+    "name": "Travel, landscapes & cinematic escapes",
+    "first": "veo",
+    "alternatives": [
+      "gen45",
+      "ray314"
+    ],
+    "why": "Environment plus sound makes Veo a useful starting point; camera-led alternatives suit silent scenic B-roll.",
+    "workflow": "Specify location cues, weather, time of day and one restrained camera move.",
+    "risk": "Landmarks and geography can be invented; use real footage for a factual destination guide.",
+    "popularity": "Travel creative-format evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://deepmind.google/models/veo/"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://help.runwayml.com/hc/en-us/articles/46974685288467-Creating-with-Gen-4-5"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://ads.tiktok.com/business/creativecenter/quicktok/online/creative_tips_travel/pc/en"
+      }
+    ]
+  },
+  {
+    "id": "nature",
+    "name": "Nature growth, weather & day-to-night timelapse",
+    "first": "gen45",
+    "alternatives": [
+      "veo",
+      "wan27"
+    ],
+    "why": "Runway provides a timelapse API example; endpoint control is useful for a defined visual transition.",
+    "workflow": "Lock the camera, constrain the subject, and split large seasonal changes into stages.",
+    "risk": "Growth may morph instead of following biology; sun, shadows and clouds may disagree.",
+    "popularity": "Timelapse capability evidence; audience not independently ranked",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://docs.dev.runwayml.com/guides/using-the-api/"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://www.alibabacloud.com/help/en/model-studio/video-to-video-guide"
+      }
+    ]
+  },
+  {
+    "id": "dance",
+    "name": "Dance & performance-transfer shorts",
+    "first": "act2",
+    "alternatives": [
+      "kling26",
+      "seedance25"
+    ],
+    "why": "A driving performance gives more specific choreography than a text description alone.",
+    "workflow": "Record a clean performance with visible limbs; transfer it to one character and review feet and occlusions.",
+    "risk": "This does not guarantee exact full-body choreography; cropped limbs and fast turns are difficult.",
+    "popularity": "Direct short-form dance evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://help.runwayml.com/hc/en-us/articles/42311337895827-Performance-Capture-with-Act-Two"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://seed.bytedance.com/en/seedance2_5"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/trending-now-homebody-living-unrecognizable-makeup-anxiety-more/"
+      }
+    ]
+  },
+  {
+    "id": "music",
+    "name": "Music, singing characters & visualizers",
+    "first": "hedra",
+    "alternatives": [
+      "seedance25",
+      "veo"
+    ],
+    "why": "Audio-driven characters suit singing faces; general audiovisual models suit the surrounding music-video shots.",
+    "workflow": "Use a cleared audio excerpt, create the character performance first, and cut visual beats to the track in editing.",
+    "risk": "Lip sync and expressions may overshoot; generation does not automatically land on every beat.",
+    "popularity": "Music/animation-meme format evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://www.hedra.com/models/video/hedra/character-3"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://seed.bytedance.com/en/seedance2_5"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/april-culture-trends-2023/"
+      }
+    ]
+  },
+  {
+    "id": "comedy",
+    "name": "Dialogue comedy & fictional interview shorts",
+    "first": "kling3",
+    "alternatives": [
+      "veo",
+      "vidu"
+    ],
+    "why": "Short native-audio storytelling is a practical fit; dialogue-specific Vidu controls offer another path.",
+    "workflow": "Use a short setup and punchline, one speaker per shot where possible, and captions added afterward.",
+    "risk": "Voices can swap, timing can slip and jokes can lose pacing. Label fictional interviews clearly.",
+    "popularity": "Broad entertainment and virtual-character evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://deepmind.google/models/veo/"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://go.vidu.com/vidu-q3"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/april-culture-trends-2023/"
+      }
+    ]
+  },
+  {
+    "id": "horror",
+    "name": "Horror, liminal spaces & uncanny POV",
+    "first": "gen45",
+    "alternatives": [
+      "veo",
+      "ray314"
+    ],
+    "why": "Controlled camera and atmosphere suit tension; Veo can add a coherent soundscape.",
+    "workflow": "Begin with a stable location, one subtle environmental change and a restrained reveal.",
+    "risk": "Random flicker and geometry drift can look like technical errors rather than intentional suspense.",
+    "popularity": "Direct horror-Shorts format evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://help.runwayml.com/hc/en-us/articles/46974685288467-Creating-with-Gen-4-5"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://deepmind.google/models/veo/"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/april-culture-trends-2023/"
+      }
+    ]
+  },
+  {
+    "id": "action",
+    "name": "Action, fantasy & effects-heavy mini-trailers",
+    "first": "pixverse",
+    "alternatives": [
+      "kling3",
+      "seedance25"
+    ],
+    "why": "PixVerse C1 explicitly emphasizes film action, effects and storyboards; other narrative models are alternatives.",
+    "workflow": "Storyboard short beats, favor clear silhouettes, and separate dangerous-looking contacts into edits.",
+    "risk": "Weapon paths, impacts and spatial continuity can fail; no model here guarantees exact stunt physics.",
+    "popularity": "Entertainment/animation adjacency; not a genre view ranking",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://pixverse.ai/en/blog/pixverse-introduces-c1-ai-video-model-for-film-production"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://seed.bytedance.com/en/seedance2_5"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://blog.youtube/culture-and-trends/independent-animation-trends-report/"
+      }
+    ]
+  },
+  {
+    "id": "explainers",
+    "name": "Educational explainers & presenter shorts",
+    "first": "heygen",
+    "alternatives": [
+      "synthesia",
+      "hedra"
+    ],
+    "why": "Avatar systems suit repeatable script delivery; use conventional graphics for exact labels and diagrams.",
+    "workflow": "Fact-check the script, choose a voice and presenter, and add verified diagrams and captions in editing.",
+    "risk": "Presenter realism does not establish factual accuracy; exact technical diagrams should not be improvised by a video model.",
+    "popularity": "Education category evidence",
+    "sources": [
+      {
+        "label": "Model capability evidence",
+        "url": "https://help.heygen.com/en/articles/14602974-avatar-v-is-now-available-on-heygen"
+      },
+      {
+        "label": "Model capability evidence",
+        "url": "https://www.hedra.com/models/video/hedra/character-3"
+      },
+      {
+        "label": "Audience / format evidence",
+        "url": "https://ads.tiktok.com/business/en/inspiration"
+      }
+    ]
+  }
+]
