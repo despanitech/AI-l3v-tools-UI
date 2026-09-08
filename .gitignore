@@ -39,3 +39,7 @@ next-env.d.ts
 /.html-page.mjs
 
 /production/site/
+
+__pycache__/
+*.pyc
+
