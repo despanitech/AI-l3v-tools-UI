@@ -1,0 +1,232 @@
+[
+  {
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__veo-3__polar-bears.webm",
+    "source": "https://deepmind.google/models/veo/",
+    "type": "video",
+    "model": "Veo 3 official demo (archive asset on current Veo 3.1 page)",
+    "id": "animals",
+    "verified": "Official webpage prompt and matching DOM embedded source URL; media not downloaded or fully played.",
+    "genre": "animals",
+    "sceneEvidence": "Official prompt describes a camera emerging from an ice cave to polar bears playing on an ice slope.",
+    "caveat": "Prompt verifies animal subject; realistic styling should be visually checked.",
+    "poster": "https://lh3.googleusercontent.com/lsi5SkOuQJSxWY8S7J6IM0EEEOgHAe2Q0q_lfKRKbLqQDtLu3OVbSdM2NqB4TzhnraeYeThvpIM8f9BUOmXntnvNQOvpp4oEwUDXfS76H643hEQy-w",
+    "scene": "Official prompt describes a camera emerging from an ice cave to polar bears playing on an ice slope."
+  },
+  {
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__veo-3__rubber-duck.webm",
+    "source": "https://deepmind.google/models/veo/",
+    "type": "video",
+    "model": "Veo 3 official demo (archive asset on current Veo 3.1 page)",
+    "id": "petstory",
+    "verified": "Official webpage prompt and matching DOM embedded source URL; media not downloaded or fully played.",
+    "genre": "petstory",
+    "sceneEvidence": "Official prompt describes a detective interrogating a nervous rubber duck about a bubble bath, with comic quacks.",
+    "caveat": "Funny animal character scene, not a real pet story.",
+    "poster": "https://lh3.googleusercontent.com/IoSfcitEGPD3GGM8rZ3rz8ILUz_b1ejr_cYUT6iY8hpM2YYtVGO94k2_gdQQYwbfS8d1A5Gqw1YgBAB51ji8hgMcBkCcY_aSBtid6stjZdbCl-zreg",
+    "scene": "Official prompt describes a detective interrogating a nervous rubber duck about a bubble bath, with comic quacks."
+  },
+  {
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__veo-3__forest.webm",
+    "source": "https://deepmind.google/models/veo/",
+    "type": "video",
+    "model": "Veo 3 official demo (archive asset on current Veo 3.1 page)",
+    "id": "anime",
+    "verified": "Official webpage prompt and matching DOM embedded source URL; media not downloaded or fully played.",
+    "genre": "anime",
+    "sceneEvidence": "Official prompt explicitly describes painterly 2D animation, a girl and giant forest spirit, inspired by Japanese woodblock prints.",
+    "caveat": "Japanese-inspired 2D animation; label accurately rather than claiming a specific anime franchise.",
+    "poster": "https://lh3.googleusercontent.com/r8GdFVkzQUZJUavR472wZA4NsdM5CarlMf4xFW1tafuLyRPbbhDxU1MeIanCWYjgfrgoqNTHBa94wo0kyCVQHuxvvcwfcRIAwW0o1xJgFocg5Ple",
+    "scene": "Official prompt explicitly describes painterly 2D animation, a girl and giant forest spirit, inspired by Japanese woodblock prints."
+  },
+  {
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__veo-3__candle.webm",
+    "source": "https://deepmind.google/models/veo/",
+    "type": "video",
+    "model": "Veo 3 official demo (archive asset on current Veo 3.1 page)",
+    "id": "animated",
+    "verified": "Official webpage prompt and matching DOM embedded source URL; media not downloaded or fully played.",
+    "genre": "animated",
+    "sceneEvidence": "Official prompt describes a small wax humanoid walking through a molten-wax landscape carrying a flame.",
+    "caveat": "Stylized character scene; prompt does not explicitly name 3D animation.",
+    "poster": "https://lh3.googleusercontent.com/givG_8BNQzZcq5W98Nojwwk2QHIokeZnhFXXN7VaF5LJMhiVn7QZUJWCMc052h36I6RsRkosi-hKnR-QAOXSxmLLtJsbxzv5cb4l9XkfjcatO1MfwA",
+    "scene": "Official prompt describes a small wax humanoid walking through a molten-wax landscape carrying a flame."
+  },
+  {
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__veo-3__camper.webm",
+    "source": "https://deepmind.google/models/veo/",
+    "type": "video",
+    "model": "Veo 3 official demo (archive asset on current Veo 3.1 page)",
+    "id": "miniature",
+    "verified": "Official webpage prompt and matching DOM embedded source URL; media not downloaded or fully played.",
+    "genre": "miniature",
+    "sceneEvidence": "Official prompt explicitly labels Camping (Stop Motion) and gives humorous camper/bear dialogue.",
+    "caveat": "Stop-motion style generated clip; not physical stop-motion footage.",
+    "poster": "https://lh3.googleusercontent.com/A08gsh94hhJF-TlQem3Rqln8GvVJ4SYqVMTEMKCDu4ylTDOqNq4drbksnEGtWs3ZiTSOaiA2PEc4l4QLDcDSZsZ4kEdJ9GIP8PjbAxFRSiFciY44QA",
+    "scene": "Official prompt explicitly labels Camping (Stop Motion) and gives humorous camper/bear dialogue."
+  },
+  {
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__veo-3__keyboard.webm",
+    "source": "https://deepmind.google/models/veo/",
+    "type": "video",
+    "model": "Veo 3 official demo (archive asset on current Veo 3.1 page)",
+    "id": "asmr",
+    "verified": "Official webpage prompt and matching DOM embedded source URL; media not downloaded or fully played.",
+    "genre": "asmr",
+    "sceneEvidence": "Official prompt describes a candy keyboard making crunchy sugary typing sounds.",
+    "caveat": "ASMR-style sound-focused demo.",
+    "poster": "https://lh3.googleusercontent.com/pXiJ9oz3cXbRZMtOJ_viYUIqi0N_PKpgOABXH1-Lf3K7XQGJC-4JGp24kaomk2GDQhZcOdrZqlvBCMwED5cSWsDyZbAkMy7jqJK668G-zPOZhA4BbQ",
+    "scene": "Official prompt describes a candy keyboard making crunchy sugary typing sounds."
+  },
+  {
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__veo-3__paper.mp4",
+    "source": "https://deepmind.google/models/veo/",
+    "type": "video",
+    "model": "Veo 3 official demo (archive asset on current Veo 3.1 page)",
+    "id": "satisfying",
+    "verified": "Official webpage prompt and matching DOM embedded source URL; media not downloaded or fully played.",
+    "genre": "satisfying",
+    "sceneEvidence": "Official prompt describes colored squares folding themselves into synchronized origami figures and collective sculptures.",
+    "caveat": "Transformation prompt is verified; inspect playback quality.",
+    "poster": "https://lh3.googleusercontent.com/kcTPNUSoyUi4RKL-N3eAWw-5hEZK4MfN9LDVa5k8MEsiZS9qSnhs__qmDQqOuPuYPL4lBARA2mXoK_biTv8u9zkecNP1ndUHBgLf5YNjJI3tx17MIw",
+    "scene": "Official prompt describes colored squares folding themselves into synchronized origami figures and collective sculptures."
+  },
+  {
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__veo-3__onions.webm",
+    "source": "https://deepmind.google/models/veo/",
+    "type": "video",
+    "model": "Veo 3 official demo (archive asset on current Veo 3.1 page)",
+    "id": "food",
+    "verified": "Official webpage prompt and matching DOM embedded source URL; media not downloaded or fully played.",
+    "genre": "food",
+    "sceneEvidence": "Official prompt describes a close-up slow pan of diced onions hitting a hot pan, with distinct sizzling.",
+    "caveat": "Food close-up; macro lens specification is not given.",
+    "poster": "https://lh3.googleusercontent.com/ZnW_EEE2s3NUs-jQoLFBpOlu2rhKY9VsgzpEc5q5z44DiXDVkXjahcws1GBzvYuMQIKb9A7EG9z_IQ6WWNVan4y4UXK0oCF9vDSSpsOGLsZx3yd6NCg",
+    "scene": "Official prompt describes a close-up slow pan of diced onions hitting a hot pan, with distinct sizzling."
+  },
+  {
+    "genre": "product",
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo-3__background-object-preservation-1__16x9__light.webm",
+    "type": "video",
+    "poster": "https://lh3.googleusercontent.com/rxuiVbOpiqyaQJm0TfN9V5Tj277TsWLMDZ6Rzuhnqa-5iDhpnjNbUIWhLqV0FzqH4GZf93Zl0iH9UA7x0dkp-bXUc8dUlJVnfz-fRRExRMqayyVu",
+    "source": "https://deepmind.google/models/veo/",
+    "model": "Veo \u2014 official family demo",
+    "sceneEvidence": "Adjacent prompt describes a commercial that flies through a window to fizzy drink cans on a kitchen table.",
+    "scene": "Adjacent prompt describes a commercial that flies through a window to fizzy drink cans on a kitchen table."
+  },
+  {
+    "genre": "fashion",
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo-3__visual-synthesis-3__9x16__light.webm",
+    "type": "video",
+    "poster": "https://lh3.googleusercontent.com/b1JxAd9yqQfC7sMxA5p7M5UGIgO8k7uRCIZrlP24UoBFinYGCLBpzptRpKfloRiTxcfjebHsDlGtjJQHmvgXGnXjBcvBMAtXa4xhMWru_unmInjgjg",
+    "source": "https://deepmind.google/models/veo/",
+    "model": "Veo \u2014 official family demo",
+    "sceneEvidence": "Adjacent prompt explicitly describes a fashion show inside a crystal cathedral.",
+    "scene": "Adjacent prompt explicitly describes a fashion show inside a crystal cathedral."
+  },
+  {
+    "genre": "travel",
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__veo-3__ireland.webm",
+    "type": "video",
+    "poster": "https://lh3.googleusercontent.com/OYIMAjamff0VMzdcFIoZE7QDAT75WMEhGZQzD1fwzlESvP_rJOu_yg34RtebAYMcQdW-nhcROIOJYvz9rwq-hOQHQcr6QvNs_nmFrqtuPp8376TIbEI",
+    "source": "https://deepmind.google/models/veo/",
+    "model": "Veo \u2014 official family demo",
+    "sceneEvidence": "Adjacent prompt sets two walkers on windy Irish coastal cliffs above ocean surf; historical landscape scene.",
+    "scene": "Adjacent prompt sets two walkers on windy Irish coastal cliffs above ocean surf; historical landscape scene."
+  },
+  {
+    "genre": "nature",
+    "url": "https://storage.googleapis.com/deepmind-media/DeepMind.com/Models/veo/video-comparison/videos/veo__glacier__upscaling_720p.webm",
+    "type": "video",
+    "source": "https://deepmind.google/models/veo/",
+    "model": "Veo \u2014 official family demo",
+    "sceneEvidence": "Official resolution comparison iframe labels this a glacier collapsing into the sea. Nature example; not verified as timelapse.",
+    "scene": "Official resolution comparison iframe labels this a glacier collapsing into the sea. Nature example; not verified as timelapse."
+  },
+  {
+    "genre": "dance",
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__controls__extend-your-scene__output-1.webm",
+    "type": "video",
+    "poster": "https://lh3.googleusercontent.com/Zuv73Msde7zGNq3t1jHd0Hg-f66eeraP7vMhiaDljuBgTgFSg2m8ZRIurSRpQ5gAkU06425Qx_v-_rNTjWYeyjPcW_p9j_02ONyR46qzqgFmSJHN",
+    "source": "https://deepmind.google/models/veo/",
+    "model": "Veo \u2014 official family demo",
+    "sceneEvidence": "Official Extend your scene output: solo dancer joined by a male dancer and then an ensemble to classical music. Demonstrates dance, not motion transfer.",
+    "scene": "Official Extend your scene output: solo dancer joined by a male dancer and then an ensemble to classical music. Demonstrates dance, not motion transfer."
+  },
+  {
+    "genre": "music",
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo-3__visual-identity-preservation-3__9x16__light.webm",
+    "type": "video",
+    "poster": "https://lh3.googleusercontent.com/B3TEWPmHGddbqymciVXc6yVwXbmxZtTBG5PZrUHNZbgISHlOLJokWGoDR0Dqfug4QPIzNUgP9T23Iktd11yMvzfYLqURXmvCDGLr1RIliT9VeZs82g",
+    "source": "https://deepmind.google/models/veo/",
+    "model": "Veo \u2014 official family demo",
+    "sceneEvidence": "Adjacent prompt explicitly describes a model singing in a surreal floral music video.",
+    "scene": "Adjacent prompt explicitly describes a model singing in a surreal floral music video."
+  },
+  {
+    "genre": "comedy",
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo__veo-3__rubber-duck.webm",
+    "type": "video",
+    "poster": "https://lh3.googleusercontent.com/IoSfcitEGPD3GGM8rZ3rz8ILUz_b1ejr_cYUT6iY8hpM2YYtVGO94k2_gdQQYwbfS8d1A5Gqw1YgBAB51ji8hgMcBkCcY_aSBtid6stjZdbCl-zreg",
+    "source": "https://deepmind.google/models/veo/",
+    "model": "Veo \u2014 official family demo",
+    "sceneEvidence": "Adjacent prompt describes a detective interrogating a rubber duck about a bubble bath, with quacking dialogue.",
+    "scene": "Adjacent prompt describes a detective interrogating a rubber duck about a bubble bath, with quacking dialogue."
+  },
+  {
+    "genre": "action",
+    "url": "https://storage.googleapis.com/gdm-deepmind-com-prod-public/media/media/veo-3__background-object-preservation-2__16x9__light.webm",
+    "type": "video",
+    "poster": "https://lh3.googleusercontent.com/uvaTiU6miT6STxtkh88M7wc8YA8_HTl0dyW-2dQCv1qQx0SVGArdHNCBy5W3gEGG_4B-1XLxRvYkc5x38Dqgzs4jSngOwE-O-Wxpp5BzwFUDGflLypI",
+    "source": "https://deepmind.google/models/veo/",
+    "model": "Veo \u2014 official family demo",
+    "sceneEvidence": "Adjacent prompt describes a woman in a trench coat making a powerful midair leap in a green corridor with a dramatic dolly camera move.",
+    "scene": "Adjacent prompt describes a woman in a trench coat making a powerful midair leap in a green corridor with a dramatic dolly camera move."
+  },
+  {
+    "genre": "explainers",
+    "url": "https://www.heygen.com/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2Fpdhqcmb1%2Fproduction%2Feb94bde9dacc4bab9a382ae3ae52aa1e6c3433a6-1468x880.png%3Ffit%3Dmax%26auto%3Dformat&w=640&q=75",
+    "type": "image",
+    "source": "https://www.heygen.com/en-gb/tool/ai-presenter",
+    "model": "HeyGen \u2014 official presenter product illustration",
+    "sceneEvidence": "Official presenter product-page hero image: smiling male presenter beside Social media best practices slide. Image alt text verifies scene. This is a product illustration, not a independently verified generated-video frame.",
+    "scene": "Official presenter product-page hero image: smiling male presenter beside Social media best practices slide. Image alt text verifies scene. This is a product illustration, not a independently verified generated-video frame."
+  },
+  {
+    "genre": "build",
+    "type": "video",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/6/68/Construction_Timelapse_-_SPIE.webm",
+    "source": "https://commons.wikimedia.org/wiki/File:Construction_Timelapse_-_SPIE.webm",
+    "model": "Filmed reference \u2014 not AI-generated",
+    "scene": "Seven-month building construction timelapse \u2014 MELKARTIS (2015)",
+    "credit": "MELKARTIS \u00b7 CC BY 3.0 \u00b7 displayed as selected frames",
+    "license": "https://creativecommons.org/licenses/by/3.0/"
+  },
+  {
+    "genre": "renovation",
+    "type": "video",
+    "url": "https://videos.pexels.com/video-files/6473920/6473920-uhd_3840_2160_25fps.mp4",
+    "source": "https://www.pexels.com/video/a-footage-of-a-room-under-renovation-6473920/",
+    "model": "Filmed reference \u2014 not AI-generated",
+    "scene": "Room under renovation; a location reference, not a before/after transformation",
+    "credit": "Tima Miroshnichenko / Pexels",
+    "license": "https://www.pexels.com/license/"
+  },
+  {
+    "genre": "horror",
+    "type": "video",
+    "url": "https://videos.pexels.com/video-files/15201618/15201618-uhd_3840_2160_24fps.mp4",
+    "source": "https://www.pexels.com/video/walking-along-a-creepy-hotel-corridor-15201618/",
+    "model": "Filmed reference \u2014 not AI-generated",
+    "scene": "Eerie nighttime hotel corridor: a liminal POV reference",
+    "credit": "Darina Evstafeva / Pexels",
+    "license": "https://www.pexels.com/license/"
+  },
+  {
+    "genre": "explainers",
+    "type": "image",
+    "url": "https://www.heygen.com/_next/image?q=75&url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2Fpdhqcmb1%2Fproduction%2Fd622ff2cbea068068f094853c9876f4b365e690f-1258x900.png%3Ffit%3Dmax%26auto%3Dformat&w=1920",
+    "source": "https://www.heygen.com/en-gb/tool/ai-presenter",
+    "model": "HeyGen \u2014 official product illustration, not a verified video frame",
+    "scene": "Presenter beside a bar-chart presentation and script interface"
+  }
+]
