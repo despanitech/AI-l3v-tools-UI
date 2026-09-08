@@ -4,3 +4,6 @@ initializeThemes();
 
 import {initializeAnalyzer} from './reference-analyzer-runtime';
 initializeAnalyzer();
+
+import {initializeSupport} from './support-behavior';
+initializeSupport();
