@@ -1,0 +1,738 @@
+[
+  {
+    "id": "seedance25",
+    "name": "Seedance 2.5",
+    "maker": "ByteDance",
+    "kind": "Cinematic",
+    "status": "Current",
+    "family": "Seedance",
+    "summary": "Reference-rich storytelling with longer connected sequences.",
+    "specs": "Up to 30 seconds • Native audio/video • Multimodal references",
+    "strengths": "Large reference sets, scene planning and targeted edits support connected story beats.",
+    "weaknesses": "New-release claims are vendor-reported; complex identity, contact and continuity still need review.",
+    "best": "A 20-second product story using supplied people, location and sound references.",
+    "worst": "Exact engineering demonstrations or a complete multi-minute film in one generation.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://seed.bytedance.com/en/blog/one-take-creation-flexible-referencing-introducing-seedance-2-5"
+      }
+    ]
+  },
+  {
+    "id": "seedance2",
+    "name": "Seedance 2.0 / Fast / Mini",
+    "maker": "ByteDance",
+    "kind": "Cinematic",
+    "status": "Earlier generation",
+    "family": "Seedance",
+    "summary": "A mature short-sequence option with several speed tiers.",
+    "specs": "Up to 15 seconds on base model • Audio • Image/video/audio references",
+    "strengths": "Reference-guided motion and sound suit short branded sequences; lighter variants offer iteration choices.",
+    "weaknesses": "Limits differ by provider and variant. ByteDance acknowledges text, multi-subject identity and audio artifacts.",
+    "best": "Short character ads with reference assets; test Fast/Mini for drafts before final generation.",
+    "worst": "Small readable text, flawless hand-object interaction or assuming Mini equals base quality.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://seed.bytedance.com/en/blog/seedance-2-0-official-launch"
+      }
+    ]
+  },
+  {
+    "id": "kling3",
+    "name": "Kling 3.0 / 3.0 Omni",
+    "maker": "Kuaishou",
+    "kind": "Cinematic",
+    "status": "Current",
+    "family": "Kling",
+    "summary": "Multi-shot direction with synchronized multilingual audio.",
+    "specs": "Up to 15 seconds • Native audio • Reference workflows vary by mode",
+    "strengths": "Shot sequencing, character references and sound make it useful for narrative scenes. Omni adds broader multimodal control.",
+    "weaknesses": "Standard and Omni are distinct workflows; access and options vary. References reduce rather than eliminate drift.",
+    "best": "A dialogue-led social ad with several shots and a recurring character.",
+    "worst": "Long uninterrupted scenes requiring exact physical continuity or guaranteed verbatim typography.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://ir.kuaishou.com/news-releases/news-release-details/kling-ai-launches-30-model-ushering-era-where-everyone-can-be"
+      }
+    ]
+  },
+  {
+    "id": "kling26",
+    "name": "Kling 2.6 Motion Control",
+    "maker": "Kuaishou",
+    "kind": "Performance",
+    "status": "Specialist / earlier",
+    "family": "Kling",
+    "summary": "Use a driving performance to animate an image.",
+    "specs": "Image + motion reference • Motion-control workflow",
+    "strengths": "Recorded movement gives more direct choreography than describing every gesture in text.",
+    "weaknesses": "Output inherits limitations of the driving clip; occlusion and body proportions can complicate transfer.",
+    "best": "A mascot copying a simple dance, gesture or presenter performance.",
+    "worst": "A brand-new complex action sequence without a suitable motion reference.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://ir.kuaishou.com/static-files/51eda7e7-a9e8-43c1-b688-43f131104d98"
+      }
+    ]
+  },
+  {
+    "id": "veo",
+    "name": "Veo 3.1 / Fast",
+    "maker": "Google DeepMind",
+    "kind": "Cinematic",
+    "status": "Current",
+    "family": "Veo",
+    "summary": "General-purpose film shots with integrated sound.",
+    "specs": "Text/image to video • Native audio • Reference and extension features depend on surface",
+    "strengths": "A useful starting point for realistic scenes, dialogue and environmental sound; Fast supports iteration.",
+    "weaknesses": "Short generation windows require editing longer stories; exact speech, object persistence and physics need checking.",
+    "best": "A cinematic establishing shot, atmospheric B-roll or a short spoken scene.",
+    "worst": "Long factual demonstrations or projects that cannot tolerate rerolls and sound correction.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://deepmind.google/models/veo/"
+      }
+    ]
+  },
+  {
+    "id": "omni",
+    "name": "Gemini Omni Flash",
+    "maker": "Google DeepMind",
+    "kind": "Editing",
+    "status": "Current",
+    "family": "Omni",
+    "summary": "Conversational creation and revision using mixed media.",
+    "specs": "Text, image, video and audio context • Iterative editing",
+    "strengths": "Changing an existing scene through conversation can preserve more context than restarting from scratch.",
+    "weaknesses": "Editing scope and access depend on the product. Local changes can still alter unintended details.",
+    "best": "Refine a clip's setting, styling or action while keeping the larger scene recognizable.",
+    "worst": "Pixel-exact compositing or workflows requiring deterministic preservation of every untouched region.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://deepmind.google/models/gemini-omni/"
+      }
+    ]
+  },
+  {
+    "id": "gen45",
+    "name": "Runway Gen-4.5",
+    "maker": "Runway",
+    "kind": "Cinematic",
+    "status": "Current",
+    "family": "Runway",
+    "summary": "Detailed shot direction in a production-oriented toolset.",
+    "specs": "2–10 seconds in documented web workflow • 720p • 24/25 fps",
+    "strengths": "Camera choreography and prompt adherence support planned shots; pairs with Runway editing tools.",
+    "weaknesses": "Native output in the cited workflow is 720p. Finishing and audio may require separate stages.",
+    "best": "An art-directed hero shot with a clear subject, camera path and action.",
+    "worst": "Native high-resolution delivery without finishing, or a one-click long dialogue scene.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://help.runwayml.com/hc/en-us/articles/46974685288467-Creating-with-Gen-4-5"
+      }
+    ]
+  },
+  {
+    "id": "gen4",
+    "name": "Runway Gen-4 / Turbo",
+    "maker": "Runway",
+    "kind": "Cinematic",
+    "status": "Earlier generation",
+    "family": "Runway",
+    "summary": "Image-led motion for economical iteration.",
+    "specs": "Image-to-video • Standard and faster Turbo tiers",
+    "strengths": "A strong supplied frame anchors look and composition; Turbo is useful for trying several motion ideas.",
+    "weaknesses": "Older generation; input image quality matters. Speed does not ensure the most faithful difficult action.",
+    "best": "Animate approved campaign artwork or explore several camera moves before a final render.",
+    "worst": "Text-only scene creation in this workflow or exact continuity across many independent clips.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://help.runwayml.com/hc/en-us/articles/37327109429011-Creating-with-Gen-4-Video"
+      }
+    ]
+  },
+  {
+    "id": "aleph",
+    "name": "Runway Aleph 2.0",
+    "maker": "Runway",
+    "kind": "Editing",
+    "status": "Specialist",
+    "family": "Runway",
+    "summary": "Transform existing footage through an editing workflow.",
+    "specs": "Video editing • Edit Studio • Professional output options vary",
+    "strengths": "Useful for changing environments, visual treatment and scene elements while starting from footage.",
+    "weaknesses": "Generative edits are not deterministic masks; SDR outputs should not be mistaken for native HDR.",
+    "best": "Restyle a shot or explore alternative set dressing without reshooting.",
+    "worst": "Exact frame restoration, legally evidentiary footage or precise color-only corrections.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://help.runwayml.com/hc/en-us/articles/51683104370451-Creating-with-Edit-Studio"
+      }
+    ]
+  },
+  {
+    "id": "act2",
+    "name": "Runway Act-Two",
+    "maker": "Runway",
+    "kind": "Performance",
+    "status": "Specialist",
+    "family": "Runway",
+    "summary": "Transfer an actor's delivery to a character.",
+    "specs": "Driving performance video + character image/video",
+    "strengths": "Real performed timing, expression and gestures give intentional acting direction.",
+    "weaknesses": "Requires a usable performance; multi-character scenes need separate shots and editing.",
+    "best": "A stylized character delivering a recorded line or demonstrating a gesture.",
+    "worst": "Unscripted crowd action, vehicle scenes or shots without a driving performance.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://help.runwayml.com/hc/en-us/articles/42311337895827-Performance-Capture-with-Act-Two"
+      }
+    ]
+  },
+  {
+    "id": "ray32",
+    "name": "Luma Ray3.2 Modify",
+    "maker": "Luma",
+    "kind": "Editing",
+    "status": "Current specialist",
+    "family": "Luma",
+    "summary": "Footage-guided transformation with keyframe control.",
+    "specs": "Modify: video-to-video • Up to 20 seconds • Up to 16 keyframes • HDR/EXR workflows",
+    "strengths": "Existing movement plus keyframes gives directors explicit anchors; production formats support finishing.",
+    "weaknesses": "Modify requires source footage and follows its duration. It is a different task from unconstrained text generation.",
+    "best": "Replace a filmed environment or evolve a scene's appearance across planned beats.",
+    "worst": "Creating a whole scene without footage through the Modify mode, or pixel-exact untouched regions.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://lumalabs.ai/learning-center/articles/ray-3-2-introduction-and-core-concepts"
+      }
+    ]
+  },
+  {
+    "id": "ray314",
+    "name": "Luma Ray3.14",
+    "maker": "Luma",
+    "kind": "Cinematic",
+    "status": "Available generation",
+    "family": "Luma",
+    "summary": "Native 1080p creation and rapid visual iteration.",
+    "specs": "Text/image generation • Native 1080p • Modify workflow",
+    "strengths": "A useful option for detailed B-roll, image animation and visual experiments.",
+    "weaknesses": "This release does not provide every original Ray3 feature: character references and HDR/EXR Modify are limited/absent.",
+    "best": "A textured food macro, scenic commercial shot or stylized visual metaphor.",
+    "worst": "A workflow dependent on character-reference controls or native HDR Modify in this release.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://lumalabs.ai/news/ray3_14"
+      }
+    ]
+  },
+  {
+    "id": "h3",
+    "name": "MiniMax H3 / H3 Max",
+    "maker": "MiniMax / Hailuo",
+    "kind": "Cinematic",
+    "status": "Current",
+    "family": "Hailuo / MiniMax",
+    "summary": "Multimodal H3 plus a faster, narrower Max offering.",
+    "specs": "H3: 4–15 seconds, 768P/2K • H3 Max: 5–15 seconds, 480P/768P",
+    "strengths": "H3 combines video/audio/image references and editing; Max is an iteration choice for text/image generation.",
+    "weaknesses": "Max is not simply higher resolution: its documented formats and reference support differ from H3.",
+    "best": "Use H3 for reference-driven ads; Max for quick tests of a short shot.",
+    "worst": "Choosing Max expecting every H3 reference/editing feature, or assuming both expose 2K.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://platform.minimax.io/docs/guides/video-generation"
+      }
+    ]
+  },
+  {
+    "id": "wan3",
+    "name": "Wan 3.0 / Prime",
+    "maker": "Alibaba",
+    "kind": "Cinematic",
+    "status": "Current",
+    "family": "Wan",
+    "summary": "An all-in-one generation family with a speed-oriented variant.",
+    "specs": "2–30 seconds • 480p/720p/1080p • Audio • Reference inputs",
+    "strengths": "Longer short-form generation and integrated inputs suit connected scenes. Prime emphasizes speed.",
+    "weaknesses": "Endpoint and region affect access; maximum duration does not guarantee continuity.",
+    "best": "A short story with sound and reference material; Prime for iteration.",
+    "worst": "Treating cloud Wan3 as downloadable Wan2.2 weights or relying on precise long-shot physics.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://www.alibabacloud.com/help/en/model-studio/video-generate-edit-model"
+      }
+    ]
+  },
+  {
+    "id": "happyhorse",
+    "name": "HappyHorse 1.1 / 1.0 Edit",
+    "maker": "Alibaba ecosystem",
+    "kind": "Cinematic",
+    "status": "Current / specialist",
+    "family": "HappyHorse",
+    "summary": "Generation and a separately versioned editing endpoint.",
+    "specs": "1.1: text/image/reference generation • 1.0: video editing",
+    "strengths": "The family spans reference-led creation and footage transformation.",
+    "weaknesses": "Do not assume 1.1 generation and 1.0 editing share identical controls. Provider versions differ.",
+    "best": "A short reference-guided sequence; choose the Edit endpoint for existing footage.",
+    "worst": "Selecting a generation endpoint expecting source-preserving video edits.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://www.alibabacloud.com/help/en/model-studio/video-generate-edit-model"
+      }
+    ]
+  },
+  {
+    "id": "wan27",
+    "name": "Wan 2.7",
+    "maker": "Alibaba",
+    "kind": "Editing",
+    "status": "Available generation",
+    "family": "Wan",
+    "summary": "A broad collection of creation and transformation modes.",
+    "specs": "Text/image generation • Reference, first/last frame, continuation and editing",
+    "strengths": "Task-specific endpoints support bridges between frames, continuation and footage-guided effects.",
+    "weaknesses": "Duration and resolution differ by task; a single family name hides several interfaces.",
+    "best": "Bridge approved start/end compositions or transform a source video's movement and appearance.",
+    "worst": "Assuming every mode has identical duration, audio or reference limits.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://www.alibabacloud.com/help/en/model-studio/video-to-video-guide"
+      }
+    ]
+  },
+  {
+    "id": "wan26",
+    "name": "Wan 2.6 / Flash",
+    "maker": "Alibaba",
+    "kind": "Cinematic",
+    "status": "Earlier generation",
+    "family": "Wan",
+    "summary": "Short-form generation with budget-conscious variants.",
+    "specs": "Text/image workflows • Audio options depend on endpoint",
+    "strengths": "Useful when an existing integration or faster variant meets the shot's needs.",
+    "weaknesses": "Older generation and mode-dependent controls; compare cost per usable clip, including retries.",
+    "best": "Simple product motion, background loops and drafts through an established integration.",
+    "worst": "Complex multi-character storytelling chosen solely for nominal per-generation cost.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://www.alibabacloud.com/help/en/model-studio/wan-image-to-video-guide"
+      }
+    ]
+  },
+  {
+    "id": "flux",
+    "name": "FLUX.3 Video",
+    "maker": "Black Forest Labs",
+    "kind": "Cinematic",
+    "status": "Current",
+    "family": "FLUX",
+    "summary": "Short audiovisual storytelling across visual styles.",
+    "specs": "Up to 20 seconds • Native 720p, 1080p upscaled • Audio",
+    "strengths": "Multilingual sound and flexible styling support ads, illustration and narrative shorts.",
+    "weaknesses": "Upscaled 1080p is not native detail; launch roadmap features should not be assumed available.",
+    "best": "An illustrated campaign brought to life or a stylized short with dialogue.",
+    "worst": "Assuming open weights or video/audio reference controls are shipped because they were announced.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://bfl.ai/blog/flux-3-video"
+      }
+    ]
+  },
+  {
+    "id": "vidu",
+    "name": "Vidu Q3",
+    "maker": "ShengShu",
+    "kind": "Cinematic",
+    "status": "Available generation",
+    "family": "Vidu",
+    "summary": "Reference-guided animation and short audiovisual scenes.",
+    "specs": "Up to 16 seconds • Audio/video • Reference workflows",
+    "strengths": "Character assets and reference-based production are useful for recurring subjects and animation.",
+    "weaknesses": "Complex scene consistency still needs review. The current homepage mixes generations and features.",
+    "best": "A recurring animated character in short episodic scenes or product angles.",
+    "worst": "Treating every homepage demonstration as Q3 output or expecting effortless feature-length continuity.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://www.vidu.com/vidu-q3"
+      }
+    ]
+  },
+  {
+    "id": "pixverse",
+    "name": "PixVerse V6 / C1",
+    "maker": "PixVerse",
+    "kind": "Cinematic",
+    "status": "Current / specialist",
+    "family": "PixVerse",
+    "summary": "General short-form creation plus a film-oriented C1 model.",
+    "specs": "Up to 15 seconds • Up to 1080p • Audio",
+    "strengths": "V6 serves broad creator workflows; C1 emphasizes action, effects and storyboard-led filmmaking.",
+    "weaknesses": "Vendor demos are curated. Fast spectacle can obscure failures in contact, anatomy and spatial logic.",
+    "best": "V6 for social shorts; C1 for an action concept or effects-heavy storyboard shot.",
+    "worst": "An exact fight choreography with guaranteed contacts, or treating effects as proof of realism.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://pixverse.ai/en"
+      },
+      {
+        "label": "Official details",
+        "url": "https://pixverse.ai/en/blog/pixverse-introduces-c1-ai-video-model-for-film-production"
+      }
+    ]
+  },
+  {
+    "id": "pika",
+    "name": "Pika 2.5 / Pikaffects",
+    "maker": "Pika",
+    "kind": "Cinematic",
+    "status": "Current / product tools",
+    "family": "Pika",
+    "summary": "Accessible short clips and playful transformations.",
+    "specs": "Image animation • Effect templates • Capabilities vary by feature",
+    "strengths": "Preset transformations are easy to art-direct for a simple visual gag.",
+    "weaknesses": "Pikaffects is a product workflow, not a synonym for the base model; templates constrain outcomes.",
+    "best": "A surreal product reveal, melting object or playful social post.",
+    "worst": "Subtle long-form dramatic acting, exact scientific simulation or unrestricted professional compositing.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://pika.art/"
+      }
+    ]
+  },
+  {
+    "id": "midjourney",
+    "name": "Midjourney Video",
+    "maker": "Midjourney",
+    "kind": "Cinematic",
+    "status": "Available",
+    "family": "Midjourney",
+    "summary": "Animate a strong starting image with minimal setup.",
+    "specs": "5-second clips • Extend up to 21 seconds • Manual/automatic motion",
+    "strengths": "Fits image-first creators who already have a carefully art-directed still.",
+    "weaknesses": "Extension can drift; it is an image-animation workflow, not a complete audio or editorial pipeline.",
+    "best": "Animate an illustration, fashion image or atmospheric concept scene.",
+    "worst": "Dialogue-first films, exact motion paths or preserving every detail through repeated extensions.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://docs.midjourney.com/hc/en-us/articles/37460773864589-Video"
+      }
+    ]
+  },
+  {
+    "id": "grok",
+    "name": "Grok Imagine Video 1.5",
+    "maker": "xAI",
+    "kind": "Cinematic",
+    "status": "Current",
+    "family": "Grok Imagine",
+    "summary": "API-oriented generation with improved native resolution.",
+    "specs": "Native 1080p available • Text/image/reference workflows • Voice presets",
+    "strengths": "A convenient option for integrating short audiovisual generation into applications.",
+    "weaknesses": "Input and resolution choices affect cost; older launch demos do not establish current model quality.",
+    "best": "Prototype a creative app or generate short scenes with a consistent preset voice.",
+    "worst": "Assuming a generic model benchmark guarantees your exact identity, text or sound requirements.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://docs.x.ai/developers/models/grok-imagine-video-1.5"
+      }
+    ]
+  },
+  {
+    "id": "firefly",
+    "name": "Adobe Firefly Video / Video 2 Preview",
+    "maker": "Adobe",
+    "kind": "Editing",
+    "status": "Available / preview",
+    "family": "Adobe Firefly",
+    "summary": "Creation and editing within an established creative ecosystem.",
+    "specs": "Generation • Video 2 Preview editing • Transparent-background workflow",
+    "strengths": "Camera controls, compositing features and Adobe integration suit post-production. Adobe describes licensed training inputs.",
+    "weaknesses": "Preview and partner-model features are distinct; a training-policy claim is not a guarantee for every generated output.",
+    "best": "Simple B-roll, compositing elements or a shot that will be finished in Adobe tools.",
+    "worst": "Dense action with many interacting subjects, or assuming every Firefly-hosted model is Adobe's model.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://helpx.adobe.com/firefly/web/firefly-video-editor/generate-videos/generate-video-using-firefly-models.html"
+      },
+      {
+        "label": "Official details",
+        "url": "https://helpx.adobe.com/uk/firefly/web/work-with-audio-and-video/work-with-video/edit-generated-video-using-text-prompts.html"
+      }
+    ]
+  },
+  {
+    "id": "marey",
+    "name": "Marey",
+    "maker": "Moonvalley",
+    "kind": "Cinematic",
+    "status": "Available",
+    "family": "Moonvalley",
+    "summary": "A production-focused option with explicit camera direction.",
+    "specs": "Filmmaking controls • Vendor-described licensed training footage",
+    "strengths": "Well matched to teams that value shot control and documented training provenance.",
+    "weaknesses": "Access, workflow and economics require evaluation; licensed training alone does not settle all output-use questions.",
+    "best": "A controlled commercial shot developed with a production team.",
+    "worst": "Choosing solely for a 'safe' label or expecting an effortless low-cost viral-effects workflow.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://www.moonvalley.com/marey"
+      }
+    ]
+  },
+  {
+    "id": "ltx25",
+    "name": "LTX-2.5",
+    "maker": "Lightricks",
+    "kind": "Open weights",
+    "status": "Current",
+    "family": "LTX",
+    "summary": "An adaptable audiovisual foundation with production formats.",
+    "specs": "22B parameters • Open weights • Native 4K/HDR/RAW capabilities",
+    "strengths": "Self-hosting and adaptation offer control; multi-shot and audio support broaden production uses.",
+    "weaknesses": "Large hardware demands. License terms vary with company revenue; vendor speed demos use high-end hardware.",
+    "best": "A studio building a customized pipeline with capable GPUs and engineering support.",
+    "worst": "A laptop-only deployment, assuming unrestricted licensing, or expecting benchmark hardware speed at home.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://ltx.io/model/ltx-2-5"
+      }
+    ]
+  },
+  {
+    "id": "ltx23",
+    "name": "LTX-2.3",
+    "maker": "Lightricks",
+    "kind": "Open weights",
+    "status": "Earlier generation",
+    "family": "LTX",
+    "summary": "An established controllable audiovisual pipeline.",
+    "specs": "Portrait support • Audio • Pose/depth/edge controls • Fast/Pro options",
+    "strengths": "Existing tooling and structural controls support repeatable, reference-led production.",
+    "weaknesses": "Earlier model; speed, duration and quality differ by service tier and configuration.",
+    "best": "A pipeline already tuned around LTX controls or portrait-oriented production.",
+    "worst": "Assuming all LTX endpoints share the same limits or moving versions without evaluating compatibility.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://ltx.io/model/ltx-2-3"
+      }
+    ]
+  },
+  {
+    "id": "wan22",
+    "name": "Wan 2.2 / Animate",
+    "maker": "Alibaba",
+    "kind": "Open weights",
+    "status": "Available open weights",
+    "family": "Wan",
+    "summary": "Local generation and motion-transfer components.",
+    "specs": "5B and larger variants • Text/image generation • Animate specialist",
+    "strengths": "Downloadable models enable custom deployment and adaptation; smaller variants lower the hardware barrier.",
+    "weaknesses": "Core generation is not the same as Wan3 cloud audiovisual models. GPU, setup and finishing are your responsibility.",
+    "best": "Self-hosted experimentation, fine-tuning or motion transfer with the Animate variant.",
+    "worst": "A turnkey audio/video service with zero engineering or equating parameter size with quality.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://github.com/Wan-Video/Wan2.2"
+      }
+    ]
+  },
+  {
+    "id": "hunyuan",
+    "name": "HunyuanVideo 1.5",
+    "maker": "Tencent",
+    "kind": "Open weights",
+    "status": "Available open weights",
+    "family": "Hunyuan",
+    "summary": "A compact research and customization foundation.",
+    "specs": "8.3B parameters • Native 480p/720p • 1080p super-resolution",
+    "strengths": "Documented offloading can lower GPU memory needs; useful for custom local pipelines.",
+    "weaknesses": "Minimum-memory operation trades convenience and speed; core model does not supply a complete audio workflow.",
+    "best": "A technically supported team fine-tuning visual style or experimenting locally.",
+    "worst": "Instant consumer-laptop generation or calling super-resolution native 1080p.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://github.com/Tencent-Hunyuan/HunyuanVideo-1.5"
+      }
+    ]
+  },
+  {
+    "id": "mochi",
+    "name": "Mochi 1",
+    "maker": "Genmo",
+    "kind": "Open weights",
+    "status": "Legacy / research",
+    "family": "Mochi / Genmo",
+    "summary": "An open research model focused on motion and prompt following.",
+    "specs": "480p preview • Apache 2.0 release",
+    "strengths": "Accessible weights and code are useful for research, adaptation and understanding video generation.",
+    "weaknesses": "Older low-resolution baseline; requires compute and does not match a modern integrated sound workflow.",
+    "best": "Research experiments or a pipeline built around its existing weights.",
+    "worst": "Selecting it by default for polished modern commercial delivery without substantial finishing.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://www.genmo.ai/blog/mochi-1-a-new-sota-in-open-text-to-video"
+      }
+    ]
+  },
+  {
+    "id": "cogvideo",
+    "name": "CogVideoX / CogVideoX1.5",
+    "maker": "Z.ai research ecosystem",
+    "kind": "Open weights",
+    "status": "Legacy / research",
+    "family": "CogVideo",
+    "summary": "A documented open video research family.",
+    "specs": "Text/image variants • Local deployment • Variant-specific licensing",
+    "strengths": "Useful research code and adaptation ecosystem for experiments and reproducible configurations.",
+    "weaknesses": "Quality, memory and licensing vary by checkpoint; older families need more technical finishing.",
+    "best": "Fine-tuning experiments and controlled comparisons with an existing CogVideo pipeline.",
+    "worst": "A no-setup consumer workflow or assuming every checkpoint has the same commercial terms.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://github.com/zai-org/CogVideo"
+      }
+    ]
+  },
+  {
+    "id": "svd",
+    "name": "Stable Video Diffusion 1.1",
+    "maker": "Stability AI",
+    "kind": "Open weights",
+    "status": "Legacy / self-hosted",
+    "family": "SVD",
+    "summary": "A short image-motion baseline retained for local workflows.",
+    "specs": "Image-to-video • Hosted API deprecated July 24, 2025",
+    "strengths": "Can remain useful in established local pipelines for subtle motion from a still.",
+    "weaknesses": "Short silent output and older controls; the discontinued hosted API is not a new integration choice.",
+    "best": "Animate a simple image within a pipeline already supporting the weights.",
+    "worst": "New development dependent on Stability's former SVD API or complex directed storytelling.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://kb.stability.ai/knowledge-base/how-to-access-stable-video-diffusion"
+      }
+    ]
+  },
+  {
+    "id": "sora",
+    "name": "Sora 2 / Sora 2 Pro",
+    "maker": "OpenAI",
+    "kind": "Cinematic",
+    "status": "Sunsetting",
+    "family": "Sora",
+    "summary": "A retiring audiovisual family, relevant chiefly to existing users.",
+    "specs": "Web/app ended April 26, 2026 • API shutdown announced for September 24, 2026",
+    "strengths": "Existing API users can complete supported short audiovisual experiments while access remains.",
+    "weaknesses": "Near-term retirement dominates selection. Pro and base differ in quality/output options.",
+    "best": "Finishing or migrating an existing workflow before the announced shutdown.",
+    "worst": "Any new long-lived application or workflow that depends on continued availability.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://openai.com/api-docs/sora/"
+      },
+      {
+        "label": "Official details",
+        "url": "https://developers.openai.com/api/docs/models/sora-2"
+      }
+    ]
+  },
+  {
+    "id": "heygen",
+    "name": "HeyGen Avatar V / IV",
+    "maker": "HeyGen",
+    "kind": "Avatar",
+    "status": "Current / specialist",
+    "family": "HeyGen",
+    "summary": "Presenter identity and talking-character production.",
+    "specs": "Avatar V: video-based identity • Avatar IV: photo/stylized characters",
+    "strengths": "A focused choice for repeatable presenters, localization and character speech.",
+    "weaknesses": "Avatar workflows constrain scene freedom; naturalness still depends on input, voice and script.",
+    "best": "V for a recurring spokesperson; IV for a photo-based or stylized talking character.",
+    "worst": "Complex cinematic action, moving crowd scenes or a general-purpose environment generator.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://help.heygen.com/en/articles/14602974-avatar-v-is-now-available-on-heygen"
+      }
+    ]
+  },
+  {
+    "id": "synthesia",
+    "name": "Synthesia Expressive Avatars",
+    "maker": "Synthesia",
+    "kind": "Avatar",
+    "status": "Specialist",
+    "family": "Synthesia",
+    "summary": "A structured presenter-video system for organizations.",
+    "specs": "Avatar product family • Script-led video and localization",
+    "strengths": "Templates and consistent presenters suit repeatable educational content.",
+    "weaknesses": "A product workflow rather than a directly comparable open scene-generation model; performances can feel constrained.",
+    "best": "Training, onboarding and multilingual explanations with a presenter.",
+    "worst": "Cinematic action, unconventional character choreography or freeform world generation.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://www.synthesia.io/features/avatars"
+      }
+    ]
+  },
+  {
+    "id": "hedra",
+    "name": "Hedra Avatar / Character-3 / Omnia",
+    "maker": "Hedra",
+    "kind": "Avatar",
+    "status": "Specialist",
+    "family": "Hedra",
+    "summary": "Expressive characters, talking portraits and short full-body scenes.",
+    "specs": "Audio-driven character workflows • Omnia emphasizes full-body/camera action",
+    "strengths": "Voice-led characters work well for personality, song and expressive delivery.",
+    "weaknesses": "Gestures may overshoot subtle acting; duration and output limits differ across current and legacy endpoints.",
+    "best": "Avatar/Character-3 for a talking or singing character; Omnia for a short moving-character scene.",
+    "worst": "Assuming long avatar duration also applies to Omnia, or subtle dramatic acting without iteration.",
+    "sources": [
+      {
+        "label": "Official documentation / showcase",
+        "url": "https://www.hedra.com/models/video/hedra/character-3"
+      },
+      {
+        "label": "Official details",
+        "url": "https://www.hedra.com/docs/pages/app/troubleshooting/file-specifications"
+      }
+    ]
+  }
+]

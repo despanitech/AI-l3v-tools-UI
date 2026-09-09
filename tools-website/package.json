@@ -1,0 +1,1 @@
+{"name":"l3v-tools-website","private":true,"scripts":{"dev":"node server.cjs","check":"node --check server.cjs && node --check dist/app.js"}}

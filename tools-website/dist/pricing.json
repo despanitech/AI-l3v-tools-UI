@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "revision": "2026-09-09-initial",
+  "rates": [
+    {"id":"runway-gen45-720-standard","modelId":"gen45","provider":"runway-direct","model":"gen4.5","resolution":"720p","audio":"not-included","currency":"USD","usdPerSecond":"0.12","minimumChargeUsd":"0","durations":[2,3,4,5,6,7,8,9,10],"verifiedAt":"2026-09-09T00:00:00Z","source":"https://docs.dev.runwayml.com/guides/pricing/"},
+    {"id":"google-veo31-fast-720-audio","modelId":"veo","provider":"google-gemini-direct","model":"veo-3.1-fast-generate-preview","resolution":"720p","audio":"included","currency":"USD","usdPerSecond":"0.10","minimumChargeUsd":"0","durations":[4,6,8],"verifiedAt":"2026-09-09T00:00:00Z","source":"https://ai.google.dev/gemini-api/docs/pricing"},
+    {"id":"vidu-q3-pro-720-standard","modelId":"vidu","provider":"vidu-direct","model":"viduq3-pro","resolution":"720p","audio":"provider-default","currency":"USD","usdPerSecond":"0.10","minimumChargeUsd":"0","durations":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],"verifiedAt":"2026-09-09T00:00:00Z","source":"https://platform.vidu.com/docs/pricing"}
+  ]
+}
