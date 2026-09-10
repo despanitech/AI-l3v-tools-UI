@@ -20,3 +20,4 @@ body{background:var(--background);color:var(--foreground)}.topbar,.skip{backgrou
 .identity-lettering .lettering-signature{width:260px;height:130px;right:-58px;top:8px;transform:rotate(-15deg);opacity:.5}
 [data-mode="dark"] .identity-lettering img{filter:invert(1);mix-blend-mode:screen}
 @media(max-width:620px){.identity-lettering{margin-left:-23px;margin-right:-23px}.identity-lettering .lettering-initials{left:20%}.identity-lettering .lettering-signature{right:-95px}}
+.identity-lettering{background:var(--panel)}
