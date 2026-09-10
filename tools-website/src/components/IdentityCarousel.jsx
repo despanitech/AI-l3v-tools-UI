@@ -16,6 +16,7 @@ const videoFrames = [
 [94,122,485,179],[678,122,488,179],[94,547,485,199],[679,547,487,199],[94,989,485,184],
 [125,131,454,194],[696,132,457,194],[125,562,455,196],[697,563,455,196],[125,989,455,177]
 ];
+const videoMessages = ['See a viral video? Make your version.', 'Discover how the look was created.', 'Break it down with AI.', 'Turn inspiration into prompts and instructions.', 'Bring that style to your videos.', 'Create something yours.'];
 const videoSizes = [[1230,1278],[1208,1302],[1214,1295],[1221,1289]];
 export default function IdentityCarousel({hidden, video = false}) {
   const names = video ? videoNames : identityNames;
@@ -43,7 +44,10 @@ export default function IdentityCarousel({hidden, video = false}) {
   const move = delta => setIndex(current => (current + delta + names.length) % names.length);
   return <article className="tool-tile identity-carousel" aria-label={video ? 'AI Video Suggestion showcase' : 'Magic Identity design showcase'} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocus={() => setFocused(true)} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false); }}>
     <div className="tile-top"><span className="identity-ai-label">{video ? 'AI-POWERED VIDEO IDEAS' : 'AI-POWERED PERSONAL DESIGN'}</span><span aria-hidden="true">✦</span></div>
-    <h2>{video ? 'AI Video Suggestion' : 'Magic Identity'}</h2><p>{video ? 'Your reference. Your next video.' : 'Your name. Reimagined by AI.'}</p>
+        <div className="showcase-intro">
+      {video ? <h2 className="video-message-stack">{videoMessages.map((message, i) => <span key={message} className={i === index % videoMessages.length ? 'is-active' : ''} aria-hidden={i !== index % videoMessages.length}>{message}</span>)}</h2> : <h2>Magic Identity</h2>}
+      <p>{video ? 'Add a video, screenshot, or link. Get recommended AI models, prompts, and estimated costs.' : 'Your name. Reimagined by AI.'}</p>
+    </div>
     <div className="concept-viewport" role="region" aria-roledescription="carousel" aria-label={video ? '20 video concepts' : '20 identity design concepts'} tabIndex={0}
       onKeyDown={e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); move(e.key === 'ArrowRight' ? 1 : -1); } }}
       onTouchStart={e => { touch.current = e.touches[0].clientX; }}
@@ -63,9 +67,10 @@ export default function IdentityCarousel({hidden, video = false}) {
     </div>
     <button className="concept-play" type="button" aria-pressed={playing} onClick={() => setPlaying(value => !value)}>{playing ? 'Pause slideshow' : 'Play slideshow'}</button>
     <div className="tile-variations">{(video ? ['Video', 'Screenshot', 'Link'] : ['Name Logos', 'Initials', 'Signatures']).map(label => <span key={label}>{label}</span>)}</div>
-    <a className="identity-try-button" href={video ? '#video' : '#logo'}>{video ? 'Try your video' : 'Try your name'} <span aria-hidden="true">→</span></a>
+    <a className="identity-try-button" href={video ? '#video' : '#logo'}>{video ? 'Analyze a reference' : 'Try your name'} <span aria-hidden="true">→</span></a>
   </article>;
 }
+
 
 
 
