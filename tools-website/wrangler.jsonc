@@ -1,0 +1,12 @@
+{
+  "name": "l3v-ai-tools",
+  "account_id": "e59edf1b90c8e5d4194d739055828833",
+  "compatibility_date": "2026-09-10",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{"pattern": "tools.l3v.ai", "custom_domain": true}],
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}

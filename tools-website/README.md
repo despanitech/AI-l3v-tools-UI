@@ -9,3 +9,5 @@ Run `node server.cjs` and open http://127.0.0.1:4185. On localhost only, the sit
 `dist/` is the complete static public website. `dist/integration-config.js` keeps analysis disabled until an authenticated public bridge is verified. No private gateway secrets belong in browser code. Pricing uses a versioned catalog snapshot with stale-price warnings.
 
 Run `node --test integration.test.mjs` for queue/error and pricing checks.
+
+Production: https://tools.l3v.ai — direct Cloudflare Workers Static Assets. See DIRECT-HOSTING.md and wrangler.jsonc. Deploy with Wrangler 4; ChatGPT Sites is no longer used.
