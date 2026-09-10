@@ -1,7 +1,7 @@
 import IdentityCarousel from './IdentityCarousel.jsx';
 export default function Home({hidden}) {
   return <section id="home-panel" aria-labelledby="home-title" hidden={hidden}>
-    <div className="landing-intro"><p className="eyebrow">L3V AI TOOLS</p><h1 id="home-title">What will you create?</h1><p>A name. A signature. Your next video.<br />Choose a tool and start with what you have.</p></div>
+    <div className="landing-intro"><p className="eyebrow">L3V AI TOOLS</p><h1 id="home-title">What will you create?</h1><p>Choose a tool. Start with your name or a video reference.</p></div>
     <div className="tool-tiles">
       <IdentityCarousel />
       <a className="tool-tile" href="#video"><div className="tile-top"><span className="tile-category">VIDEO</span><span aria-hidden="true">↗</span></div><span className="tile-sample video-sample" aria-hidden="true">▷</span><h2>AI Video Suggestion</h2><p>Share a video, screenshot, or link. We will show you how to create something similar, which AI models to use, and how much it could cost on popular platforms.</p><div className="tile-bottom"><span>Reference preview · Analysis coming soon</span><span className="tile-number">02</span></div></a>
@@ -9,5 +9,6 @@ export default function Home({hidden}) {
     </div><p className="landing-note">A growing collection. AI generation is being connected; available previews are ready to explore.</p>
   </section>;
 }
+
 
 
