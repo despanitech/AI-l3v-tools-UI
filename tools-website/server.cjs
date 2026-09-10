@@ -19,4 +19,4 @@ http.createServer(async (req,res) => {
     if (req.method === 'HEAD') { res.end(); return; }
     fs.createReadStream(target).pipe(res);
   });
-}).listen(4185,'127.0.0.1',() => console.log('L3V Tools preview: http://127.0.0.1:4185'));
+}).listen(Number(process.env.PORT || 4185),'127.0.0.1',() => console.log(`L3V Tools preview: http://127.0.0.1:${process.env.PORT || 4185}`));

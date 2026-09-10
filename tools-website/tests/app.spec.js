@@ -1,0 +1,123 @@
+import {test, expect} from '@playwright/test';
+import fs from 'node:fs';
+const image = fs.readFileSync(new URL('../public/assets/favicon.png', import.meta.url));
+const imageFile = {name: 'reference.png', mimeType: 'image/png', buffer: image};
+const pricing = JSON.parse(fs.readFileSync(new URL('../public/pricing.json', import.meta.url)));
+const modelId = pricing.rates[0].modelId;
+
+test('routing, three names, keyboard tabs and persisted identity', async ({page}) => {
+  await page.goto('/');
+  await page.getByRole('link', {name: 'Magic Identity', exact: true}).click();
+  await page.getByLabel('First name', {exact: true}).fill('Natia');
+  await page.getByLabel('Last name', {exact: true}).fill('Odisharia');
+  await expect(page.locator('#sample-name')).toHaveText('Natia');
+  await expect(page.locator('#sample-initials')).toHaveText('N.O.');
+  await page.locator('#direction-name').focus();
+  await page.keyboard.press('End');
+  await expect(page.locator('#direction-signature')).toBeFocused();
+  await expect(page.locator('#direction-text')).toHaveText('Text to use: N. Odisharia');
+  await page.goto('/#initials');
+  await expect(page.locator('#direction-initials')).toHaveAttribute('aria-selected', 'true');
+  await page.reload();
+  await expect(page.getByLabel('First name', {exact: true})).toHaveValue('Natia');
+  await expect(page).toHaveTitle('Magic Initials · l3v AI tools');
+});
+
+test('themes and light/dark persist, theme picker closes with Escape', async ({page}) => {
+  await page.goto('/');
+  await page.locator('#theme-picker summary').click();
+  await expect(page.locator('#theme-options button')).toHaveCount(60);
+  await page.locator('#theme-options button').filter({hasText: 'Fern'}).click();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#theme-picker')).not.toHaveAttribute('open');
+  await page.getByRole('switch', {name: 'Light appearance'}).click();
+  await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
+  await page.reload();
+  await expect(page.locator('#theme-name')).toHaveText('Fern');
+  await expect(page.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
+});
+
+test('upload previews stay local, removal and invalid sources', async ({page}) => {
+  const calls = [];
+  page.on('request', req => { if (req.url().includes('/api/analyze')) calls.push(req); });
+  await page.goto('/#video');
+  await page.getByLabel('Choose a reference image or video').setInputFiles(imageFile);
+  await expect(page.getByAltText('Your reference image')).toBeVisible();
+  await expect(page.getByRole('button', {name: 'Get video suggestions'})).toBeDisabled();
+  await page.getByRole('button', {name: 'Remove', exact: true}).click();
+  await expect(page.locator('#reference')).toHaveCount(0);
+  await page.getByLabel('Choose a reference image or video').setInputFiles({name: 'bad.txt', mimeType: 'text/plain', buffer: Buffer.from('bad')});
+  await expect(page.locator('#status')).toContainText('Choose a JPG');
+  await page.getByRole('tab', {name: 'Paste a video link'}).click();
+  await page.getByLabel('Video link', {exact: true}).fill('javascript:alert(1)');
+  await page.getByRole('button', {name: 'Preview', exact: true}).click();
+  await expect(page.locator('#status')).toContainText('direct HTTPS link');
+  expect(calls).toHaveLength(0);
+});
+
+test('name text is escaped and small screens do not overflow', async ({page}) => {
+  await page.setViewportSize({width: 390, height: 844});
+  await page.goto('/#logo');
+  await page.getByLabel('First name', {exact: true}).fill('<img src=x onerror=alert(1)>');
+  await expect(page.locator('#sample-name')).toHaveText('<img src=x onerror=alert(1)>');
+  await expect(page.locator('#sample-name img')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.screenshot({path: 'test-results/identity-mobile.png', fullPage: true});
+});
+
+async function enabledService(page) {
+  await page.route('**/integration-config.js', route => route.fulfill({contentType: 'text/javascript', body: 'window.L3V_API={enabled:true};'}));
+  await page.route('**/api/analyzer/config', route => route.fulfill({json: {enabled: true, sitekey: 'test-key', newScenePlanner: true}}));
+  await page.route('https://challenges.cloudflare.com/**', route => route.fulfill({contentType: 'text/javascript', body: 'window.turnstile={render(el,opts){queueMicrotask(()=>opts.callback("test-token"));return "test";},remove(){}};'}));
+}
+test('enabled API: analysis, price controls and one first-frame request', async ({page}) => {
+  await enabledService(page);
+  let analyses = 0, frames = 0;
+  await page.route('**/api/analyze', route => { analyses++; return route.fulfill({json: {report: {summary: 'A soft landscape', models: [{id: modelId, reason: 'Camera motion'}], prompt: 'Create a quiet scene', workflow: ['Choose a model']}, frameTicket: 'a'.repeat(32)}}); });
+  await page.route('**/api/first-frame', route => { frames++; return route.fulfill({json: {image: 'data:image/png;base64,' + image.toString('base64'), motionPrompt: 'Slow pan'}}); });
+  await page.goto('/#video');
+  await page.getByLabel('Choose a reference image or video').setInputFiles(imageFile);
+  await page.getByRole('button', {name: 'Get video suggestions'}).click();
+  await expect(page.getByRole('heading', {name: 'Your video direction'})).toBeVisible();
+  await expect(page.getByLabel('Provider and configuration')).toBeVisible();
+  await page.getByLabel('Takes', {exact: true}).fill('2');
+  await expect(page.locator('#analysis-result')).toContainText('USD estimated total');
+  await page.getByRole('button', {name: 'Create a first frame'}).click();
+  await expect(page.getByAltText('Generated first frame for a new scene')).toBeVisible();
+  await expect(page.getByRole('button', {name: 'Create a first frame'})).toBeDisabled();
+  expect(analyses).toBe(1); expect(frames).toBe(1);
+  await page.screenshot({path: 'test-results/video-result.png', fullPage: true});
+});
+
+test('changing a reference discards a pending analysis', async ({page}) => {
+  await enabledService(page);
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route('**/api/analyze', async route => { await gate; await route.fulfill({json: {report: {summary: 'Stale result', models: [], prompt: 'Old'}}}).catch(() => {}); });
+  await page.goto('/#video');
+  await page.getByLabel('Choose a reference image or video').setInputFiles(imageFile);
+  await page.getByRole('button', {name: 'Get video suggestions'}).click();
+  await expect(page.locator('#status')).toContainText('Submitting');
+  await page.getByRole('button', {name: 'Remove', exact: true}).click();
+  release();
+  await expect(page.locator('#analysis-result')).toHaveCount(0);
+  await expect(page.getByRole('button', {name: 'Get video suggestions'})).toBeDisabled();
+});
+
+test('public hostname never connects to local editor and desktop layout renders', async ({page}) => {
+  const localCalls = [];
+  page.on('request', req => { if (req.url().includes('/api/logo-status') || req.url().includes(':4184')) localCalls.push(req.url()); });
+  await page.route('https://tools.test/**', async route => {
+    const url = new URL(route.request().url());
+    const response = await route.fetch({url: 'http://127.0.0.1:4195' + url.pathname});
+    await route.fulfill({response});
+  });
+  await page.goto('https://tools.test/#logo');
+  await page.getByLabel('First name', {exact: true}).fill('Natia');
+  await page.getByLabel('Last name', {exact: true}).fill('Odisharia');
+  await expect(page.locator('#logo-frame')).toHaveCount(0);
+  await expect(page.getByRole('link', {name: 'Open full window'})).toHaveCount(0);
+  expect(localCalls).toHaveLength(0);
+  await page.getByRole('heading', {name: 'Make it your own.'}).click();
+  await page.screenshot({path: 'test-results/identity-desktop.png', fullPage: true});
+});

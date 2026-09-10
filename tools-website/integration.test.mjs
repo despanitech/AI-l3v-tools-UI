@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {waitForJob,estimateRate,post} from './dist/api-client.mjs';
-const catalog=JSON.parse(fs.readFileSync(new URL('./dist/pricing.json',import.meta.url)));
+import {waitForJob,estimateRate,post} from './src/lib/api-client.mjs';
+const catalog=JSON.parse(fs.readFileSync(new URL('./public/pricing.json',import.meta.url)));
 test('catalog estimate respects provider duration, takes, and stale verification',()=>{
   const value=estimateRate(catalog,'runway-gen45-720-standard',5,3,Date.parse('2026-09-09T12:00Z'));
   assert.equal(value.perTake,'0.60');assert.equal(value.estimatedTotal,'1.80');assert.equal(value.stale,false);

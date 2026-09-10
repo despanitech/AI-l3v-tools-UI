@@ -1,1 +1,21 @@
-{"name":"l3v-tools-website","private":true,"scripts":{"dev":"node server.cjs","check":"node --check server.cjs && node --check dist/app.js"}}
+{
+  "name": "l3v-tools-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4185",
+    "build": "vite build",
+    "preview": "node server.cjs",
+    "check": "node --check server.cjs && node --test integration.test.mjs && vite build",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@vitejs/plugin-react": "6.0.2",
+    "vite": "8.0.13"
+  }
+}
