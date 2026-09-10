@@ -5,7 +5,7 @@ All three examples represent Evan Hart: Evan, E/H, and E. Hart. Defaults also us
 | Asset | Source | SHA256 |
 |---|---|---|
 | magic-name.png | compact-logos-001 / 23-hard-angular | c283d7357ceaa59f11980fa986e237097dd7220c7806c927925e0288d0a44365 |
-| magic-initials.png | Original initials batch / INI900-S22-N23 | 2c813e4a1d15c9526ade531ff3c07abfdf39fb9c85106affd2da38d2ef44eed0 |
+| magic-initials.png | User-selected Woven Serif / review/evan-hart-initials/01.png | 289e3e60f32d364b0cf6c0b6d0e6f1cf35acf5a7b86dfe18c77b349a13b0c2e4 |
 | magic-signature.png | Built-in image generation / Evan Hart fine-line reference variant | a806c9c4323c65db34d8c81c8cb03421e3874fd22ce79a7e660712d755c9bbda |
 
 Signature visually checked for E, period, H, a, r, t. E exit forms the H crossbar and the long crossing stroke also supplies the terminal t crossbar. New draft, not user-approved. Originals are copied unchanged.
