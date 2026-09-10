@@ -7,17 +7,17 @@ test('carousel autoplays, pauses and keeps stable themed slides', async ({page})
   await expect(select).toHaveValue('0');
   await page.clock.fastForward(5100);
   await expect(select).toHaveValue('1');
-  await page.getByRole('button', {name: 'Pause slideshow'}).click();
+  await page.getByRole('button', {name: 'Pause slideshow'}).first().click();
   await page.clock.fastForward(10000);
   await expect(select).toHaveValue('1');
-  const viewport = page.locator('.concept-viewport');
+  const viewport = page.locator('.concept-viewport').first();
   const initial = await viewport.boundingBox();
   for (let i = 0; i < 20; i++) {
     await select.selectOption(String(i));
     expect((await viewport.boundingBox()).height).toBe(initial.height);
   }
   await expect(viewport).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-  await expect(page.locator('.concept-slide.is-active')).toHaveCSS('transition-duration', '0.65s');
+  await expect(page.locator('.concept-slide.is-active').first()).toHaveCSS('transition-duration', '0.65s');
   await page.locator('#mode-toggle').click();
   await expect(page.locator('html')).toHaveAttribute('data-mode', 'dark');
   await expect(viewport).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
@@ -29,5 +29,6 @@ test('reduced motion disables automatic advancement', async ({page}) => {
   await page.goto('/');
   await page.clock.fastForward(10000);
   await expect(page.getByLabel('Choose a design')).toHaveValue('0');
-  await expect(page.locator('.concept-slide.is-active')).toHaveCSS('transition-duration', '0s');
+  await expect(page.locator('.concept-slide.is-active').first()).toHaveCSS('transition-duration', '0s');
 });
+
