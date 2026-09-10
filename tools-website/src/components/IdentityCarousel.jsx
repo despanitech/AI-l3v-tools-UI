@@ -52,8 +52,9 @@ export default function IdentityCarousel({hidden}) {
     </div>
     <button className="concept-play" type="button" aria-pressed={playing} onClick={() => setPlaying(value => !value)}>{playing ? 'Pause slideshow' : 'Play slideshow'}</button>
     <div className="tile-variations"><span>Name Logos</span><span>Initials</span><span>Signatures</span></div>
-    <a className="tile-bottom" href="#logo"><span>Explore your name</span><span aria-hidden="true">↗</span></a>
+    <a className="identity-try-button" href="#logo">Try your name <span aria-hidden="true">→</span></a>
   </article>;
 }
+
 
 
