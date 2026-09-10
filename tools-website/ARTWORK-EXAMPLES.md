@@ -6,8 +6,8 @@ Original PNGs are copied without altering artwork or aspect ratio. Public inclus
 
 | Public asset | Original batch / selector | SHA256 |
 |---|---|---|
-| magic-name.png | compact-logos-001 / 01-hard-angular | 7588b7a7f324caa2b39a885c2ffeeff2c18d59299bc4f60372f8705fca8240c7 |
-| magic-initials.png | Original initials batch / INI900-S24-N01 | 6bf63461ff0c9e0b01a184127a68e2d495d91287648431160ad316dd401666b1 |
-| magic-signature.png | Original signature practice / sig-capital-lattice (Elena Rutherford) | 4eab6f0deae3e7fd2cd9367c919fae2043eaa6da27be05be186ad943b7b4ce1f |
+| magic-name.png | compact-logos-001 / 01-geometric-emblem | b8423a7b78f87fdcdd055e75652ade9655637e9bdea0c40667d1b985fcf8a8ee |
+| magic-initials.png | Original initials practice / INI-P1-01 | ebc335b5a2709e497175927421fb68fbbae7af958f46ee869f32e32058481a51 |
+| magic-signature.png | Original signature practice / sig-tucked-ribbon (Nora Laurent) | d49d4a49081cef331f309c10696b1e1162c38c6be31105a198837edc39794f6b |
 
-Name example: Clara. Initials example: C/E (Clara Evans). Signature example: E. Rutherford (Elena Rutherford). Selecting a category or typing a name does not regenerate these examples.
+Name example: Clara. Initials example: C/E (Clara Evans). Signature example: N. Laurent (Nora Laurent). Selecting a category or typing a name does not regenerate these examples.

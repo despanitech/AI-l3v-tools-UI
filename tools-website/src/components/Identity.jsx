@@ -7,9 +7,9 @@ const directions = [
   ['signature', 'Magic Signature', 'Your first initial and full surname.'],
 ];
 const examples = {
-  name: {file: 'magic-name.png', alt: 'Clara — compact angular name logo example'},
-  initials: {file: 'magic-initials.png', alt: 'C and E — intertwined serif initials example'},
-  signature: {file: 'magic-signature.png', alt: 'E. Rutherford — interwoven Capital Lattice signature example'},
+  name: {file: 'magic-name.png', alt: 'Clara — Faceted Nest name logo example'},
+  initials: {file: 'magic-initials.png', alt: 'C and E — Gothic Roundel initials example'},
+  signature: {file: 'magic-signature.png', alt: 'N. Laurent — Tucked Ribbon signature example'},
 };
 function savedNames() { try { return JSON.parse(readStored('l3v-logo-names', '{}')) || {}; } catch { return {}; } }
 const initial = text => new Intl.Segmenter(undefined, {granularity: 'grapheme'}).segment(text)[Symbol.iterator]().next().value?.segment || '';
