@@ -7,9 +7,9 @@ const directions = [
   ['signature', 'Magic Signature', 'Your first initial and full surname.'],
 ];
 const examples = {
-  name: {file: 'magic-name.png', alt: 'Natia — compact angular name logo example'},
-  initials: {file: 'magic-initials.png', alt: 'N and O — woven serif initials example'},
-  signature: {file: 'magic-signature.png', alt: 'E. Rutherford — interwoven Capital Lattice signature example'},
+  name: {file: 'magic-name.png', alt: 'Evan — Diagonal Weave name logo example'},
+  initials: {file: 'magic-initials.png', alt: 'E and H — Gothic Weave initials example'},
+  signature: {file: 'magic-signature.png', alt: 'E. Hart — fine-line looping signature signature example'},
 };
 function savedNames() { try { return JSON.parse(readStored('l3v-logo-names', '{}')) || {}; } catch { return {}; } }
 const initial = text => new Intl.Segmenter(undefined, {granularity: 'grapheme'}).segment(text)[Symbol.iterator]().next().value?.segment || '';
@@ -32,7 +32,7 @@ export default function Identity({tool, localPreview}) {
     return () => controller.abort();
   }, [visible, localPreview, tool]);
   const example = !first.trim() && !last.trim();
-  const f = example ? 'Nino' : first.trim(), l = example ? 'Orbeliani' : last.trim();
+  const f = example ? 'Evan' : first.trim(), l = example ? 'Hart' : last.trim();
   const values = {name: f || 'Add your first name', initials: f && l ? `${initial(f).toLocaleUpperCase()}.${initial(l).toLocaleUpperCase()}.` : 'Add both names', signature: f && l ? `${initial(f).toLocaleUpperCase()}. ${l}` : 'Add both names'};
   function navigate(event, index) {
     const next = {ArrowRight: (index + 1) % 3, ArrowLeft: (index + 2) % 3, Home: 0, End: 2}[event.key];
@@ -41,7 +41,7 @@ export default function Identity({tool, localPreview}) {
   }
   return <section id="logo-panel" aria-label="Magic Identity" hidden={!visible}>
     <div className="name-workspace"><p className="eyebrow">YOUR NAME, THREE DIRECTIONS</p><h1>Make it your own.</h1>
-      <div className="shared-name"><label>First name<input id="first-name" autoComplete="given-name" placeholder="Nino" maxLength={80} value={first} onChange={e => setFirst(e.target.value)} /></label><label>Last name<input id="last-name" autoComplete="family-name" placeholder="Orbeliani" maxLength={80} value={last} onChange={e => setLast(e.target.value)} /></label></div>
+      <div className="shared-name"><label>First name<input id="first-name" autoComplete="given-name" placeholder="Evan" maxLength={80} value={first} onChange={e => setFirst(e.target.value)} /></label><label>Last name<input id="last-name" autoComplete="family-name" placeholder="Hart" maxLength={80} value={last} onChange={e => setLast(e.target.value)} /></label></div>
       <div className="direction-cards" role="tablist" aria-label="Creative direction">{directions.map(([id, label, copy], i) => <button key={id} ref={el => { buttons.current[i] = el; }} id={'direction-' + id} role="tab" aria-selected={direction === id} aria-controls="direction-preview" tabIndex={direction === id ? 0 : -1} onClick={() => setDirection(id)} onKeyDown={e => navigate(e, i)}><span>0{i + 1}</span><strong>{label}</strong><small>{copy}</small><span className="direction-artwork"><img src={'/assets/identity/' + examples[id].file} alt={examples[id].alt} width={id === 'signature' ? 1774 : 1254} height={id === 'signature' ? 887 : 1254} loading="lazy" decoding="async" /></span><small className="artwork-label">Style example</small><small className="typed-name-label">{example ? 'Example text' : 'Your text'}</small><b id={'sample-' + id}>{values[id]}</b></button>)}</div>
       <div id="direction-preview" role="tabpanel" aria-labelledby={'direction-' + direction}><p id="direction-text" aria-live="polite">{example ? 'Example text' : 'Text to use'}: {values[direction]}</p><button className="secondary" disabled>Generation coming soon</button><p className="direction-note">Text preview only. Artwork generation is not connected.</p></div>
     </div>
