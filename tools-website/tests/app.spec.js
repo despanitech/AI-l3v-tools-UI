@@ -10,16 +10,16 @@ test('routing, three names, keyboard tabs and persisted identity', async ({page}
   await page.getByRole('link', {name: 'Magic Identity', exact: true}).click();
   await page.getByLabel('First name', {exact: true}).fill('Evan');
   await page.getByLabel('Last name', {exact: true}).fill('Hart');
-  await expect(page.locator('#sample-name')).toHaveText('Natia');
-  await expect(page.locator('#sample-initials')).toHaveText('N.O.');
+  await expect(page.locator('#sample-name')).toHaveText('Evan');
+  await expect(page.locator('#sample-initials')).toHaveText('E.H.');
   await page.locator('#direction-name').focus();
   await page.keyboard.press('End');
   await expect(page.locator('#direction-signature')).toBeFocused();
-  await expect(page.locator('#direction-text')).toHaveText('Text to use: N. Odisharia');
+  await expect(page.locator('#direction-text')).toHaveText('Text to use: E. Hart');
   await page.goto('/#initials');
   await expect(page.locator('#direction-initials')).toHaveAttribute('aria-selected', 'true');
   await page.reload();
-  await expect(page.getByLabel('First name', {exact: true})).toHaveValue('Natia');
+  await expect(page.getByLabel('First name', {exact: true})).toHaveValue('Evan');
   await expect(page).toHaveTitle('Magic Initials · l3v AI tools');
 });
 
@@ -121,3 +121,4 @@ test('public hostname never connects to local editor and desktop layout renders'
   await page.getByRole('heading', {name: 'Make it your own.'}).click();
   await page.screenshot({path: 'test-results/identity-desktop.png', fullPage: true});
 });
+
