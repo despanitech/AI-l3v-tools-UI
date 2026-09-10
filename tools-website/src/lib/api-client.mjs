@@ -5,7 +5,7 @@ export async function post(path, body, signal, transport = fetch) {
   if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'The service could not complete this request.');
   return data;
 }
-export async function waitForJob(data, update, signal, transport = fetch, delay = ms => new Promise(resolve => setTimeout(resolve,ms))) {
+export async function waitForJob(data, update, signal, transport = fetch, delay = ms => new Promise(resolve => setTimeout(resolve,ms)), maxWaitMs = 10 * 60 * 1000) {
   const started = Date.now();
   while (data.job) {
     const {id,status} = data.job;
@@ -15,7 +15,7 @@ export async function waitForJob(data, update, signal, transport = fetch, delay 
     if (errors[status]) throw new Error(errors[status]);
     if (!['queued','running'].includes(status)) throw new Error('The service returned an unknown job state.');
     update(status === 'queued' ? 'Your request is queued…' : 'Working on your request…');
-    if (Date.now() - started > 10 * 60 * 1000) throw new Error('Still waiting for the job. Do not resubmit; it may still be running.');
+    if (Date.now() - started > maxWaitMs) throw new Error('Still waiting for the job. Do not resubmit; it may still be running.');
     await delay(2500); signal.throwIfAborted();
     data = await post('/api/jobs',{id},signal,transport);
   }
