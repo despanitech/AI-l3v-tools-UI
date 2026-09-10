@@ -39,3 +39,6 @@ body{background:var(--background);color:var(--foreground)}.topbar,.skip{backgrou
 @media(max-width:620px){.concept-viewport{height:125px;min-height:125px}}
 @media(prefers-reduced-motion:reduce){.concept-viewport .concept-slide{transition:none}}
 
+.identity-try-button{display:flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:11px 18px;margin-top:4px;border:1px solid var(--accent);border-radius:6px;background:var(--accent);color:var(--panel);font-size:14px;font-weight:600;text-decoration:none;transition:filter .15s ease}
+.identity-try-button:hover{filter:brightness(1.12)}
+@media(prefers-reduced-motion:reduce){.identity-try-button{transition:none}}
