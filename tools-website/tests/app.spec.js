@@ -8,8 +8,8 @@ const modelId = pricing.rates[0].modelId;
 test('routing, three names, keyboard tabs and persisted identity', async ({page}) => {
   await page.goto('/');
   await page.getByRole('link', {name: 'Magic Identity', exact: true}).click();
-  await page.getByLabel('First name', {exact: true}).fill('Clara');
-  await page.getByLabel('Last name', {exact: true}).fill('Evans');
+  await page.getByLabel('First name', {exact: true}).fill('Evan');
+  await page.getByLabel('Last name', {exact: true}).fill('Hart');
   await expect(page.locator('#sample-name')).toHaveText('Natia');
   await expect(page.locator('#sample-initials')).toHaveText('N.O.');
   await page.locator('#direction-name').focus();
@@ -113,8 +113,8 @@ test('public hostname never connects to local editor and desktop layout renders'
     await route.fulfill({response});
   });
   await page.goto('https://tools.test/#logo');
-  await page.getByLabel('First name', {exact: true}).fill('Clara');
-  await page.getByLabel('Last name', {exact: true}).fill('Evans');
+  await page.getByLabel('First name', {exact: true}).fill('Evan');
+  await page.getByLabel('Last name', {exact: true}).fill('Hart');
   await expect(page.locator('#logo-frame')).toHaveCount(0);
   await expect(page.getByRole('link', {name: 'Open full window'})).toHaveCount(0);
   expect(localCalls).toHaveLength(0);
