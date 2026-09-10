@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import Prices from './Prices.jsx';
 import SecurityCheck from './SecurityCheck.jsx';
+import SeedanceVideo from './SeedanceVideo.jsx';
 
 export default function AnalysisResult({data, config, onFrame, frameUsed, frame, busy, onError}) {
   const [names, setNames] = useState([]), [token, setToken] = useState('');
@@ -17,5 +18,6 @@ export default function AnalysisResult({data, config, onFrame, frameUsed, frame,
     <h3>Suggested prompt</h3><p>{report.prompt}</p><Prices models={report.models} />
     <h3>Optional first frame</h3>{canPlan ? <><p>Create a still image of a different scene with the same visual mood. This does not generate a video.</p><button className="secondary" disabled={!token || frameUsed || busy} onClick={() => onFrame(token)}>Create a first frame</button>{!frameUsed && <SecurityCheck config={config} action="reference_frame" onToken={setToken} onError={onError} />}</> : <p>Automatic planning for a different scene is not connected. First-frame generation is unavailable.</p>}
     {frame && <><img src={frame.image} alt="Generated first frame for a new scene" className="generated-frame" /><a href={frame.image} download={'l3v-first-frame.' + (frame.image.startsWith('data:image/png') ? 'png' : 'jpg')}>Download first frame</a><h3>Motion prompt</h3><p>{frame.motionPrompt}</p></>}
+    {frame&&config.videoGeneration&&/^[a-f0-9]{32}$/.test(frame.job?.id||'')&&<SeedanceVideo key={frame.job.id} frameId={frame.job.id} config={config}/>}
   </section>;
 }

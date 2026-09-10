@@ -1,0 +1,23 @@
+import {test,expect} from '@playwright/test';
+import fs from 'node:fs';
+const image=fs.readFileSync(new URL('../public/assets/favicon.png',import.meta.url));
+test('Seedance submits once and plays the retained result',async({page})=>{
+  await page.route('**/integration-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.L3V_API={enabled:true};'}));
+  await page.route('**/api/analyzer/config',r=>r.fulfill({json:{enabled:true,sitekey:'test',newScenePlanner:true,videoGeneration:true,videoMaxCredits:450}}));
+  await page.route('https://challenges.cloudflare.com/**',r=>r.fulfill({contentType:'text/javascript',body:'window.turnstile={render(e,o){queueMicrotask(()=>o.callback("token"));return "widget";},remove(){}}'}));
+  await page.route('**/api/analyze',r=>r.fulfill({json:{report:{summary:'A quiet scene',models:[],prompt:'Pan slowly'},frameTicket:'a'.repeat(32)}}));
+  await page.route('**/api/first-frame',r=>r.fulfill({json:{job:{id:'b'.repeat(32),status:'succeeded'},image:'data:image/png;base64,'+image.toString('base64'),motionPrompt:'Pan slowly'}}));
+  let calls=0,body;
+  await page.route('**/api/image-to-video',r=>{calls++;body=r.request().postDataJSON();return r.fulfill({json:{job:{id:'c'.repeat(32),status:'queued'}}});});
+  await page.route('**/api/jobs',r=>r.fulfill({json:{job:{id:'c'.repeat(32),status:'succeeded'},video:'https://media.example/videos/test.mp4',model:'seedance2_5'}}));
+  await page.route('https://media.example/**',r=>r.fulfill({status:200,contentType:'video/mp4',body:''}));
+  await page.goto('/#video');
+  await page.getByLabel('Choose a reference image or video').setInputFiles({name:'image.png',mimeType:'image/png',buffer:image});
+  await page.getByRole('button',{name:'Get video suggestions'}).click();
+  await page.getByRole('button',{name:'Create a first frame'}).click();
+  await page.getByLabel('Generate audio').uncheck();
+  await page.getByRole('button',{name:'Generate video',exact:true}).click();
+  await expect(page.getByLabel('Generated Seedance video')).toHaveAttribute('src','https://media.example/videos/test.mp4');
+  await expect(page.getByRole('button',{name:'Generate video',exact:true})).toBeDisabled();
+  expect(calls).toBe(1);expect(body.request.audio).toBe(false);expect(body.request.frameId).toBe('b'.repeat(32));
+});
