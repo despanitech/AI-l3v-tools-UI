@@ -11,7 +11,7 @@ function openTool(tool) {
     if (name === (logo ? 'logo' : tool)) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   }
-  document.title = tool === 'home' ? 'l3v AI tools' : `${({logo:'AI Magic Signature',initials:'Nice Initials',signature:'Super Signature',video:'AI Video Suggestion'})[tool]} · l3v AI tools`;
+  document.title = tool === 'home' ? 'l3v AI tools' : `${({logo:'Magic Identity',initials:'Magic Initials',signature:'Magic Signature',video:'AI Video Suggestion'})[tool]} · l3v AI tools`;
   if(logo)document.dispatchEvent(new CustomEvent('l3v-direction',{detail:tool==='logo'?'name':tool}));
   if (logo && localPreview && !logoLoaded) {
     logoLoaded = true;
@@ -21,7 +21,7 @@ function openTool(tool) {
       $('logo-frame').src = 'http://127.0.0.1:4184/';
       $('logo-frame').hidden = false;
       $('logo-status').textContent = '';
-    }).catch(() => { logoLoaded = false; $('logo-status').textContent = 'The local logo editor is not running. Start it, then select Name as Logo again.'; });
+    }).catch(() => { logoLoaded = false; $('logo-status').textContent = 'The local logo editor is not running. Start it, then select Magic Name again.'; });
   }
 }
 function route() { const tool=location.hash.slice(1);openTool(['logo','initials','signature','video'].includes(tool)?tool:'home'); }
@@ -96,7 +96,7 @@ if (context?.registerTool) {
   const lifecycle = new AbortController();
   Promise.resolve(context.registerTool({
     name: 'open_l3v_tool', title: 'Open an l3v AI tool',
-    description: 'Show Name as Logo or AI Video Suggestion in the workspace. Does not run analysis or upload files.',
+    description: 'Show Magic Name or AI Video Suggestion in the workspace. Does not run analysis or upload files.',
     inputSchema: {type:'object', properties:{tool:{type:'string',enum:['logo','video']}}, required:['tool'], additionalProperties:false},
     annotations: {readOnlyHint:false,untrustedContentHint:false},
     execute(input) {
