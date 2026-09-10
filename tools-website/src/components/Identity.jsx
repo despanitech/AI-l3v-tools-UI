@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {readStored, writeStored} from '../lib/storage.js';
+import IdentityResults from './IdentityResults.jsx';
 
 const directions = [
   ['name', 'Magic Name', 'Your first name, shaped into a mark.'],
@@ -20,6 +21,7 @@ export default function Identity({tool, localPreview}) {
   const [last, setLast] = useState(typeof saved.last === 'string' ? saved.last : '');
   const [direction, setDirection] = useState(directions.some(([id]) => id === saved.direction) ? saved.direction : 'name');
   const [editor, setEditor] = useState('idle');
+  const [showResults, setShowResults] = useState(false);
   const buttons = useRef([]);
   const visible = ['logo', 'initials', 'signature'].includes(tool);
   useEffect(() => { if (visible) setDirection(tool === 'logo' ? 'name' : tool); }, [tool, visible]);
@@ -40,11 +42,12 @@ export default function Identity({tool, localPreview}) {
     event.preventDefault(); setDirection(directions[next][0]); buttons.current[next].focus();
   }
   return <section id="logo-panel" aria-label="Magic Identity" hidden={!visible}>
-    <div className="name-workspace"><p className="eyebrow">YOUR NAME, THREE DIRECTIONS</p><h1>Make it your own.</h1>
+    {showResults && <IdentityResults onBack={() => setShowResults(false)} />}
+    <div className="name-workspace" hidden={showResults}><p className="eyebrow">YOUR NAME, THREE DIRECTIONS</p><h1>Make it your own.</h1>
       <div className="shared-name"><label>First name<input id="first-name" autoComplete="given-name" placeholder="Evan" maxLength={80} value={first} onChange={e => setFirst(e.target.value)} /></label><label>Last name<input id="last-name" autoComplete="family-name" placeholder="Hart" maxLength={80} value={last} onChange={e => setLast(e.target.value)} /></label></div>
       <div className="direction-cards" role="tablist" aria-label="Creative direction">{directions.map(([id, label, copy], i) => <button key={id} ref={el => { buttons.current[i] = el; }} id={'direction-' + id} role="tab" aria-selected={direction === id} aria-controls="direction-preview" tabIndex={direction === id ? 0 : -1} onClick={() => setDirection(id)} onKeyDown={e => navigate(e, i)}><span>0{i + 1}</span><strong>{label}</strong><small>{copy}</small><span className="direction-artwork"><img src={'/assets/identity/' + examples[id].file} alt={examples[id].alt} width={id === 'signature' ? 1774 : 1254} height={id === 'signature' ? 887 : 1254} loading="lazy" decoding="async" /></span><small className="artwork-label">Style example</small><small className="typed-name-label">{example ? 'Example text' : 'Your text'}</small><b id={'sample-' + id}>{values[id]}</b></button>)}</div>
-      <div id="direction-preview" role="tabpanel" aria-labelledby={'direction-' + direction}><p id="direction-text" aria-live="polite">{example ? 'Example text' : 'Text to use'}: {values[direction]}</p><button className="secondary" disabled>Generation coming soon</button><p className="direction-note">Text preview only. Artwork generation is not connected.</p></div>
+      <div id="direction-preview" role="tabpanel" aria-labelledby={'direction-' + direction}><p id="direction-text" aria-live="polite">{example ? 'Example text' : 'Text to use'}: {values[direction]}</p><button className="secondary" onClick={() => setShowResults(true)}>Explore sample results</button><p className="direction-note">Preview Evan Hart’s collection. Generation for your name is not connected yet.</p></div>
     </div>
-    {localPreview && <><div className="logo-heading"><div><h1>Magic Name</h1><p>Choose a name design and refine its shape.</p></div><a href="http://127.0.0.1:4184/" target="_blank" rel="noopener">Open full window ↗</a></div><aside className="logo-roadmap" aria-label="Initials and upcoming tools"><a href="http://127.0.0.1:4184/initials-round-2026-09-09/index.html" target="_blank" rel="noopener">Review 30 initials concepts ↗</a><span>Drafts including N.O. and L.D. · Review only</span><a href="http://127.0.0.1:4184/surname-sampler/index.html?v=restored-core" target="_blank" rel="noopener">Review lettering studies ↗</a><span>150 new studies · Unreviewed · Previous batch retained</span></aside><p id="logo-status" role="status">{editor === 'loading' ? 'Opening the local editor…' : editor === 'missing' ? 'The local logo editor is not running. Start it, then select Magic Name again.' : ''}</p>{editor === 'ready' && <iframe id="logo-frame" title="Magic Name editor" allow="clipboard-write" src="http://127.0.0.1:4184/" />}</>}
+    {localPreview && !showResults && <><div className="logo-heading"><div><h1>Magic Name</h1><p>Choose a name design and refine its shape.</p></div><a href="http://127.0.0.1:4184/" target="_blank" rel="noopener">Open full window ↗</a></div><aside className="logo-roadmap" aria-label="Initials and upcoming tools"><a href="http://127.0.0.1:4184/initials-round-2026-09-09/index.html" target="_blank" rel="noopener">Review 30 initials concepts ↗</a><span>Drafts including N.O. and L.D. · Review only</span><a href="http://127.0.0.1:4184/surname-sampler/index.html?v=restored-core" target="_blank" rel="noopener">Review lettering studies ↗</a><span>150 new studies · Unreviewed · Previous batch retained</span></aside><p id="logo-status" role="status">{editor === 'loading' ? 'Opening the local editor…' : editor === 'missing' ? 'The local logo editor is not running. Start it, then select Magic Name again.' : ''}</p>{editor === 'ready' && <iframe id="logo-frame" title="Magic Name editor" allow="clipboard-write" src="http://127.0.0.1:4184/" />}</>}
   </section>;
 }
