@@ -9,7 +9,7 @@ const directions = [
 const examples = {
   name: {file: 'magic-name.png', alt: 'Natia — compact angular name logo example'},
   initials: {file: 'magic-initials.png', alt: 'N and O — woven serif initials example'},
-  signature: {file: 'magic-signature.png', alt: 'N. Odishari — interwoven Capital Lattice signature example'},
+  signature: {file: 'magic-signature.png', alt: 'E. Rutherford — interwoven Capital Lattice signature example'},
 };
 function savedNames() { try { return JSON.parse(readStored('l3v-logo-names', '{}')) || {}; } catch { return {}; } }
 const initial = text => new Intl.Segmenter(undefined, {granularity: 'grapheme'}).segment(text)[Symbol.iterator]().next().value?.segment || '';

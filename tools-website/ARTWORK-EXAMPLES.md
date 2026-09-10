@@ -8,6 +8,6 @@ Original PNGs are copied without altering artwork or aspect ratio. Public inclus
 |---|---|---|
 | magic-name.png | compact-logos-001 / 32-hard-angular | d9f060f71712827fcbaf4f4a27d2b8445f0225f4f2836e3fc4cde41ec04a8085 |
 | magic-initials.png | lettering-matrix-001 / woven-serif | fa4053c17f804b578e2c3e7b3d4db98e7388481ec73e5fa0b8fa7dadd610f469 |
-| magic-signature.png | lettering-matrix-001 / sig-capital-lattice | 9c5435179a0ddbedc0532cc16849df428516100388f29b6ecf00e9d0f098477a |
+| magic-signature.png | Original signature practice / sig-capital-lattice (Elena Rutherford) | 4eab6f0deae3e7fd2cd9367c919fae2043eaa6da27be05be186ad943b7b4ce1f |
 
-Name example: Natia. Initials example: N/O. Signature example: N. Odishari (the original batch spelling). Selecting a category or typing a name does not regenerate these examples.
+Name example: Natia. Initials example: N/O. Signature example: E. Rutherford (Elena Rutherford). Selecting a category or typing a name does not regenerate these examples.
