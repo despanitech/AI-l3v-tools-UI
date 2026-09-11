@@ -2,10 +2,12 @@ import {validateReference,validateReport} from '../analyzer/contract.mjs';
 import guide from '../app/guide.json' with {type:'json'};
 import {validateVideoRequest,validateVideoResult} from './video-contract.mjs';
 import {facebookReelUrl} from './src/lib/facebook-reel.mjs';
+import {invitationAccount} from './invitation-worker.mjs';
 const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export default {
  async fetch(request,env) {
-  const url=new URL(request.url);
+ const url=new URL(request.url);
+  const accountId=await invitationAccount(request,env);if(env.INVITATION_ONLY==='true'&&!accountId)return reply({error:'Invitation required.'},403);
   const frame=url.pathname==='/api/first-frame';
   const polling=url.pathname==='/api/jobs';
   const video=url.pathname==='/api/image-to-video';
@@ -49,7 +51,7 @@ export default {
    const visitor=Array.from(new Uint8Array(identity),b=>b.toString(16).padStart(2,'0')).join('');
    const target=new URL(env.HERMES_URL);if(target.protocol!=='https:'||target.username||target.password)throw new Error('configuration');
    target.pathname=video?'/image-to-video':frame?'/first-frame':polling?'/jobs':'/analyze';target.search='';target.hash='';
-   const result=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.HERMES_TOKEN},body:JSON.stringify({...reference,visitor,access}),redirect:'manual',signal:AbortSignal.timeout(frame?165000:90000)});
+   const result=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.HERMES_TOKEN},body:JSON.stringify({...reference,visitor,access,...accountId&&{accountId}}),redirect:'manual',signal:AbortSignal.timeout(frame?165000:90000)});
    if(result.status===429)return reply({error:'The analysis allowance has been reached. Please try tomorrow.'},429);
    if(result.status===404)return reply({error:'Analysis not found or expired.'},404);
    if(result.status===409)return reply({error:'This request already used different settings. Check its saved status.'},409);

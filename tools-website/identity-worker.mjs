@@ -1,4 +1,5 @@
 import videoWorker from './video-worker.mjs';
+import {invitationAccount} from './invitation-worker.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
 async function signature(value, secret) {
@@ -14,6 +15,17 @@ async function bounded(response, limit) {
 export default {
   async fetch(request, env) {
     const url=new URL(request.url), prefix='/api/name-logo/';
+    const api=url.pathname.startsWith('/api/');
+    const account=api?await invitationAccount(request,env):null;
+    if(url.pathname==='/api/invitation/validate')return account?json({valid:true,accountId:account}):json({error:'Invitation required'},403);
+    if(url.pathname==='/api/account/work'){
+      if(!account)return json({error:'Invitation required'},403);
+      const target=new URL(env.HERMES_URL);target.pathname='/account/work';target.search='';target.hash='';
+      const response=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.HERMES_TOKEN},body:JSON.stringify({accountId:account}),redirect:'manual',signal:AbortSignal.timeout(15000)});
+      if(!response.ok)return json({error:'Work index unavailable'},503);
+      return json(JSON.parse(new TextDecoder().decode(await bounded(response,250000))));
+    }
+    if(api&&env.INVITATION_ONLY==='true'&&!account)return json({error:'Invitation required'},403);
     if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
@@ -42,7 +54,7 @@ export default {
         const verification=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',body:new URLSearchParams({secret:env.TURNSTILE_SECRET,response:body.token,remoteip:ip}),signal:AbortSignal.timeout(10000)});
         const checked=await verification.json();
         if(!checked.success || checked.hostname!==url.hostname || checked.action!=='name_logo')return json({error:'Security check expired'},403);
-        payload={...payload,...(styles?{styles}:{styleId:body.styleId}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
+        payload={...payload,...account&&{accountId:account},...(styles?{styles}:{styleId:body.styleId}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
       }
       if(action==='status' || action==='image') {
         const id=action==='image'?url.searchParams.get('id'):body.id;

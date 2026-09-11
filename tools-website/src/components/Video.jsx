@@ -6,6 +6,7 @@ import SecurityCheck from './SecurityCheck.jsx';
 import AnalysisResult from './AnalysisResult.jsx';
 import VideoSampleResult from './VideoSampleResult.jsx';
 import {facebookReelUrl} from '../lib/facebook-reel.mjs';
+import {accessFetch} from '../lib/master-access.mjs';
 
 export default function Video({hidden}) {
   const [sample, setSample] = useState(false);
@@ -18,7 +19,7 @@ export default function Video({hidden}) {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/analyzer/config', {signal: controller.signal}).then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(value => { if (!value.enabled || !value.sitekey) throw new Error(); setConfig(value); }).catch(error => { if (error.name !== 'AbortError') setConfigError('The analysis service is unavailable. You can still preview a reference.'); });
+    accessFetch('/api/analyzer/config', {signal: controller.signal}).then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(value => { if (!value.enabled || !value.sitekey) throw new Error(); setConfig(value); }).catch(error => { if (error.name !== 'AbortError') setConfigError('The analysis service is unavailable. You can still preview a reference.'); });
     return () => controller.abort();
   }, []);
   useEffect(() => () => { run.current?.abort(); if (objectUrl.current) URL.revokeObjectURL(objectUrl.current); }, []);

@@ -1,3 +1,4 @@
+import {accessHeaders,requestReceipt} from './master-access.mjs';
 const prefix = 'l3v-video-request-v1:';
 const latest = prefix + 'latest';
 const hex = bytes => Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
@@ -32,13 +33,13 @@ function save(record, storage) {
   storage.setItem(latest, key);
   if (storage.getItem(latest) !== key) throw error();
 }
+export async function importAccountWork(rows,storage=browserStorage){const root=rows[0],record={fingerprint:root.fingerprint,access:{requestId:root.request_id,receipt:await requestReceipt(root.request_id)},stages:{}};for(const row of rows)if(row.stage_key&&row.resource_id)record.stages['/api/'+({'analysis':'analyze'}[row.stage_key]||row.stage_key.replace(/^frame_.*/,'first-frame').replace(/^video_.*/,'image-to-video'))]={fingerprint:row.fingerprint,jobId:row.resource_id};save(record,storage);return record}
 export async function receiptForReference(reference, storage = browserStorage) {
   try {
     const fingerprint = await digest(reference.kind === 'facebook-reel' ? {kind: reference.kind, sourceUrl: reference.sourceUrl} : {kind: reference.kind, image: reference.image});
     const raw = storage.getItem(prefix + fingerprint);
-    const record = raw === null ? {fingerprint, access: {
-      requestId: hex(crypto.getRandomValues(new Uint8Array(16))),
-      receipt: hex(crypto.getRandomValues(new Uint8Array(32)))}, stages: {}} : JSON.parse(raw);
+    const requestId=hex(crypto.getRandomValues(new Uint8Array(16)));
+    const record = raw === null ? {fingerprint, access: {requestId,receipt:await requestReceipt(requestId)}, stages: {}} : JSON.parse(raw);
     if (!valid(record) || record.fingerprint !== fingerprint) throw error();
     save(record, storage);
     return record;
@@ -70,7 +71,7 @@ export function receiptTransport(record, transport = fetch, storage = browserSto
       }
       save(record, storage);
     } catch { throw error(); }
-    const headers = new Headers(options.headers);
+    const headers = new Headers(accessHeaders(options.headers));
     headers.set('X-L3V-Request-Id', record.access.requestId);
     headers.set('X-L3V-Request-Receipt', record.access.receipt);
     const response = await transport(path, {...options, headers});
