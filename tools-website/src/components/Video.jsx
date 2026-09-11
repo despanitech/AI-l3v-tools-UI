@@ -137,6 +137,6 @@ export default function Video({hidden}) {
     <div className="submit-row"><button className="primary" disabled={!enabled} aria-describedby="service-note" onClick={analyze}>{submitted ? (result ? 'Analysis complete' : 'Request already submitted') : 'Analyze reference'} <span aria-hidden="true">{submitted ? '✓' : '↗'}</span></button><p id="service-note">{note}</p></div>
     {config?.enabled && <><button className="text-button" disabled={busy} onClick={restore}>Check saved request</button><p className="hint">Your latest request can be recovered in this browser after closing the tab.</p></>}
     <p className="privacy">{config ? 'On submission, your image or sampled frames are sent to the analysis service.' : 'Your files stay on this device in this preview.'}</p>
-    {result && <AnalysisResult key={generation.current + ':' + requestAccess.current?.access.requestId} data={result} requestAccess={requestAccess.current} config={config} onFrame={generateFrame} frameUsed={frameUsed} frame={frame} busy={busy} onError={setStatus} />}
+    {result && <AnalysisResult key={generation.current + ':' + requestAccess.current?.access.requestId} data={result} reference={reference} requestAccess={requestAccess.current} config={config} onFrame={generateFrame} frameUsed={frameUsed} frame={frame} busy={busy} onError={setStatus} />}
   </section>;
 }
