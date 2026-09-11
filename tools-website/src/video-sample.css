@@ -45,6 +45,16 @@
 .video-sample-dialog{box-sizing:border-box;width:min(640px,calc(100% - 32px));max-height:calc(100dvh - 48px);margin:auto;padding:18px 22px;border:1px solid var(--border);border-radius:10px;background:var(--panel,#fff);color:var(--foreground,#17212b);overflow:auto;overscroll-behavior:contain}
 .video-sample-dialog::backdrop{background:rgb(0 0 0 / .45)}
 .video-sample-dialog .file-row{padding:0}
+.sample-plan-dialog{width:min(980px,calc(100% - 32px));padding:0;overflow:hidden}
+.sample-plan-body{padding:18px 20px 16px;overflow:auto}
+.sample-context{margin:0 0 14px;color:var(--muted);font-size:13px}
+.sample-stage-grid .result-stage{min-height:210px;display:flex;flex-direction:column}
+.sample-stage-grid .result-stage>h3{margin:14px 0 8px}
+.sample-stage-grid .result-stage>p{flex:1;margin:0 0 14px;font-size:13px;line-height:1.5}
+.sample-stage-grid .result-stage button{align-self:flex-start}
+.sample-plan-body>.privacy{margin:14px 0 0}
+.sample-analysis-dialog{z-index:3}
+@media(max-width:820px){.sample-plan-dialog{width:min(620px,calc(100% - 24px))}.sample-stage-grid .result-stage{min-height:0}}
 
 /* Match the signature action using the active site palette. */
 #video-panel .primary,#video-panel .secondary{
