@@ -4,9 +4,11 @@ import {post, waitForJob} from '../lib/api-client.mjs';
 import {prepareReference} from '../lib/prepare-reference.js';
 import SecurityCheck from './SecurityCheck.jsx';
 import AnalysisResult from './AnalysisResult.jsx';
+import VideoSampleResult from './VideoSampleResult.jsx';
 import {facebookReelUrl} from '../lib/facebook-reel.mjs';
 
 export default function Video({hidden}) {
+  const [sample, setSample] = useState(false);
   const [source, setSource] = useState('upload'), [url, setUrl] = useState('');
   const [reference, setReference] = useState(null), [status, setStatus] = useState(''), [dragging, setDragging] = useState(false);
   const [config, setConfig] = useState(null), [configError, setConfigError] = useState('');
@@ -113,6 +115,8 @@ export default function Video({hidden}) {
   function mediaError() { if (reference?.revision !== generation.current) return; clear(); setStatus('This reference could not load. Try another file or a direct video link.'); }
   return <section id="video-panel" aria-labelledby="video-title" hidden={hidden}>
     <div className="intro"><p className="eyebrow">AI VIDEO SUGGESTION</p><h1 id="video-title">Start with a reference.</h1><p>Share a Facebook Reel or an image. Get a step-by-step creation plan, recommended AI models, and estimated costs.</p></div>
+    <button className="text-button video-sample-link" aria-haspopup="dialog" onClick={() => setSample(true)}>View sample</button>
+    <VideoSampleResult mode={source === 'link' ? 'reel' : 'image'} open={sample && !hidden} onClose={() => setSample(false)} />
     <div className="input-tabs" role="tablist" aria-label="Reference source">{[['upload', 'Image'], ['link', 'Facebook Reel URL']].map(([id, label], i) => <button key={id} role="tab" id={id + '-tab'} aria-selected={source === id} aria-controls={id + '-pane'} tabIndex={source === id ? 0 : -1} ref={el => { tabs.current[i] = el; }} onClick={() => choose(id)} onKeyDown={event => navigate(event, i)}>{label}</button>)}</div>
     <div id="upload-pane" role="tabpanel" aria-labelledby="upload-tab" hidden={source !== 'upload'}><label className={'dropzone' + (dragging ? ' dragging' : '')} id="dropzone" onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragEnter={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={e => { e.preventDefault(); setDragging(false); useFile(e.dataTransfer.files[0]); }}><input id="file" ref={file} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose a reference image" onChange={e => useFile(e.target.files[0])} /><span className="upload-icon" aria-hidden="true">＋</span><strong>Drop an image here</strong><span>or <u>choose a file</u></span><small>JPG, PNG, WebP · up to 8 MB</small></label></div>
     <div id="link-pane" role="tabpanel" aria-labelledby="link-tab" hidden={source !== 'link'}><label htmlFor="video-url">Facebook Reel URL</label><div className="url-row"><input id="video-url" type="url" placeholder="https://www.facebook.com/reel/…" autoComplete="off" value={url} onChange={e => {setUrl(e.target.value); if (reference) clear();}} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); loadLink(); } }} /><button id="load-link" className="secondary" onClick={loadLink}>Add link</button></div><p className="hint">Facebook Reels only for now. Paste the full Reel URL; shortened share links are not supported yet.</p></div>
