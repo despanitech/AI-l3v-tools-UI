@@ -1,6 +1,7 @@
 import {validateReference,validateReport} from '../analyzer/contract.mjs';
 import guide from '../app/guide.json' with {type:'json'};
 import {validateVideoRequest,validateVideoResult} from './video-contract.mjs';
+import {facebookReelUrl} from './src/lib/facebook-reel.mjs';
 const reply=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 export default {
  async fetch(request,env) {
@@ -9,8 +10,10 @@ export default {
   const polling=url.pathname==='/api/jobs';
   const video=url.pathname==='/api/image-to-video';
   const origin=env.ALLOWED_ORIGIN||'https://tools.l3v.ai';
-  const ready=env.VIDEO_RECEIPTS_READY==='true'&&env.ANALYZER_ENABLED==='true'&&!!env.HERMES_URL&&!!env.HERMES_TOKEN&&!!env.TURNSTILE_SECRET&&!!env.TURNSTILE_SITEKEY;
-  if(url.pathname==='/api/analyzer/config') return reply({enabled:ready,sitekey:ready?env.TURNSTILE_SITEKEY:'',newScenePlanner:ready&&env.FRAMES_ENABLED==='true',videoGeneration:ready&&env.VIDEO_ENABLED==='true',videoMaxCredits:Number(env.VIDEO_MAX_CREDITS_PER_JOB||100)});
+  const ip=request.headers.get('CF-Connecting-IP');
+  const admitted=env.VIDEO_ACCESS_MODE==='public'||(env.VIDEO_ACCESS_MODE==='private'&&!!ip&&(env.VIDEO_TEST_IPS||'').split(',').map(s=>s.trim()).includes(ip));
+  const ready=admitted&&env.VIDEO_RECEIPTS_READY==='true'&&env.ANALYZER_ENABLED==='true'&&!!env.HERMES_URL&&!!env.HERMES_TOKEN&&!!env.TURNSTILE_SECRET&&!!env.TURNSTILE_SITEKEY&&!!env.VIDEO_ADMISSION_LIMITER&&!!env.VIDEO_POLL_LIMITER;
+  if(url.pathname==='/api/analyzer/config') return request.method==='GET'?reply({enabled:ready,sitekey:ready?env.TURNSTILE_SITEKEY:'',newScenePlanner:ready&&env.FRAMES_ENABLED==='true',videoGeneration:ready&&env.VIDEO_ENABLED==='true',reelAnalysis:ready&&env.REELS_ENABLED==='true',videoMaxCredits:Number(env.VIDEO_MAX_CREDITS_PER_JOB||100)}):reply({error:'Invalid method'},405);
   if(url.pathname!=='/api/analyze'&&!frame&&!polling&&!video)return env.ASSETS.fetch(request);
   if(request.method!=='POST')return reply({error:'Use the reference form.'},405);
   if(request.headers.get('Origin')!==origin)return reply({error:'Open the form on this website.'},403);
@@ -18,6 +21,12 @@ export default {
   if(!request.headers.get('Content-Type')?.startsWith('application/json'))return reply({error:'Unsupported request.'},415);
   const access={requestId:request.headers.get('X-L3V-Request-Id'),receipt:request.headers.get('X-L3V-Request-Receipt')};
   if(!/^[a-f0-9]{32}$/.test(access.requestId||'')||!/^[a-f0-9]{64}$/.test(access.receipt||''))return reply({error:'Request not found or expired.'},404);
+  if(!ip)return reply({error:'Unable to verify request origin.'},403);
+  try {
+   const limiter=polling?env.VIDEO_POLL_LIMITER:env.VIDEO_ADMISSION_LIMITER;
+   const key=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(env.HERMES_TOKEN+':rate:'+ip))),b=>b.toString(16).padStart(2,'0')).join('');
+   if(!(await limiter.limit({key})).success)return reply({error:'Too many requests. Wait a minute and check the saved request.'},429);
+  }catch{return reply({error:'Request protection is temporarily unavailable.'},503)}
   if(frame&&env.FRAMES_ENABLED!=='true')return reply({error:'Image generation is not available yet.'},503);
   let body;try{
    const reader=request.body.getReader();let size=0;const chunks=[];
@@ -26,7 +35,7 @@ export default {
   }catch{return reply({error:'Invalid request.'},400)}
   if(!body||typeof body!=='object'||Array.isArray(body))return reply({error:'Invalid request.'},400);
   if(video&&env.VIDEO_ENABLED!=='true')return reply({error:'Video generation is not available yet.'},503);
-  let reference;try{reference=video?validateVideoRequest(body):polling?validateJob(body):frame?validateTicket(body):validateReference(body)}catch(e){return reply({error:e.message},400)}
+  let reference;try{reference=video?validateVideoRequest(body):polling?validateJob(body):frame?validateTicket(body):body.kind==='facebook-reel'?validateReel(body,env):validateReference(body)}catch(e){return reply({error:e.message},400)}
   if(video&&reference.request.duration*({'480p':20,'720p':30,'1080p':68}[reference.request.resolution])>Number(env.VIDEO_MAX_CREDITS_PER_JOB||100))return reply({error:'Choose settings within the configured credit limit.'},400);
   if(!polling&&(typeof body.token!=='string'||body.token.length>2048))return reply({error:'Complete the security check.'},403);
   try{
@@ -36,7 +45,6 @@ export default {
    if(!response.ok||!verification.success||verification.hostname!==new URL(origin).hostname||verification.action!==(video?'reference_video':frame?'reference_frame':'reference_analyze'))return reply({error:'Security check expired. Please try again.'},403);
    }
    // The protected Hermes gateway must enforce a per-visitor daily cap and a global budget atomically.
-   const ip=request.headers.get('CF-Connecting-IP');if(!ip)return reply({error:'Unable to verify request origin.'},403);
    const identity=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(env.HERMES_TOKEN+new Date().toISOString().slice(0,10)+ip));
    const visitor=Array.from(new Uint8Array(identity),b=>b.toString(16).padStart(2,'0')).join('');
    const target=new URL(env.HERMES_URL);if(target.protocol!=='https:'||target.username||target.password)throw new Error('configuration');
@@ -53,6 +61,8 @@ export default {
   }catch{return reply({error:'The request status is uncertain. Keep this tab and check the saved request; do not start another generation.'},502)}
  }
 };
+
+function validateReel(body,env){const sourceUrl=facebookReelUrl(body.sourceUrl);if(env.REELS_ENABLED!=='true'||!sourceUrl||sourceUrl.length>2048)throw new Error('Use a public Facebook Reel URL, or upload an image.');return {kind:'facebook-reel',sourceUrl}}
 
 function validateTicket(body){if(typeof body.ticket!=='string'||!/^[a-f0-9]{32}$/.test(body.ticket))throw new Error('Analyze a reference before generating a frame.');return {ticket:body.ticket}}
 async function boundedJSON(response,limit){const reader=response.body.getReader();const chunks=[];let size=0;while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>limit){await reader.cancel();throw new Error('Result too large')}chunks.push(value)}const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length}return JSON.parse(new TextDecoder().decode(bytes))}

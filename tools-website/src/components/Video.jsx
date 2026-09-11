@@ -17,7 +17,6 @@ export default function Video({hidden}) {
   const file = useRef(null), media = useRef(null), tabs = useRef([]), objectUrl = useRef(''), run = useRef(null), generation = useRef(0), requestAccess = useRef(null), locked = useRef(false), frameAttempted = useRef(false);
 
   useEffect(() => {
-    if (window.L3V_API?.enabled !== true) return;
     const controller = new AbortController();
     fetch('/api/analyzer/config', {signal: controller.signal}).then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(value => { if (!value.enabled || !value.sitekey) throw new Error(); setConfig(value); }).catch(error => { if (error.name !== 'AbortError') setConfigError('The analysis service is unavailable. You can still preview a reference.'); });
     return () => controller.abort();
@@ -44,13 +43,13 @@ export default function Video({hidden}) {
     const value = facebookReelUrl(url);
     if (!value) { setStatus('Enter a Facebook Reel URL such as https://www.facebook.com/reel/123456789.'); return; }
     setReference({src: value, reel: true, label: value, revision: generation.current});
-    setStatus('Reel link added. Fetching Facebook video is not connected yet; you can view sample results below.');
+    setStatus('Reel link added. Analysis uses sampled visual frames; it does not listen to the audio.');
   }
   function choose(next) { setSource(next); clear(); }
   function navigate(event, i) { const next = {ArrowLeft: 1 - i, ArrowRight: 1 - i, Home: 0, End: 1}[event.key]; if (next === undefined) return; event.preventDefault(); choose(next ? 'link' : 'upload'); tabs.current[next].focus(); }
   const localVideo = reference?.video && reference.src.startsWith('blob:');
-  const enabled = config?.enabled && token && reference && !reference.reel && !busy && !localVideo;
-  const note = configError || (reference?.reel ? 'Facebook Reel extraction is being connected. Sample results are available.' : config?.enabled ? 'Get model recommendations and a suggested creation plan.' : 'Suggestions are being connected. You can preview your reference here.');
+  const enabled = config?.enabled && token && reference && (!reference.reel || config.reelAnalysis) && !busy && !localVideo;
+  const note = configError || (reference?.reel ? config?.reelAnalysis?'Public Reels only, up to 90 seconds and 30 MB. Visual samples only; no audio analysis.':'Reel analysis is not available yet. You can upload an image.' : config?.enabled ? 'Get model recommendations and a suggested creation plan.' : 'Suggestions are being connected. You can preview your reference here.');
   async function analyze() {
     if (!enabled || locked.current) return;
     setSample(false);
@@ -58,7 +57,7 @@ export default function Video({hidden}) {
     const version = generation.current, controller = new AbortController(); run.current = controller;
     const say = value => { if (version === generation.current) setStatus(value); };
     try {
-      say('Preparing your reference…'); const body = await prepareReference(media.current); controller.signal.throwIfAborted();
+      say('Preparing your reference…'); const body = reference.reel ? {kind:'facebook-reel',sourceUrl:reference.src} : await prepareReference(media.current); controller.signal.throwIfAborted();
       const access = await receiptForReference(body); controller.signal.throwIfAborted();
       requestAccess.current = access;
       const transport = receiptTransport(access);
@@ -97,7 +96,7 @@ export default function Video({hidden}) {
       if (!access) throw new Error('There is no saved request in this tab yet.');
       requestAccess.current = access;
       const transport = receiptTransport(access), analysisId = access.stages['/api/analyze']?.jobId;
-      if (!analysisId) throw new Error('The first response was not saved. Add the same image again to recover the existing analysis.');
+      if (!analysisId) throw new Error('The first response was not saved. Add the same image or Reel link again to recover the existing analysis.');
       let data = await post('/api/jobs', {id: analysisId}, controller.signal, transport);
       data = await waitForJob(data, say, controller.signal, transport);
       if (version !== generation.current) return;

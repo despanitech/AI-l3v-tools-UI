@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import worker from './identity-worker.mjs';
 const access={requestId:'a'.repeat(32),receipt:'b'.repeat(64)};
 const env={VIDEO_RECEIPTS_READY:'true',ANALYZER_ENABLED:'true',FRAMES_ENABLED:'true',VIDEO_ENABLED:'true',
+  VIDEO_ACCESS_MODE:'public',VIDEO_ADMISSION_LIMITER:{limit:async()=>({success:true})},VIDEO_POLL_LIMITER:{limit:async()=>({success:true})},
   HERMES_URL:'https://tools-api.example/analyze',HERMES_TOKEN:'server-secret',TURNSTILE_SECRET:'challenge-secret',
   TURNSTILE_SITEKEY:'public-site-key',VIDEO_OUTPUT_BASE_URL:'https://tools-api.example/media'};
 function request(path='/api/jobs',body={id:'c'.repeat(32)},headers={}) {
@@ -10,6 +11,35 @@ function request(path='/api/jobs',body={id:'c'.repeat(32)},headers={}) {
     'Content-Type':'application/json','CF-Connecting-IP':'192.0.2.1','X-L3V-Request-Id':access.requestId,
     'X-L3V-Request-Receipt':access.receipt,...headers},body:JSON.stringify(body)});
 }
+
+test('private rollout only admits configured network and defaults off',async()=>{
+  const config=()=>new Request('https://tools.l3v.ai/api/analyzer/config',{headers:{'CF-Connecting-IP':'192.0.2.1'}});
+  for(const changes of [{VIDEO_ACCESS_MODE:undefined},{VIDEO_ACCESS_MODE:'private',VIDEO_TEST_IPS:'192.0.2.2'}, {VIDEO_ADMISSION_LIMITER:undefined}]){
+    assert.equal((await (await worker.fetch(config(),{...env,...changes})).json()).enabled,false);
+  }
+  assert.equal((await (await worker.fetch(config(),{...env,VIDEO_ACCESS_MODE:'private',VIDEO_TEST_IPS:'192.0.2.1'})).json()).enabled,true);
+});
+
+test('rate limit and limiter failure never reach challenge or gateway',async t=>{
+  t.mock.method(globalThis,'fetch',()=>{throw Error('must not fetch')});
+  assert.equal((await worker.fetch(request(),{...env,VIDEO_POLL_LIMITER:{limit:async()=>({success:false})}})).status,429);
+  assert.equal((await worker.fetch(request(),{...env,VIDEO_POLL_LIMITER:{limit:async()=>{throw Error('offline')}}})).status,503);
+  assert.equal(globalThis.fetch.mock.callCount(),0);
+});
+
+test('Reel submission sends canonical URL without image or challenge token to gateway',async t=>{
+  const calls=[];
+  t.mock.method(globalThis,'fetch',async(target,options)=>{
+    calls.push(String(target));
+    if(String(target).includes('siteverify'))return Response.json({success:true,hostname:'tools.l3v.ai',action:'reference_analyze'});
+    const body=JSON.parse(options.body);
+    assert.equal(body.kind,'facebook-reel');assert.equal(body.sourceUrl,'https://www.facebook.com/reel/123');
+    assert.equal(body.token,undefined);assert.equal(body.image,undefined);
+    return Response.json({job:{id:'c'.repeat(32),status:'queued'}},{status:202});
+  });
+  assert.equal((await worker.fetch(request('/api/analyze',{kind:'facebook-reel',sourceUrl:'https://m.facebook.com/reels/123/?track=x',token:'test'}),{...env,REELS_ENABLED:'true'})).status,202);
+  assert.equal(calls.length,2);
+});
 test('new readiness gate disables configuration and admissions',async()=>{
   const disabled={...env,VIDEO_RECEIPTS_READY:'false'};
   const config=await (await worker.fetch(new Request('https://tools.l3v.ai/api/analyzer/config'),disabled)).json();
