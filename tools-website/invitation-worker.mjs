@@ -1,0 +1,2 @@
+const hex=bytes=>Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
+export async function invitationAccount(request,env={}){const token=request.headers.get('X-L3V-Invitation')||'';if(!/^[A-Za-z0-9_-]{43}$/.test(token))return null;const allowed=new Set((env.INVITATION_HASHES||'').split(',').filter(x=>/^[a-f0-9]{64}$/.test(x)));const hash=hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token)));return allowed.has(hash)?hash:null}
