@@ -5,7 +5,7 @@ import SecurityCheck from './SecurityCheck.jsx';
 
 export default function SeedanceVideo({frameId,config,requestAccess}) {
   const saved = requestAccess?.stages['/api/image-to-video'];
-  const [duration,setDuration]=useState(saved?.settings?.duration ?? 5),[resolution,setResolution]=useState(saved?.settings?.resolution ?? '720p'),[audio,setAudio]=useState(saved?.settings?.audio ?? true);
+  const [duration,setDuration]=useState(saved?.settings?.duration ?? 5),[resolution,setResolution]=useState(saved?.settings?.resolution ?? '480p'),[audio,setAudio]=useState(saved?.settings?.audio ?? false);
   const [securityVersion,setSecurityVersion]=useState(0);
   const [token,setToken]=useState(''),[status,setStatus]=useState(''),[submitted,setSubmitted]=useState(Boolean(saved));
   const [jobId,setJobId]=useState(saved?.jobId || ''),[video,setVideo]=useState(''),[checking,setChecking]=useState(false);

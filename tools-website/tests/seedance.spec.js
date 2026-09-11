@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const image=fs.readFileSync(new URL('../public/assets/favicon.png',import.meta.url));
 for (const lostResponse of [false,true,'frame']) test(`Seedance retains one request through reload (lost response: ${lostResponse})`,async({page})=>{
   await page.route('**/integration-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.L3V_API={enabled:true};'}));
-  await page.route('**/api/analyzer/config',r=>r.fulfill({json:{enabled:true,sitekey:'test',newScenePlanner:true,videoGeneration:true,videoMaxCredits:450}}));
+  await page.route('**/api/analyzer/config',r=>r.fulfill({json:{enabled:true,sitekey:'test',newScenePlanner:true,videoGeneration:true,videoMaxCredits:100}}));
   await page.route('https://challenges.cloudflare.com/**',r=>r.fulfill({contentType:'text/javascript',body:'window.turnstile={render(e,o){queueMicrotask(()=>o.callback("token"));return "widget";},remove(){}}'}));
   const receipts=[];page.on('request',r=>{if(/\/api\/(analyze|first-frame|image-to-video|jobs)$/.test(r.url()))receipts.push(r.headers());});
   await page.route('**/api/analyze',r=>r.fulfill({json:{job:{id:'a'.repeat(32),status:'succeeded'},report:{summary:'A quiet scene',models:[],prompt:'Pan slowly'},frameTicket:'a'.repeat(32)}}));
@@ -23,7 +23,9 @@ for (const lostResponse of [false,true,'frame']) test(`Seedance retains one requ
     await page.getByRole('button',{name:'Check saved request',exact:true}).click();
     await page.getByRole('button',{name:'Recover first frame',exact:true}).click();
   }
-  await page.getByLabel('Generate audio').uncheck();
+  await expect(page.getByLabel('Duration (seconds)')).toHaveValue('5');
+  await expect(page.getByRole('combobox', {name:'Resolution',exact:true})).toHaveValue('480p');
+  await expect(page.getByLabel('Generate audio')).not.toBeChecked();
   await page.getByRole('button',{name:'Generate video',exact:true}).click();
   if(lostResponse===true){
     await expect(page.getByRole('button',{name:'Recover video request',exact:true})).toBeEnabled();
@@ -40,5 +42,5 @@ for (const lostResponse of [false,true,'frame']) test(`Seedance retains one requ
   expect(new Set(receipts.map(h=>h['x-l3v-request-id'])).size).toBe(1);
   expect(new Set(receipts.map(h=>h['x-l3v-request-receipt'])).size).toBe(1);
   expect(receipts[0]['x-l3v-request-receipt']).toMatch(/^[a-f0-9]{64}$/);
-  expect(calls).toBe(lostResponse===true?2:1);expect(body.request.audio).toBe(false);expect(body.request.frameId).toBe('b'.repeat(32));
+  expect(calls).toBe(lostResponse===true?2:1);expect(body.request.duration).toBe(5);expect(body.request.resolution).toBe('480p');expect(body.request.audio).toBe(false);expect(body.request.frameId).toBe('b'.repeat(32));
 });

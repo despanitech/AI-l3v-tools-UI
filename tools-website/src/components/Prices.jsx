@@ -27,6 +27,6 @@ export default function Prices({models}) {
     <label>Takes<input type="number" min="1" max="20" value={takes} onChange={e => setTakes(e.target.value)} /></label>
     <p aria-live="polite">{message || `$${estimate.perTake} per take · $${estimate.estimatedTotal} USD estimated total`}</p>
     {estimate && <p>{estimate.stale ? 'Outdated price — ' : ''}Verified {estimate.verifiedAt.slice(0, 10)} · {estimate.catalogRevision}. {source?.protocol === 'https:' && <a href={source.href} target="_blank" rel="noopener">Provider pricing</a>}</p>}
-    <p>Catalog estimate, not a charge or availability guarantee. Excludes analysis, first-frame generation, tax, platform markup and upscaling. No video generation is connected.</p>
+    <p>Catalog estimate, not a charge or availability guarantee. Excludes analysis, first-frame generation, tax, platform markup and upscaling. Changing this estimate does not generate or purchase a video.</p>
   </div>;
 }
