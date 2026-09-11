@@ -3,9 +3,12 @@ import {post, waitForJob} from '../lib/api-client.mjs';
 import {prepareReference} from '../lib/prepare-reference.js';
 import SecurityCheck from './SecurityCheck.jsx';
 import AnalysisResult from './AnalysisResult.jsx';
+import VideoSampleResult from './VideoSampleResult.jsx';
+import {facebookReelUrl} from '../lib/facebook-reel.mjs';
 
 export default function Video({hidden}) {
   const [source, setSource] = useState('upload'), [url, setUrl] = useState('');
+  const [sample, setSample] = useState(false);
   const [reference, setReference] = useState(null), [status, setStatus] = useState(''), [dragging, setDragging] = useState(false);
   const [config, setConfig] = useState(null), [configError, setConfigError] = useState('');
   const [token, setToken] = useState(''), [securityVersion, setSecurityVersion] = useState(0);
@@ -20,6 +23,7 @@ export default function Video({hidden}) {
   }, []);
   useEffect(() => () => { run.current?.abort(); if (objectUrl.current) URL.revokeObjectURL(objectUrl.current); }, []);
   function clear() {
+    setSample(false);
     generation.current++; run.current?.abort(); locked.current = false; frameAttempted.current = false;
     if (media.current?.tagName === 'VIDEO') { media.current.pause(); media.current.removeAttribute('src'); media.current.load(); }
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
@@ -28,24 +32,27 @@ export default function Video({hidden}) {
   }
   function useFile(value) {
     clear(); if (!value) return;
-    const video = ['video/mp4', 'video/webm'].includes(value.type);
-    if (!video && !['image/jpeg', 'image/png', 'image/webp'].includes(value.type)) { setStatus('Choose a JPG, PNG, WebP, MP4 or WebM file.'); return; }
-    if (!value.size || value.size > (video ? 100 : 8) * 1024 * 1024) { setStatus(`Choose a ${video ? 'video up to 100' : 'picture up to 8'} MB.`); return; }
+    const video = false;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(value.type)) { setStatus('Choose a JPG, PNG or WebP image.'); return; }
+    if (!value.size || value.size > 8 * 1024 * 1024) { setStatus('Choose an image up to 8 MB.'); return; }
     objectUrl.current = URL.createObjectURL(value);
     setReference({src: objectUrl.current, video, label: value.name, revision: generation.current});
   }
   function loadLink() {
     clear();
-    try { const value = new URL(url.trim()); if (value.protocol !== 'https:' || value.username || value.password || !/\.(mp4|webm)$/i.test(value.pathname)) throw new Error(); setReference({src: value.href, video: true, label: value.hostname + value.pathname, revision: generation.current}); }
-    catch { setStatus('Enter a direct HTTPS link ending in .mp4 or .webm, or upload your reference.'); }
+    const value = facebookReelUrl(url);
+    if (!value) { setStatus('Enter a Facebook Reel URL such as https://www.facebook.com/reel/123456789.'); return; }
+    setReference({src: value, reel: true, label: value, revision: generation.current});
+    setStatus('Reel link added. Fetching Facebook video is not connected yet; you can view sample results below.');
   }
   function choose(next) { setSource(next); clear(); }
   function navigate(event, i) { const next = {ArrowLeft: 1 - i, ArrowRight: 1 - i, Home: 0, End: 1}[event.key]; if (next === undefined) return; event.preventDefault(); choose(next ? 'link' : 'upload'); tabs.current[next].focus(); }
   const localVideo = reference?.video && reference.src.startsWith('blob:');
-  const enabled = config?.enabled && token && reference && !busy && !localVideo;
-  const note = configError || (config?.enabled ? (localVideo ? 'Video upload analysis is not connected yet. Upload a still image or use a public video link.' : 'Get model recommendations and a suggested creation plan.') : 'Suggestions are being connected. You can preview your reference here.');
+  const enabled = config?.enabled && token && reference && !reference.reel && !busy && !localVideo;
+  const note = configError || (reference?.reel ? 'Facebook Reel extraction is being connected. Sample results are available.' : config?.enabled ? 'Get model recommendations and a suggested creation plan.' : 'Suggestions are being connected. You can preview your reference here.');
   async function analyze() {
     if (!enabled || locked.current) return;
+    setSample(false);
     locked.current = true; setBusy(true); setResult(null); setFrame(null); setFrameUsed(false); frameAttempted.current = false;
     const version = generation.current, controller = new AbortController(); run.current = controller;
     const say = value => { if (version === generation.current) setStatus(value); };
@@ -75,15 +82,17 @@ export default function Video({hidden}) {
   }
   function mediaError() { if (reference?.revision !== generation.current) return; clear(); setStatus('This reference could not load. Try another file or a direct video link.'); }
   return <section id="video-panel" aria-labelledby="video-title" hidden={hidden}>
-    <div className="intro"><p className="eyebrow">AI VIDEO SUGGESTION</p><h1 id="video-title">Start with a reference.</h1><p>Share a video, screenshot, or link. Get a step-by-step creation plan, recommended AI models, and estimated costs across popular platforms.</p></div>
-    <div className="input-tabs" role="tablist" aria-label="Reference source">{[['upload', 'Upload a file'], ['link', 'Paste a video link']].map(([id, label], i) => <button key={id} role="tab" id={id + '-tab'} aria-selected={source === id} aria-controls={id + '-pane'} tabIndex={source === id ? 0 : -1} ref={el => { tabs.current[i] = el; }} onClick={() => choose(id)} onKeyDown={event => navigate(event, i)}>{label}</button>)}</div>
-    <div id="upload-pane" role="tabpanel" aria-labelledby="upload-tab" hidden={source !== 'upload'}><label className={'dropzone' + (dragging ? ' dragging' : '')} id="dropzone" onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragEnter={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={e => { e.preventDefault(); setDragging(false); useFile(e.dataTransfer.files[0]); }}><input id="file" ref={file} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" aria-label="Choose a reference image or video" onChange={e => useFile(e.target.files[0])} /><span className="upload-icon" aria-hidden="true">＋</span><strong>Drop an image or video here</strong><span>or <u>choose a file</u></span><small>JPG, PNG, WebP · up to 8 MB<br />MP4, WebM · up to 60 seconds, 100 MB</small></label></div>
-    <div id="link-pane" role="tabpanel" aria-labelledby="link-tab" hidden={source !== 'link'}><label htmlFor="video-url">Video link</label><div className="url-row"><input id="video-url" type="url" placeholder="https://example.com/video.mp4" autoComplete="off" value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); loadLink(); } }} /><button id="load-link" className="secondary" onClick={loadLink}>Preview</button></div><p className="hint">Use a public MP4 or WebM link. For a social video, upload the clip or a screenshot.</p></div>
-    {reference && <div id="reference" className="reference"><div id="media">{reference.video ? <video key={reference.revision} ref={media} src={reference.src} controls playsInline preload="metadata" onError={mediaError} onLoadedMetadata={e => { if (!Number.isFinite(e.currentTarget.duration) || e.currentTarget.duration > 60) { clear(); setStatus('Choose a video up to 60 seconds long.'); } }} /> : <img key={reference.revision} ref={media} src={reference.src} alt="Your reference image" onError={mediaError} />}</div><div className="file-row"><span id="filename">{reference.label}</span><button id="remove" className="text-button" onClick={clear}>Remove</button></div></div>}
+    <div className="intro"><p className="eyebrow">AI VIDEO SUGGESTION</p><h1 id="video-title">Start with a reference.</h1><p>Share a Facebook Reel or an image. Get a step-by-step creation plan, recommended AI models, and estimated costs.</p></div>
+    <div className="input-tabs" role="tablist" aria-label="Reference source">{[['upload', 'Image'], ['link', 'Facebook Reel URL']].map(([id, label], i) => <button key={id} role="tab" id={id + '-tab'} aria-selected={source === id} aria-controls={id + '-pane'} tabIndex={source === id ? 0 : -1} ref={el => { tabs.current[i] = el; }} onClick={() => choose(id)} onKeyDown={event => navigate(event, i)}>{label}</button>)}</div>
+    <div id="upload-pane" role="tabpanel" aria-labelledby="upload-tab" hidden={source !== 'upload'}><label className={'dropzone' + (dragging ? ' dragging' : '')} id="dropzone" onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragEnter={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={e => { e.preventDefault(); setDragging(false); useFile(e.dataTransfer.files[0]); }}><input id="file" ref={file} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose a reference image" onChange={e => useFile(e.target.files[0])} /><span className="upload-icon" aria-hidden="true">＋</span><strong>Drop an image here</strong><span>or <u>choose a file</u></span><small>JPG, PNG, WebP · up to 8 MB</small></label></div>
+    <div id="link-pane" role="tabpanel" aria-labelledby="link-tab" hidden={source !== 'link'}><label htmlFor="video-url">Facebook Reel URL</label><div className="url-row"><input id="video-url" type="url" placeholder="https://www.facebook.com/reel/…" autoComplete="off" value={url} onChange={e => {setUrl(e.target.value); if (reference) clear();}} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); loadLink(); } }} /><button id="load-link" className="secondary" onClick={loadLink}>Add link</button></div><p className="hint">Facebook Reels only for now. Paste the full Reel URL; shortened share links are not supported yet.</p></div>
+    {reference && <div id="reference" className="reference">{!reference.reel && <div id="media"><img key={reference.revision} ref={media} src={reference.src} alt="Your reference image" onError={mediaError} /></div>}<div className="file-row"><span id="filename">{reference.label}</span><button id="remove" className="text-button" onClick={clear}>Remove</button></div></div>}
     <p id="status" role="status" aria-live="polite">{status}</p>
     <div id="analysis-security">{config && <SecurityCheck key={securityVersion} config={config} action="reference_analyze" onToken={setToken} onError={setConfigError} />}</div>
     <div className="submit-row"><button className="primary" disabled={!enabled} aria-describedby="service-note" onClick={analyze}>Get video suggestions <span aria-hidden="true">↗</span></button><p id="service-note">{note}</p></div>
     <p className="privacy">{config ? 'On submission, your image or sampled frames are sent to the analysis service.' : 'Your files stay on this device in this preview.'}</p>
-    {result && <AnalysisResult key={generation.current + ':' + requestId.current} data={result} config={config} onFrame={generateFrame} frameUsed={frameUsed} frame={frame} busy={busy} onError={setStatus} />}
+    <div className="video-sample-entry"><button className="secondary" disabled={busy} onClick={() => setSample(true)}>View sample results</button><p className="hint">See the results layout with example data. Your reference is not analyzed and no generation is requested.</p></div>
+    {sample && <VideoSampleResult mode={source === 'link' ? 'reel' : 'image'} label={reference?.label} onClose={() => setSample(false)} />}
+    {result && !sample && <AnalysisResult key={generation.current + ':' + requestId.current} data={result} config={config} onFrame={generateFrame} frameUsed={frameUsed} frame={frame} busy={busy} onError={setStatus} />}
   </section>;
 }
