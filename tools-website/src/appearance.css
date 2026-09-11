@@ -75,3 +75,4 @@ body{background:var(--background);color:var(--foreground)}.topbar,.skip{backgrou
 @media(min-width:901px){#logo-panel.simple-name-entry:has(.identity-workspace){width:calc(100% - 64px);max-width:1320px;padding-left:0;padding-right:0}.simple-name-entry:has(.identity-workspace) .workspace-split{grid-template-columns:200px minmax(0,1fr);gap:24px}.simple-name-entry:has(.identity-workspace) .workspace-art canvas{height:300px}}
 
 .identity-results-heading{margin:20px 0 24px;text-align:left}.identity-results-heading h2{font-family:var(--menu-font);font-size:26px;font-weight:500;margin:0 0 8px;line-height:1.4}.identity-results-heading small{display:block;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+#logo-panel.simple-name-entry{margin-top:8px;padding-top:8px}.simple-name-entry .entry-samples{margin-bottom:8px}.simple-name-entry h1{margin-top:8px;margin-bottom:16px}
