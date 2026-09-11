@@ -1,14 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
 
-const identityNames = ['Clara Bellamy', 'Theo Whitaker', 'Evelyn Ashford', 'Maya Sinclair', 'Nora Laurent', 'Felix Hartwell', 'Iris Kendrick', 'Hugo Wellington', 'Ava Prescott', 'Zara Fitzgerald', 'Dalia Roswell', 'Olivia Bennett', 'Cassian Mercer', 'Leila Morgan', 'Rhea Callahan', 'Jasper Delacroix', 'Sienna Beaumont', 'Bianca Donovan', 'Amara Kingsley', 'Yara Petrov'];
-// Viewports reveal the original concepts without altering the source sheets.
-const identityFrames = [
-  [157,29,838,261],[157,320,838,280],[157,631,838,295],[157,959,838,261],[157,1250,838,255],
-  [37,52,952,248],[37,358,952,247],[37,664,952,248],[37,971,952,236],[37,1264,952,233],
-  [40,75,945,206],[40,359,945,207],[40,646,945,206],[40,930,945,217],[40,1196,945,235],
-  [45,55,935,254],[45,366,935,257],[45,678,935,253],[45,985,935,237],[45,1275,935,229],
-];
-
+const identityNames = ['Clara','Theo','Evelyn','Maya','Nora','Felix','Iris','Hugo','Ava','Zara','Dalia','Olivia','Cassian','Leila','Rhea','Jasper','Sienna','Bianca','Levan','Natia'];
+// Artwork-only viewports omit the review-board numbers and grid lines.
+const identityFrames = Array.from({length:20}, (_, i) => [Math.floor(i % 4 * 280.5) + 6, Math.floor(Math.floor(i / 4) * 280.4) + 36, 269, 239]);
 const videoNames = ['Cinematic frames','Before and after','Filmstrip','Viewfinder','Motion study','Product studio','Architecture','Food film','Travel postcard','Fashion editorial','Storyboard','Color study','Camera movement','Match the mood','Macro world','Music video','Street cinema','Nature documentary','Abstract motion','Miniature story'];
 const videoFrames = [
 [105,124,469,170],[705,128,479,171],[103,558,478,169],[705,553,479,177],[104,978,477,168],
@@ -57,7 +51,7 @@ export default function IdentityCarousel({hidden, video = false}) {
           <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -.276 -.93 -.094 0 1.22" result="ink" />
           <feFlood floodColor="currentColor" /><feComposite operator="in" in2="ink" />
         </filter></defs>
-        <image clipPath={`url(#${prefix}-crop-${i})`} href={`/assets/${video ? 'video' : 'identity'}-concepts/sheet-${Math.floor(i / 5) + 1}.png`} width={video ? videoSizes[Math.floor(i / 5)][0] : 1024} height={video ? videoSizes[Math.floor(i / 5)][1] : 1536} filter={video ? undefined : `url(#${prefix}-ink-${i})`} />
+        <image clipPath={`url(#${prefix}-crop-${i})`} href={video ? `/assets/video-concepts/sheet-${Math.floor(i / 5) + 1}.png` : '/assets/identity-concepts/artwork-only-20.png'} width={video ? videoSizes[Math.floor(i / 5)][0] : 1122} height={video ? videoSizes[Math.floor(i / 5)][1] : 1402} filter={video ? undefined : `url(#${prefix}-ink-${i})`} />
       </svg>)}
     </div>
     <div className="concept-controls">
