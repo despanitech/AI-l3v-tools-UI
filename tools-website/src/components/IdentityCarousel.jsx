@@ -62,9 +62,11 @@ export default function IdentityCarousel({hidden, video = false}) {
     </div>
     <button className="concept-play" type="button" aria-pressed={playing} onClick={() => setPlaying(value => !value)}>{playing ? 'Pause slideshow' : 'Play slideshow'}</button>
     <div className="tile-variations">{(video ? ['Video', 'Screenshot', 'Link'] : ['Name Logos', 'Initials', 'Signatures']).map(label => <span key={label}>{label}</span>)}</div>
-    <a className="identity-try-button" href={video ? '#video' : '#logo'}>{video ? 'Analyze a reference' : 'Try your name'} <span aria-hidden="true">→</span></a>
+    <a className="identity-try-button" href={video ? '#video' : '#logo'}>{video ? 'Analyze a reference' : 'Try Now'} <span aria-hidden="true">→</span></a>
+    {!video && <a className="demo-link" href="#demo">Show Me a Demo</a>}
   </article>;
 }
+
 
 
 
