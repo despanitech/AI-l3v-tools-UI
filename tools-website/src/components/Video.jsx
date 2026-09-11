@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
+import {receiptForReference, receiptTransport, lastReceipt} from '../lib/video-receipt.mjs';
 import {post, waitForJob} from '../lib/api-client.mjs';
 import {prepareReference} from '../lib/prepare-reference.js';
 import SecurityCheck from './SecurityCheck.jsx';
@@ -13,7 +14,7 @@ export default function Video({hidden}) {
   const [config, setConfig] = useState(null), [configError, setConfigError] = useState('');
   const [token, setToken] = useState(''), [securityVersion, setSecurityVersion] = useState(0);
   const [busy, setBusy] = useState(false), [result, setResult] = useState(null), [frame, setFrame] = useState(null), [frameUsed, setFrameUsed] = useState(false);
-  const file = useRef(null), media = useRef(null), tabs = useRef([]), objectUrl = useRef(''), run = useRef(null), generation = useRef(0), requestId = useRef(crypto.randomUUID()), locked = useRef(false), frameAttempted = useRef(false);
+  const file = useRef(null), media = useRef(null), tabs = useRef([]), objectUrl = useRef(''), run = useRef(null), generation = useRef(0), requestAccess = useRef(null), locked = useRef(false), frameAttempted = useRef(false);
 
   useEffect(() => {
     if (window.L3V_API?.enabled !== true) return;
@@ -28,7 +29,7 @@ export default function Video({hidden}) {
     if (media.current?.tagName === 'VIDEO') { media.current.pause(); media.current.removeAttribute('src'); media.current.load(); }
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
     objectUrl.current = ''; if (file.current) file.current.value = '';
-    setReference(null); setStatus(''); setBusy(false); setResult(null); setFrame(null); setFrameUsed(false); setToken(''); setSecurityVersion(v => v + 1); requestId.current = crypto.randomUUID();
+    setReference(null); setStatus(''); setBusy(false); setResult(null); setFrame(null); setFrameUsed(false); setToken(''); setSecurityVersion(v => v + 1); requestAccess.current = null;
   }
   function useFile(value) {
     clear(); if (!value) return;
@@ -58,8 +59,12 @@ export default function Video({hidden}) {
     const say = value => { if (version === generation.current) setStatus(value); };
     try {
       say('Preparing your reference…'); const body = await prepareReference(media.current); controller.signal.throwIfAborted();
-      say('Submitting your reference…'); let data = await post('/api/analyze', {...body, token, requestId: requestId.current}, controller.signal);
-      data = await waitForJob(data, say, controller.signal);
+      const access = await receiptForReference(body); controller.signal.throwIfAborted();
+      requestAccess.current = access;
+      const transport = receiptTransport(access);
+      setFrameUsed(Boolean(access.stages['/api/first-frame']?.jobId));
+      say('Submitting your reference…'); let data = await post('/api/analyze', {...body, token}, controller.signal, transport);
+      data = await waitForJob(data, say, controller.signal, transport);
       if (version !== generation.current) return;
       if (!data.report || typeof data.report.summary !== 'string' || !Array.isArray(data.report.models) || typeof data.report.prompt !== 'string' || data.report.models.some(m => !m || typeof m.id !== 'string' || typeof m.reason !== 'string')) throw new Error('The service returned an incomplete result.');
       setResult(data); say('Analysis ready. Review the suggested scene before generating anything.');
@@ -72,12 +77,42 @@ export default function Video({hidden}) {
     const version = generation.current, controller = new AbortController(); run.current = controller;
     const say = value => { if (version === generation.current) setStatus(value); };
     try {
-      say('Requesting the first frame…'); let data = await post('/api/first-frame', {ticket: result.frameTicket, token: frameToken, requestId: crypto.randomUUID()}, controller.signal);
-      data = await waitForJob(data, say, controller.signal);
+      const transport = receiptTransport(requestAccess.current);
+      say('Requesting the first frame…'); let data = await post('/api/first-frame', {ticket: result.frameTicket, token: frameToken}, controller.signal, transport);
+      data = await waitForJob(data, say, controller.signal, transport);
       if (version !== generation.current) return;
       if (!/^data:image\/(jpeg|png);base64,[A-Za-z0-9+/]+=*$/.test(data.image) || typeof data.motionPrompt !== 'string') throw new Error('The frame result is incomplete.');
       setFrame(data); say('First frame ready. No video has been generated.');
     } catch (error) { if (error.name !== 'AbortError') say(error.message + ' This request will not be retried automatically.'); }
+    finally { if (version === generation.current) { locked.current = false; setBusy(false); } }
+  }
+  async function restore() {
+    if (locked.current) return;
+    clear();
+    locked.current = true; setBusy(true);
+    const version = generation.current, controller = new AbortController(); run.current = controller;
+    const say = value => { if (version === generation.current) setStatus(value); };
+    try {
+      const access = lastReceipt();
+      if (!access) throw new Error('There is no saved request in this tab yet.');
+      requestAccess.current = access;
+      const transport = receiptTransport(access), analysisId = access.stages['/api/analyze']?.jobId;
+      if (!analysisId) throw new Error('The first response was not saved. Add the same image again to recover the existing analysis.');
+      let data = await post('/api/jobs', {id: analysisId}, controller.signal, transport);
+      data = await waitForJob(data, say, controller.signal, transport);
+      if (version !== generation.current) return;
+      if (!data.report) throw new Error('The analysis result is not available.');
+      setResult(data);
+      const frameStage = access.stages['/api/first-frame'];
+      setFrameUsed(Boolean(frameStage?.jobId)); frameAttempted.current = Boolean(frameStage?.jobId);
+      if (frameStage?.jobId) {
+        let frameData = await post('/api/jobs', {id: frameStage.jobId}, controller.signal, transport);
+        frameData = await waitForJob(frameData, say, controller.signal, transport);
+        if (version !== generation.current) return;
+        setFrame(frameData);
+      }
+      say(frameStage && !frameStage.jobId ? 'The first-frame response was not saved. Use Recover first frame to check the same request.' : 'Saved request restored.');
+    } catch (error) { if (error.name !== 'AbortError') say(error.message); }
     finally { if (version === generation.current) { locked.current = false; setBusy(false); } }
   }
   function mediaError() { if (reference?.revision !== generation.current) return; clear(); setStatus('This reference could not load. Try another file or a direct video link.'); }
@@ -90,9 +125,10 @@ export default function Video({hidden}) {
     <p id="status" role="status" aria-live="polite">{status}</p>
     <div id="analysis-security">{config && <SecurityCheck key={securityVersion} config={config} action="reference_analyze" onToken={setToken} onError={setConfigError} />}</div>
     <div className="submit-row"><button className="primary" disabled={!enabled} aria-describedby="service-note" onClick={analyze}>Get video suggestions <span aria-hidden="true">↗</span></button><p id="service-note">{note}</p></div>
+    {config?.enabled && <button className="text-button" disabled={busy} onClick={restore}>Check saved request</button>}
     <p className="privacy">{config ? 'On submission, your image or sampled frames are sent to the analysis service.' : 'Your files stay on this device in this preview.'}</p>
     <div className="video-sample-entry"><button className="secondary" disabled={busy} onClick={() => setSample(true)}>View sample results</button><p className="hint">See the results layout with example data. Your reference is not analyzed and no generation is requested.</p></div>
     {sample && <VideoSampleResult mode={source === 'link' ? 'reel' : 'image'} label={reference?.label} onClose={() => setSample(false)} />}
-    {result && !sample && <AnalysisResult key={generation.current + ':' + requestId.current} data={result} config={config} onFrame={generateFrame} frameUsed={frameUsed} frame={frame} busy={busy} onError={setStatus} />}
+    {result && !sample && <AnalysisResult key={generation.current + ':' + requestAccess.current?.access.requestId} data={result} requestAccess={requestAccess.current} config={config} onFrame={generateFrame} frameUsed={frameUsed} frame={frame} busy={busy} onError={setStatus} />}
   </section>;
 }
