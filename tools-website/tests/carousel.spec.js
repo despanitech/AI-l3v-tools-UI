@@ -23,12 +23,15 @@ test('carousel autoplays, pauses and keeps stable themed slides', async ({page})
   await expect(viewport).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 });
 
-test('reduced motion disables automatic advancement', async ({page}) => {
+test('reduced motion removes transitions while autoplay and explicit pause work', async ({page}) => {
   await page.emulateMedia({reducedMotion: 'reduce'});
   await page.clock.install();
   await page.goto('/');
-  await page.clock.fastForward(10000);
-  await expect(page.getByLabel('Choose a design')).toHaveValue('0');
+  await page.clock.fastForward(5100);
+  await expect(page.getByLabel('Choose a design')).toHaveValue('1');
   await expect(page.locator('.concept-slide.is-active').first()).toHaveCSS('transition-duration', '0s');
+  await page.getByRole('button', {name: 'Pause slideshow'}).first().click();
+  await page.clock.fastForward(10000);
+  await expect(page.getByLabel('Choose a design')).toHaveValue('1');
 });
 
