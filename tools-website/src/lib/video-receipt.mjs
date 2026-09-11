@@ -1,7 +1,22 @@
 const prefix = 'l3v-video-request-v1:';
 const latest = prefix + 'latest';
 const hex = bytes => Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-const error = () => new Error('This tab could not retain access to your request. Nothing new was submitted. Keep the tab open and check browser storage.');
+const error = () => new Error('This browser could not retain access to your request. Nothing new was submitted. Check browser storage.');
+// Keep recovery across tabs without storing the uploaded image or provider keys.
+// Copy older tab-only receipts on read, before any request can be sent.
+const browserStorage = {
+  getItem(key) {
+    const saved = localStorage.getItem(key);
+    if (saved !== null) return saved;
+    const legacy = sessionStorage.getItem(key);
+    if (legacy !== null) {
+      localStorage.setItem(key, legacy);
+      if (localStorage.getItem(key) !== legacy) throw error();
+    }
+    return legacy;
+  },
+  setItem(key, value) { localStorage.setItem(key, value); }
+};
 const stages = new Set(['/api/analyze', '/api/first-frame', '/api/image-to-video']);
 const valid = record => record && /^[a-f0-9]{64}$/.test(record.fingerprint) &&
   /^[a-f0-9]{32}$/.test(record.access?.requestId) && /^[a-f0-9]{64}$/.test(record.access?.receipt) &&
@@ -17,7 +32,7 @@ function save(record, storage) {
   storage.setItem(latest, key);
   if (storage.getItem(latest) !== key) throw error();
 }
-export async function receiptForReference(reference, storage = sessionStorage) {
+export async function receiptForReference(reference, storage = browserStorage) {
   try {
     const fingerprint = await digest(reference.kind === 'facebook-reel' ? {kind: reference.kind, sourceUrl: reference.sourceUrl} : {kind: reference.kind, image: reference.image});
     const raw = storage.getItem(prefix + fingerprint);
@@ -29,7 +44,7 @@ export async function receiptForReference(reference, storage = sessionStorage) {
     return record;
   } catch { throw error(); }
 }
-export function lastReceipt(storage = sessionStorage) {
+export function lastReceipt(storage = browserStorage) {
   try {
     const key = storage.getItem(latest);
     if (!key) return null;
@@ -38,7 +53,7 @@ export function lastReceipt(storage = sessionStorage) {
     return record;
   } catch { throw error(); }
 }
-export function receiptTransport(record, transport = fetch, storage = sessionStorage) {
+export function receiptTransport(record, transport = fetch, storage = browserStorage) {
   return async (path, options) => {
     if (!valid(record) || !(stages.has(path) || path === '/api/jobs')) throw error();
     try {
