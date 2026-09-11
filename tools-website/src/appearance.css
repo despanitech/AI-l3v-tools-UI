@@ -61,3 +61,7 @@ body{background:var(--background);color:var(--foreground)}.topbar,.skip{backgrou
 .topbar nav a{font-size:14px;line-height:1.6;white-space:nowrap;overflow:visible;min-height:48px;padding-top:10px;padding-bottom:10px}
 .appearance summary,.mode-control>span{font-size:12px;line-height:1.6}
 @media(max-width:800px){.topbar nav{height:auto;min-height:48px;gap:18px}.topbar nav a{font-size:12px;padding:12px 0;min-height:48px}}
+.topbar .brand span,.topbar nav a,.appearance summary,.appearance button,.mode-control>span,button,select,.identity-try-button,.tile-variations span{font-family:var(--menu-font,"Exo 2",sans-serif);font-weight:400;line-height:1.6}
+.font-trial{display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);color:var(--muted);font:12px Arial,sans-serif}
+.font-trial button,.font-trial select{background:var(--panel);color:var(--foreground);border:1px solid var(--border);border-radius:4px;padding:5px 10px;font:13px Arial,sans-serif;min-height:32px}
+.font-trial select{width:165px}
