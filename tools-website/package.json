@@ -6,7 +6,7 @@
     "dev": "vite --host 127.0.0.1 --port 4185",
     "build": "vite build",
     "preview": "node server.cjs",
-    "check": "node --check server.cjs && node --test integration.test.mjs identity-worker.test.mjs facebook-reel.test.mjs invitation-worker.test.mjs name-logo-request.test.mjs video-receipt.test.mjs video-worker.test.mjs && vite build",
+    "check": "node --check server.cjs && node --test integration.test.mjs identity-worker.test.mjs facebook-reel.test.mjs invitation-worker.test.mjs invitation-issuer.test.mjs name-logo-request.test.mjs video-receipt.test.mjs video-worker.test.mjs && vite build",
     "test:e2e": "playwright test"
   },
   "dependencies": {
