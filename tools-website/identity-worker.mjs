@@ -1,5 +1,6 @@
 import videoWorker from './video-worker.mjs';
 import {invitationAccount} from './invitation-worker.mjs';
+import {issueInvitation} from './invitation-issuer.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
 async function signature(value, secret) {
@@ -15,9 +16,14 @@ async function bounded(response, limit) {
 export default {
   async fetch(request, env) {
     const url=new URL(request.url), prefix='/api/name-logo/';
+    if(url.pathname==='/api/admin/invitations')return issueInvitation(request,env);
     const api=url.pathname.startsWith('/api/');
     const account=api?await invitationAccount(request,env):null;
-    if(url.pathname==='/api/invitation/validate')return account?json({valid:true,accountId:account}):json({error:'Invitation required'},403);
+    if(url.pathname==='/api/invitation/validate'){
+      const ip=request.headers.get('CF-Connecting-IP');
+      if(env.INVITATION_LIMITER&&(!ip||!(await env.INVITATION_LIMITER.limit({key:ip})).success))return json({error:'Please wait before trying again'},429);
+      return account?json({valid:true,accountId:account}):json({error:'Invitation required'},403);
+    }
     if(url.pathname==='/api/account/work'){
       if(!account)return json({error:'Invitation required'},403);
       const target=new URL(env.HERMES_URL);target.pathname='/account/work';target.search='';target.hash='';

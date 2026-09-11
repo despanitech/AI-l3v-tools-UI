@@ -5,6 +5,11 @@ export async function invitationAccount(request,env={}){
   const credential=(request.headers.get('X-L3V-Invitation')||'').trim();
   if(credential.length<3||credential.length>180)return null;
   const tokenHash=await digest(credential);
+  if(env.INVITATIONS){
+    const key=/^[A-Za-z0-9_-]{43}$/.test(credential)?`token:${tokenHash}`:`phrase:${await digest(normalizeInvitationPhrase(credential))}`;
+    const account=await env.INVITATIONS.get(key);
+    return /^[a-f0-9]{64}$/.test(account||'')?account:null;
+  }
   const allowed=new Set((env.INVITATION_HASHES||'').split(',').filter(x=>/^[a-f0-9]{64}$/.test(x)));
   if(/^[A-Za-z0-9_-]{43}$/.test(credential)&&allowed.has(tokenHash))return tokenHash;
   const aliases=new Map((env.INVITATION_ALIASES||'').split(',').map(x=>x.split('=')).filter(([alias,account])=>/^[a-f0-9]{64}$/.test(alias||'')&&/^[a-f0-9]{64}$/.test(account||'')));

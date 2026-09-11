@@ -11,6 +11,12 @@ test('static pages still use assets',async()=>{
   const response=await worker.fetch(new Request('https://tools.l3v.ai/'),{ASSETS:{fetch:()=>new Response('page')}});
   assert.equal(await response.text(),'page');
 });
+test('invitation validation is rate limited before revealing validity',async()=>{
+ const account='d'.repeat(64),records=new Map([[`token:${account}`,account]]);
+ const request=new Request('https://tools.l3v.ai/api/invitation/validate',{headers:{'X-L3V-Invitation':'d'.repeat(43),'CF-Connecting-IP':'192.0.2.8'}});
+ const response=await worker.fetch(request,{INVITATIONS:{get:key=>records.get(key)??null},INVITATION_LIMITER:{limit:async()=>({success:false})}});
+ assert.equal(response.status,429);assert.deepEqual(await response.json(),{error:'Please wait before trying again'});
+});
 const env={NAME_LOGO_ENABLED:'true',NAME_LOGO_RECEIPTS_READY:'true',NAME_LOGO_URL:'https://gateway.example',NAME_LOGO_TOKEN:'test',NAME_LOGO_SESSION_SECRET:'test-session-secret',TURNSTILE_SECRET:'test',TURNSTILE_SITEKEY:'test',NAME_LOGO_LIMITER:{}};
 test('cross-origin generation is rejected before upstream access',async()=>{
   const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/generate',{method:'POST',headers:{Origin:'https://evil.example'}}),env);

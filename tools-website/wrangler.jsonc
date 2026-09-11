@@ -8,13 +8,15 @@
   "ratelimits": [
     {"name":"VIDEO_ADMISSION_LIMITER","namespace_id":"20331","simple":{"limit":8,"period":60}},
     {"name":"VIDEO_POLL_LIMITER","namespace_id":"20332","simple":{"limit":60,"period":60}},
-    {"name":"NAME_LOGO_LIMITER","namespace_id":"20333","simple":{"limit":8,"period":60}}
+    {"name":"NAME_LOGO_LIMITER","namespace_id":"20333","simple":{"limit":8,"period":60}},
+    {"name":"INVITATION_LIMITER","namespace_id":"20334","simple":{"limit":5,"period":60}}
   ],
+  "kv_namespaces": [{"binding":"INVITATIONS","id":"09db05366a124ef3a3d05e217179a944"}],
   "routes": [{"pattern": "tools.l3v.ai", "custom_domain": true}],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/invitation/validate", "/api/account/work", "/api/name-logo/*", "/api/analyzer/config", "/api/analyze", "/api/first-frame", "/api/image-to-video", "/api/jobs"],
+    "run_worker_first": ["/api/invitation/validate", "/api/admin/invitations", "/api/account/work", "/api/name-logo/*", "/api/analyzer/config", "/api/analyze", "/api/first-frame", "/api/image-to-video", "/api/jobs"],
     "not_found_handling": "404-page"
   }
 }
