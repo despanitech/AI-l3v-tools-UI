@@ -50,3 +50,9 @@ body{background:var(--background);color:var(--foreground)}.topbar,.skip{backgrou
 .showcase-intro{height:100px}.video-message-stack{font-size:18px!important;min-height:23px}@media(max-width:620px){.showcase-intro{height:140px}.video-message-stack{min-height:45px}}
 .video-carousel .concept-viewport{margin-left:0;margin-right:0}
 #home-title{font-family:"Audiowide",sans-serif;font-weight:400;letter-spacing:0;line-height:1.4}
+/* Regular display lettering for navigation and controls, with compact sizing. */
+.topbar nav a,.appearance summary,.appearance button,.mode-control>span,button,select,.identity-try-button,.tile-variations span{font-family:"Audiowide",sans-serif;font-weight:400;font-synthesis:none;letter-spacing:0}
+.topbar nav a{font-size:12px}
+.appearance summary,.appearance button,.mode-control>span,.tile-variations span{font-size:10px}
+.identity-try-button{font-size:12px}
+.concept-play,.concept-controls select{font-size:10px}
