@@ -20,6 +20,9 @@
 #video-panel .file-row{padding:9px 12px;flex:1;min-width:0;gap:12px;font-size:12px}
 #video-panel .text-button{font-size:12px;padding:7px 4px;flex-shrink:0}
 #video-panel #status{font-size:12px;margin:10px 0;line-height:1.45}
+#video-panel #status.workflow-status{position:relative;margin:14px 0 18px;padding:14px 16px 14px 46px;border:1px solid color-mix(in srgb,var(--accent) 55%,var(--border));border-radius:7px;background:color-mix(in srgb,var(--accent) 8%,var(--panel));color:var(--foreground)!important;font-size:15px;font-weight:600;line-height:1.45}
+#video-panel #status.workflow-status::before{content:'✓';position:absolute;left:15px;top:50%;display:grid;place-items:center;width:22px;height:22px;transform:translateY(-50%);border-radius:50%;background:var(--accent);color:var(--panel);font-size:14px;font-weight:700}
+.analysis-complete-intro h1{color:var(--foreground)}
 #video-panel .submit-row{margin-top:14px;padding-top:14px;gap:14px}
 #video-panel .primary,#video-panel .secondary{padding:10px 13px;font-size:12px}
 #video-panel .primary span{margin-left:12px}
