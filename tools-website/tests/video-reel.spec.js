@@ -16,14 +16,14 @@ test('Reel lost response reuses canonical reference receipt after reload',async(
   await page.getByRole('tab',{name:'Facebook Reel URL'}).click();
   await page.getByRole('textbox',{name:'Facebook Reel URL',exact:true}).fill('https://m.facebook.com/reels/123/?tracking=one');
   await page.getByRole('button',{name:'Add link'}).click();
-  await page.getByRole('button',{name:'Get video suggestions'}).click();
+  await page.getByRole('button',{name:'Analyze reference'}).click();
   await expect(page.locator('#status')).not.toHaveText('Submitting your reference…');
   await page.reload();
   expect(calls).toBe(1);
   await page.getByRole('tab',{name:'Facebook Reel URL'}).click();
   await page.getByRole('textbox',{name:'Facebook Reel URL',exact:true}).fill('https://www.facebook.com/reel/123');
   await page.getByRole('button',{name:'Add link'}).click();
-  await page.getByRole('button',{name:'Get video suggestions'}).click();
+  await page.getByRole('button',{name:'Analyze reference'}).click();
   await expect(page.getByText('Sampled visual frames')).toBeVisible();
   expect(calls).toBe(2);
 });
@@ -34,6 +34,6 @@ test('disabled Reel gate cannot submit even with a valid link',async({page})=>{
   await page.goto('/#video');await page.getByRole('tab',{name:'Facebook Reel URL'}).click();
   await page.getByRole('textbox',{name:'Facebook Reel URL',exact:true}).fill('https://facebook.com/reel/123');
   await page.getByRole('button',{name:'Add link'}).click();
-  await expect(page.getByRole('button',{name:'Get video suggestions'})).toBeDisabled();
+  await expect(page.getByRole('button',{name:'Analyze reference'})).toBeDisabled();
 });
 
