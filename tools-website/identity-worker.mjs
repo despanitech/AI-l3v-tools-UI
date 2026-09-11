@@ -5,13 +5,6 @@ async function signature(value, secret) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
   return hex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(value)));
 }
-async function session(request, secret) {
-  const cookie = request.headers.get('Cookie')?.match(/(?:^|;\s*)__Host-l3v-logo=([a-f0-9]+)\.([0-9]+)\.([a-f0-9]+)/);
-  if (cookie && cookie[1].length === 64 && Number(cookie[2]) > Date.now() && await signature(cookie[1]+'.'+cookie[2],secret) === cookie[3]) return {visitor:cookie[1],headers:{}};
-  const visitor=hex(crypto.getRandomValues(new Uint8Array(32))), expires=Date.now()+7*86400000;
-  const value=visitor+'.'+expires;
-  return {visitor,headers:{'Set-Cookie':`__Host-l3v-logo=${value}.${await signature(value,secret)}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=604800`}};
-}
 async function bounded(response, limit) {
   if (!response.body) throw new Error('Missing body');
   const reader=response.body.getReader(), chunks=[]; let size=0;
@@ -25,17 +18,17 @@ export default {
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
     if(!['catalog','generate','status','image'].includes(action)) return json({error:'Not found'},404);
-    const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
+    const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
     if(!ready) return action==='catalog' ? json({enabled:false,styles:[]}) : json({error:'Name generation is not available yet'},503);
     if(request.method !== (['catalog','image'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
     if(request.method==='POST' && request.headers.get('Origin')!==url.origin)return json({error:'Open the form on this website'},403);
     try {
-      const owner=await session(request,env.NAME_LOGO_SESSION_SECRET);
-      if(action!=='catalog' && owner.headers['Set-Cookie'])return json({error:'Your session expired. Open the name form again.'},403);
+      const access={requestId:request.headers.get('X-L3V-Request-Id'),receipt:request.headers.get('X-L3V-Request-Receipt')};
+      if(action!=='catalog' && (!/^[a-f0-9]{32}$/.test(access.requestId||'') || !/^[a-f0-9]{64}$/.test(access.receipt||''))) return json({error:'Request not found or expired'},404);
       let body={};
       if(request.method==='POST')body=JSON.parse(new TextDecoder().decode(await bounded(request,16384)));
       if(!body || typeof body!=='object' || Array.isArray(body))return json({error:'Invalid request'},400);
-      let payload={visitor:owner.visitor};
+      let payload=action==='catalog'?{}:{access};
       if(action==='generate') {
         if(Object.keys(body).some(key=>!['first','last','styleId','requestKey','token'].includes(key)))return json({error:'Invalid fields'},400);
         for(const key of ['first','last','styleId','requestKey'])if(typeof body[key]!=='string' || body[key].length>100)return json({error:'Invalid name or style'},400);
@@ -45,7 +38,7 @@ export default {
         const verification=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',body:new URLSearchParams({secret:env.TURNSTILE_SECRET,response:body.token,remoteip:ip}),signal:AbortSignal.timeout(10000)});
         const checked=await verification.json();
         if(!checked.success || checked.hostname!==url.hostname || checked.action!=='name_logo')return json({error:'Security check expired'},403);
-        payload={...payload,...Object.fromEntries(['first','last','styleId','requestKey'].map(key=>[key,body[key]]))};
+        payload={...payload,quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','styleId','requestKey'].map(key=>[key,body[key]]))};
       }
       if(action==='status' || action==='image') {
         const id=action==='image'?url.searchParams.get('id'):body.id;
@@ -62,7 +55,7 @@ export default {
       }
       const data=JSON.parse(new TextDecoder().decode(bytes));
       if(action==='catalog')data.sitekey=env.TURNSTILE_SITEKEY;
-      return json(data,200,owner.headers);
+      return json(data);
     } catch {return json({error:'The name service is temporarily unavailable. Keep your request reference.'},503)}
   }
 };
