@@ -49,3 +49,19 @@ body{background:var(--background);color:var(--foreground)}.topbar,.skip{backgrou
 @media(prefers-reduced-motion:reduce){.video-message-stack span{transition:none}}
 .showcase-intro{height:100px}.video-message-stack{font-size:18px!important;min-height:23px}@media(max-width:620px){.showcase-intro{height:140px}.video-message-stack{min-height:45px}}
 .video-carousel .concept-viewport{margin-left:0;margin-right:0}
+#home-title{font-family:"Audiowide",sans-serif;font-weight:400;letter-spacing:0;line-height:1.4}
+/* Regular display lettering for navigation and controls, with compact sizing. */
+.topbar nav a,.appearance summary,.appearance button,.mode-control>span,button,select,.identity-try-button,.tile-variations span{font-family:"Audiowide",sans-serif;font-weight:400;font-synthesis:none;letter-spacing:0}
+.topbar nav a{font-size:12px}
+.appearance summary,.appearance button,.mode-control>span,.tile-variations span{font-size:10px}
+.identity-try-button{font-size:12px}
+.concept-play,.concept-controls select{font-size:10px}
+/* Give display glyphs enough room and avoid tiny, broken-looking strokes. */
+.brand span{font-family:"Audiowide",sans-serif;font-weight:400;font-synthesis:none;letter-spacing:0;line-height:1.6}
+.topbar nav a{font-size:14px;line-height:1.6;white-space:nowrap;overflow:visible;min-height:48px;padding-top:10px;padding-bottom:10px}
+.appearance summary,.mode-control>span{font-size:12px;line-height:1.6}
+@media(max-width:800px){.topbar nav{height:auto;min-height:48px;gap:18px}.topbar nav a{font-size:12px;padding:12px 0;min-height:48px}}
+.topbar .brand span,.topbar nav a,.appearance summary,.appearance button,.mode-control>span,button,select,.identity-try-button,.tile-variations span{font-family:var(--menu-font,"Exo 2",sans-serif);font-weight:400;line-height:1.6}
+.font-trial{display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);color:var(--muted);font:12px Arial,sans-serif}
+.font-trial button,.font-trial select{background:var(--panel);color:var(--foreground);border:1px solid var(--border);border-radius:4px;padding:5px 10px;font:13px Arial,sans-serif;min-height:32px}
+.font-trial select{width:165px}

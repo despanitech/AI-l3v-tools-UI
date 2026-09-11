@@ -24,25 +24,20 @@ export default function IdentityCarousel({hidden, video = false}) {
   const prefix = video ? 'video' : 'concept';
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [reduced, setReduced] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [visible, setVisible] = useState(!document.hidden);
   useEffect(() => {
-    const media = matchMedia('(prefers-reduced-motion: reduce)');
-    const motion = () => setReduced(media.matches);
     const visibility = () => setVisible(!document.hidden);
-    media.addEventListener('change', motion); document.addEventListener('visibilitychange', visibility);
-    return () => { media.removeEventListener('change', motion); document.removeEventListener('visibilitychange', visibility); };
+    document.addEventListener('visibilitychange', visibility);
+    return () => { document.removeEventListener('visibilitychange', visibility); };
   }, []);
   useEffect(() => {
-    if (!playing || hovered || focused || reduced || hidden || !visible) return;
+    if (!playing || hidden || !visible) return;
     const timer = setTimeout(() => setIndex(current => (current + 1) % names.length), 5000);
     return () => clearTimeout(timer);
-  }, [index, playing, hovered, focused, reduced, hidden, visible]);
+  }, [index, playing, hidden, visible]);
   const touch = useRef(null);
   const move = delta => setIndex(current => (current + delta + names.length) % names.length);
-  return <article className={`tool-tile identity-carousel${video ? ' video-carousel' : ''}`} aria-label={video ? 'AI Video Suggestion showcase' : 'Magic Identity design showcase'} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocus={() => setFocused(true)} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false); }}>
+  return <article className={`tool-tile identity-carousel${video ? ' video-carousel' : ''}`} aria-label={video ? 'AI Video Suggestion showcase' : 'Magic Identity design showcase'}>
     <div className="tile-top"><span className="identity-ai-label">{video ? 'AI-POWERED VIDEO IDEAS' : 'AI-POWERED PERSONAL DESIGN'}</span><span aria-hidden="true">✦</span></div>
         <div className="showcase-intro">
       {video ? <h2 className="video-message-stack">{videoMessages.map((message, i) => <span key={message} className={i === index % videoMessages.length ? 'is-active' : ''} aria-hidden={i !== index % videoMessages.length}>{message}</span>)}</h2> : <h2>Magic Identity</h2>}
@@ -57,7 +52,7 @@ export default function IdentityCarousel({hidden, video = false}) {
           <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -.276 -.93 -.094 0 1.22" result="ink" />
           <feFlood floodColor="currentColor" /><feComposite operator="in" in2="ink" />
         </filter></defs>
-        <image clipPath={`url(#${prefix}-crop-${i})`} href={`/assets/${video ? 'video' : 'identity'}-concepts/sheet-${Math.floor(i / 5) + 1}.png`} width={video ? videoSizes[Math.floor(i / 5)][0] : 1024} height={video ? videoSizes[Math.floor(i / 5)][1] : 1536} filter={video ? undefined : `url(#${prefix}-ink-${i})`} />
+        <image clipPath={`url(#${prefix}-crop-${i})`} href={`/assets/${video ? 'video' : 'identity'}-concepts/${video ? 'sheet' : 'names-sheet'}-${Math.floor(i / 5) + 1}.png`} width={video ? videoSizes[Math.floor(i / 5)][0] : 1024} height={video ? videoSizes[Math.floor(i / 5)][1] : 1536} filter={video ? undefined : `url(#${prefix}-ink-${i})`} />
       </svg>)}
     </div>
     <div className="concept-controls">
@@ -70,6 +65,7 @@ export default function IdentityCarousel({hidden, video = false}) {
     <a className="identity-try-button" href={video ? '#video' : '#logo'}>{video ? 'Analyze a reference' : 'Try your name'} <span aria-hidden="true">→</span></a>
   </article>;
 }
+
 
 
 
