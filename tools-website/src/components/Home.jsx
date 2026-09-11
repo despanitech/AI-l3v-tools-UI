@@ -1,7 +1,7 @@
 import IdentityCarousel from './IdentityCarousel.jsx';
 export default function Home({hidden}) {
   return <section id="home-panel" aria-labelledby="home-title" hidden={hidden}>
-    <div className="landing-intro"><h1 id="home-title">Check out some AI magic</h1></div>
+    <div className="landing-intro"><h1 id="home-title">Check out some AI magic Tools &amp; More..</h1></div>
     <div className="tool-tiles">
       <IdentityCarousel hidden={hidden} />
       <IdentityCarousel hidden={hidden} video />
@@ -9,6 +9,7 @@ export default function Home({hidden}) {
     </div><p className="landing-note">A growing collection. AI generation is being connected; available previews are ready to explore.</p>
   </section>;
 }
+
 
 
 
