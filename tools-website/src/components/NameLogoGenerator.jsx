@@ -63,11 +63,12 @@ export default function NameLogoGenerator({first, last, visible, onFirst, onLast
     {!request && <div className="shared-name"><label>Enter your first name<input id="first-name" autoComplete="given-name" value={first} maxLength={80} onChange={e=>onFirst(e.target.value)} /></label><label>Enter your last name<input id="last-name" autoComplete="family-name" value={last} maxLength={80} onChange={e=>onLast(e.target.value)} /></label></div>}
     {busy && <progress aria-label="Creating your name logo" />}
     {!config?.enabled && <p role="status">{config ? 'Generation is not available yet.' : 'Checking availability…'}</p>}
-    {!request && <>{config?.enabled && <SecurityCheck config={config} action="name_logo" onToken={setToken} onError={setMessage} />}<button className="identity-try-button" disabled={!config?.enabled || !first.trim() || !last.trim() || !token || busy} onClick={generate}>Generate name logo</button></>}
+    {!request && <>{config?.enabled && <SecurityCheck config={config} action="name_logo" onToken={setToken} onError={setMessage} />}<button className="identity-try-button" disabled={!config?.enabled || !first.trim() || !last.trim() || !token || busy} onClick={generate}>Generate</button></>}
     <p role="status">{message}</p>
     {request && !request.id && !busy && config?.enabled && <><SecurityCheck config={config} action="name_logo" onToken={setToken} onError={setMessage} /><button disabled={busy||!token} onClick={generate}>Recover saved request</button></>}
     {request && !busy && <><p>{request.first} {request.last} · Request <small>{request.requestKey}</small></p>{request.id && !result && <button className="text-button" disabled={busy} onClick={() => poll(request)}>Check progress</button>}</>}
     {result && <div className="results-main"><div className="results-art"><img src={image} alt={`${result.identity.first} — generated name logo`} /></div><div className="results-caption"><div><strong>{result.design.styleName}</strong><span>{result.design.output.width} × {result.design.output.height} · Original image</span></div><a className="identity-try-button" href={image} download="name-logo.png">Download PNG ↓</a></div><button className="text-button" onClick={() => {remember(null); setRequest(null); setResult(null); setMessage('');}}>Create another variation</button></div>}
   </section>;
 }
+
 
