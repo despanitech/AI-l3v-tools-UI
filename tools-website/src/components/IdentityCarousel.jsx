@@ -57,7 +57,7 @@ export default function IdentityCarousel({hidden, video = false}) {
           <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -.276 -.93 -.094 0 1.22" result="ink" />
           <feFlood floodColor="currentColor" /><feComposite operator="in" in2="ink" />
         </filter></defs>
-        <image clipPath={`url(#${prefix}-crop-${i})`} href={`/assets/${video ? 'video' : 'identity'}-concepts/sheet-${Math.floor(i / 5) + 1}.png`} width={video ? videoSizes[Math.floor(i / 5)][0] : 1024} height={video ? videoSizes[Math.floor(i / 5)][1] : 1536} filter={video ? undefined : `url(#${prefix}-ink-${i})`} />
+        <image clipPath={`url(#${prefix}-crop-${i})`} href={`/assets/${video ? 'video' : 'identity'}-concepts/${video ? 'sheet' : 'names-sheet'}-${Math.floor(i / 5) + 1}.png`} width={video ? videoSizes[Math.floor(i / 5)][0] : 1024} height={video ? videoSizes[Math.floor(i / 5)][1] : 1536} filter={video ? undefined : `url(#${prefix}-ink-${i})`} />
       </svg>)}
     </div>
     <div className="concept-controls">
