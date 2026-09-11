@@ -13,9 +13,9 @@ export default function NameLogoGenerator({first, last, visible, onFirst, onLast
     if (!visible) return;
     const controller = new AbortController();
     fetch('/api/name-logo/catalog', {signal:controller.signal}).then(r => r.ok ? r.json() : null).then(data => {
-      if (!data || !Array.isArray(data.styles)) return;
+      if (!data || !Array.isArray(data.styles)) throw new Error('Availability unavailable');
       setConfig(data); setStyle(old => old || data.styles[0]?.id || '');
-    }).catch(() => {});
+    }).catch(error => {if (error.name !== 'AbortError') {setConfig({enabled:false,styles:[]});setMessage('Could not connect. Refresh the page to check again.');}});
     return () => controller.abort();
   }, [visible]);
   useEffect(() => () => active.current?.abort(), []);
