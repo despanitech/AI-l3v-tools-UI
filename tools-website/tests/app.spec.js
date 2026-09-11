@@ -43,7 +43,7 @@ test('upload previews stay local, removal and invalid sources', async ({page}) =
   await page.goto('/#video');
   await page.getByLabel('Choose a reference image').setInputFiles(imageFile);
   await expect(page.getByAltText('Your reference image')).toBeVisible();
-  await expect(page.getByRole('button', {name: 'Get video suggestions'})).toBeDisabled();
+  await expect(page.getByRole('button', {name: 'Analyze reference'})).toBeDisabled();
   await page.getByRole('button', {name: 'Remove', exact: true}).click();
   await expect(page.locator('#reference')).toHaveCount(0);
   await page.getByLabel('Choose a reference image').setInputFiles({name: 'bad.txt', mimeType: 'text/plain', buffer: Buffer.from('bad')});
@@ -67,24 +67,29 @@ test('name text is escaped and small screens do not overflow', async ({page}) =>
 
 async function enabledService(page) {
   await page.route('**/integration-config.js', route => route.fulfill({contentType: 'text/javascript', body: 'window.L3V_API={enabled:true};'}));
-  await page.route('**/api/analyzer/config', route => route.fulfill({json: {enabled: true, sitekey: 'test-key', newScenePlanner: true}}));
+  await page.route('**/api/analyzer/config', route => route.fulfill({json: {enabled: true, sitekey: 'test-key', newScenePlanner: true, videoGeneration: true, videoMaxCredits: 100}}));
   await page.route('https://challenges.cloudflare.com/**', route => route.fulfill({contentType: 'text/javascript', body: 'window.turnstile={render(el,opts){queueMicrotask(()=>opts.callback("test-token"));return "test";},remove(){}};'}));
 }
 test('enabled API: analysis, price controls and one first-frame request', async ({page}) => {
   await enabledService(page);
   let analyses = 0, frames = 0;
   await page.route('**/api/analyze', route => { analyses++; return route.fulfill({json: {report: {summary: 'A soft landscape', models: [{id: modelId, reason: 'Camera motion'}], prompt: 'Create a quiet scene', workflow: ['Choose a model']}, frameTicket: 'a'.repeat(32)}}); });
-  await page.route('**/api/first-frame', route => { frames++; return route.fulfill({json: {image: 'data:image/png;base64,' + image.toString('base64'), motionPrompt: 'Slow pan'}}); });
+  await page.route('**/api/first-frame', route => { frames++; return route.fulfill({json: {job: {id: 'b'.repeat(32), status: 'succeeded'}, image: 'data:image/png;base64,' + image.toString('base64'), motionPrompt: 'Slow pan'}}); });
   await page.goto('/#video');
   await page.getByLabel('Choose a reference image').setInputFiles(imageFile);
-  await page.getByRole('button', {name: 'Get video suggestions'}).click();
+  await page.getByRole('button', {name: 'Analyze reference'}).click();
   await expect(page.getByRole('heading', {name: 'Your video direction'})).toBeVisible();
+  await expect(page.locator('.result-stage')).toHaveCount(3);
+  await expect(page.getByRole('heading', {name: 'Generate video'})).toBeVisible();
+  await page.getByRole('button', {name: 'Review details'}).click();
+  await expect(page.getByRole('dialog', {name: 'Review details'})).toBeVisible();
   await expect(page.getByLabel('Provider and configuration')).toBeVisible();
   await page.getByLabel('Takes', {exact: true}).fill('2');
   await expect(page.locator('#analysis-result')).toContainText('USD estimated total');
+  await page.getByRole('button', {name: 'Close', exact: true}).click();
   await page.getByRole('button', {name: 'Create a first frame'}).click();
   await expect(page.getByAltText('Generated first frame for a new scene')).toBeVisible();
-  await expect(page.getByRole('button', {name: 'Create a first frame'})).toBeDisabled();
+  await expect(page.getByRole('heading', {name: 'Generate video'})).toBeVisible();
   expect(analyses).toBe(1); expect(frames).toBe(1);
   await page.screenshot({path: 'test-results/video-result.png', fullPage: true});
 });
@@ -96,12 +101,12 @@ test('changing a reference discards a pending analysis', async ({page}) => {
   await page.route('**/api/analyze', async route => { await gate; await route.fulfill({json: {report: {summary: 'Stale result', models: [], prompt: 'Old'}}}).catch(() => {}); });
   await page.goto('/#video');
   await page.getByLabel('Choose a reference image').setInputFiles(imageFile);
-  await page.getByRole('button', {name: 'Get video suggestions'}).click();
+  await page.getByRole('button', {name: 'Analyze reference'}).click();
   await expect(page.locator('#status')).toContainText('Submitting');
   await page.getByRole('button', {name: 'Remove', exact: true}).click();
   release();
   await expect(page.locator('#analysis-result')).toHaveCount(0);
-  await expect(page.getByRole('button', {name: 'Get video suggestions'})).toBeDisabled();
+  await expect(page.getByRole('button', {name: 'Analyze reference'})).toBeDisabled();
 });
 
 test('blocked receipt storage stops analysis before network submission', async ({page}) => {
@@ -117,7 +122,7 @@ test('blocked receipt storage stops analysis before network submission', async (
   await page.route('**/api/analyze', route => {calls++;return route.abort();});
   await page.goto('/#video');
   await page.getByLabel('Choose a reference image').setInputFiles(imageFile);
-  await page.getByRole('button', {name:'Get video suggestions'}).click();
+  await page.getByRole('button', {name:'Analyze reference'}).click();
   await expect(page.locator('#status')).toContainText('Nothing new was submitted');
   expect(calls).toBe(0);
 });
@@ -132,10 +137,10 @@ test('lost analysis response retains the receipt for manual recovery', async ({p
   });
   await page.goto('/#video');
   await page.getByLabel('Choose a reference image').setInputFiles(imageFile);
-  await page.getByRole('button', {name:'Get video suggestions'}).click();
-  await expect(page.getByRole('button', {name:'Get video suggestions'})).toBeEnabled();
+  await page.getByRole('button', {name:'Analyze reference'}).click();
+  await expect(page.getByRole('button', {name:'Analyze reference'})).toBeEnabled();
   expect(roots).toHaveLength(1);
-  await page.getByRole('button', {name:'Get video suggestions'}).click();
+  await page.getByRole('button', {name:'Analyze reference'}).click();
   await expect(page.locator('#analysis-result')).toContainText('Recovered analysis');
   expect(roots).toHaveLength(2);expect(roots[0]).toBe(roots[1]);
 });
