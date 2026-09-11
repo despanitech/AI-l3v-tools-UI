@@ -1,10 +1,12 @@
 import QRCode from 'qrcode';import jsQR from 'jsqr';
-const key='l3v-master-access-v1',tokenPattern=/^[A-Za-z0-9_-]{43}$/,accountPattern=/^[a-f0-9]{64}$/;
+const key='l3v-master-access-v1',certificateKey='l3v-master-certificate-v1',tokenPattern=/^[A-Za-z0-9_-]{43}$/,accountPattern=/^[a-f0-9]{64}$/;
 function stored(){if(typeof localStorage==='undefined')return {};const value=localStorage.getItem(key);if(tokenPattern.test(value||''))return {credential:value};try{return JSON.parse(value)||{}}catch{return {}}}
 export function accessToken(){const value=stored().credential;return typeof value==='string'&&value.length>=3&&value.length<=180?value:null}
 export function accessAccountId(){const value=stored().accountId;return accountPattern.test(value||'')?value:null}
 export function saveAccessToken(credential,accountId){if(typeof credential!=='string'||credential.trim().length<3||credential.trim().length>180||!accountPattern.test(accountId||''))throw Error('Invalid invitation');localStorage.setItem(key,JSON.stringify({credential:credential.trim(),accountId}));return credential}
-export function clearAccessToken(){localStorage.removeItem(key)}
+export function clearAccessToken(){localStorage.removeItem(key);localStorage.removeItem(certificateKey)}
+export function savedCertificateImage(){return typeof localStorage==='undefined'?null:localStorage.getItem(certificateKey)}
+export function saveCertificateImage(file){if(!file||file.size>4500000)throw Error('Invitation image is too large to save.');return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(Error('Invitation image could not be saved.'));reader.onload=()=>{localStorage.setItem(certificateKey,reader.result);resolve(reader.result)};reader.readAsDataURL(file)})}
 export function accessHeaders(headers={}){const token=accessToken();return token?{...headers,'X-L3V-Invitation':token}:headers}
 export async function accessFetch(url,options={}){return fetch(url,{...options,headers:accessHeaders(options.headers)})}
 export async function requestReceipt(requestId,accountId=accessAccountId()){if(!/^[a-f0-9]{32}$/.test(requestId))throw Error('Invitation required');if(!accountId&&typeof process!=='undefined'&&process.versions?.node)return Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');if(!accountId)throw Error('Invitation required');const keyData=await crypto.subtle.importKey('raw',new TextEncoder().encode(accountId),{name:'HMAC',hash:'SHA-256'},false,['sign']);const signed=await crypto.subtle.sign('HMAC',keyData,new TextEncoder().encode('l3v-request-v1\0'+requestId));return Array.from(new Uint8Array(signed),b=>b.toString(16).padStart(2,'0')).join('')}
