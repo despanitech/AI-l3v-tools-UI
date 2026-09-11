@@ -15,7 +15,7 @@ for (const lostResponse of [false,true,'frame']) test(`Seedance retains one requ
   await page.route('https://media.example/**',r=>r.fulfill({status:200,contentType:'video/mp4',body:''}));
   await page.goto('/#video');
   await page.getByLabel('Choose a reference image').setInputFiles({name:'image.png',mimeType:'image/png',buffer:image});
-  await page.getByRole('button',{name:'Get video suggestions'}).click();
+  await page.getByRole('button',{name:'Analyze reference'}).click();
   await page.getByRole('button',{name:'Create a first frame'}).click();
   if(lostResponse==='frame'){
     await expect(page.locator('#status')).toContainText('not be retried automatically');

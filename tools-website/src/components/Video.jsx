@@ -4,12 +4,10 @@ import {post, waitForJob} from '../lib/api-client.mjs';
 import {prepareReference} from '../lib/prepare-reference.js';
 import SecurityCheck from './SecurityCheck.jsx';
 import AnalysisResult from './AnalysisResult.jsx';
-import VideoSampleResult from './VideoSampleResult.jsx';
 import {facebookReelUrl} from '../lib/facebook-reel.mjs';
 
 export default function Video({hidden}) {
   const [source, setSource] = useState('upload'), [url, setUrl] = useState('');
-  const [sample, setSample] = useState(false);
   const [reference, setReference] = useState(null), [status, setStatus] = useState(''), [dragging, setDragging] = useState(false);
   const [config, setConfig] = useState(null), [configError, setConfigError] = useState('');
   const [token, setToken] = useState(''), [securityVersion, setSecurityVersion] = useState(0);
@@ -23,7 +21,6 @@ export default function Video({hidden}) {
   }, []);
   useEffect(() => () => { run.current?.abort(); if (objectUrl.current) URL.revokeObjectURL(objectUrl.current); }, []);
   function clear() {
-    setSample(false);
     generation.current++; run.current?.abort(); locked.current = false; frameAttempted.current = false;
     if (media.current?.tagName === 'VIDEO') { media.current.pause(); media.current.removeAttribute('src'); media.current.load(); }
     if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
@@ -52,7 +49,6 @@ export default function Video({hidden}) {
   const note = configError || (reference?.reel ? config?.reelAnalysis?'Public Reels only, up to 90 seconds and 30 MB. Visual samples only; no audio analysis.':'Reel analysis is not available yet. You can upload an image.' : config?.enabled ? 'Get model recommendations and a suggested creation plan.' : 'Suggestions are being connected. You can preview your reference here.');
   async function analyze() {
     if (!enabled || locked.current) return;
-    setSample(false);
     locked.current = true; setBusy(true); setResult(null); setFrame(null); setFrameUsed(false); frameAttempted.current = false;
     const version = generation.current, controller = new AbortController(); run.current = controller;
     const say = value => { if (version === generation.current) setStatus(value); };
@@ -123,11 +119,9 @@ export default function Video({hidden}) {
     {reference && <div id="reference" className="reference">{!reference.reel && <div id="media"><img key={reference.revision} ref={media} src={reference.src} alt="Your reference image" onError={mediaError} /></div>}<div className="file-row"><span id="filename">{reference.label}</span><button id="remove" className="text-button" onClick={clear}>Remove</button></div></div>}
     <p id="status" role="status" aria-live="polite">{status}</p>
     <div id="analysis-security">{config && <SecurityCheck key={securityVersion} config={config} action="reference_analyze" onToken={setToken} onError={setConfigError} />}</div>
-    <div className="submit-row"><button className="primary" disabled={!enabled} aria-describedby="service-note" onClick={analyze}>Get video suggestions <span aria-hidden="true">↗</span></button><p id="service-note">{note}</p></div>
+    <div className="submit-row"><button className="primary" disabled={!enabled} aria-describedby="service-note" onClick={analyze}>Analyze reference <span aria-hidden="true">↗</span></button><p id="service-note">{note}</p></div>
     {config?.enabled && <button className="text-button" disabled={busy} onClick={restore}>Check saved request</button>}
     <p className="privacy">{config ? 'On submission, your image or sampled frames are sent to the analysis service.' : 'Your files stay on this device in this preview.'}</p>
-    <div className="video-sample-entry"><button className="secondary" disabled={busy} onClick={() => setSample(true)}>View sample results</button><p className="hint">See the results layout with example data. Your reference is not analyzed and no generation is requested.</p></div>
-    {sample && <VideoSampleResult mode={source === 'link' ? 'reel' : 'image'} label={reference?.label} onClose={() => setSample(false)} />}
-    {result && !sample && <AnalysisResult key={generation.current + ':' + requestAccess.current?.access.requestId} data={result} requestAccess={requestAccess.current} config={config} onFrame={generateFrame} frameUsed={frameUsed} frame={frame} busy={busy} onError={setStatus} />}
+    {result && <AnalysisResult key={generation.current + ':' + requestAccess.current?.access.requestId} data={result} requestAccess={requestAccess.current} config={config} onFrame={generateFrame} frameUsed={frameUsed} frame={frame} busy={busy} onError={setStatus} />}
   </section>;
 }
