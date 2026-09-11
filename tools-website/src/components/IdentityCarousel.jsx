@@ -42,7 +42,7 @@ export default function IdentityCarousel({hidden, video = false}) {
   }, [index, playing, hovered, focused, reduced, hidden, visible]);
   const touch = useRef(null);
   const move = delta => setIndex(current => (current + delta + names.length) % names.length);
-  return <article className="tool-tile identity-carousel" aria-label={video ? 'AI Video Suggestion showcase' : 'Magic Identity design showcase'} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocus={() => setFocused(true)} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false); }}>
+  return <article className={`tool-tile identity-carousel${video ? ' video-carousel' : ''}`} aria-label={video ? 'AI Video Suggestion showcase' : 'Magic Identity design showcase'} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocus={() => setFocused(true)} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false); }}>
     <div className="tile-top"><span className="identity-ai-label">{video ? 'AI-POWERED VIDEO IDEAS' : 'AI-POWERED PERSONAL DESIGN'}</span><span aria-hidden="true">✦</span></div>
         <div className="showcase-intro">
       {video ? <h2 className="video-message-stack">{videoMessages.map((message, i) => <span key={message} className={i === index % videoMessages.length ? 'is-active' : ''} aria-hidden={i !== index % videoMessages.length}>{message}</span>)}</h2> : <h2>Magic Identity</h2>}
@@ -70,6 +70,7 @@ export default function IdentityCarousel({hidden, video = false}) {
     <a className="identity-try-button" href={video ? '#video' : '#logo'}>{video ? 'Analyze a reference' : 'Try your name'} <span aria-hidden="true">→</span></a>
   </article>;
 }
+
 
 
 

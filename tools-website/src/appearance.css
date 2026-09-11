@@ -48,3 +48,4 @@ body{background:var(--background);color:var(--foreground)}.topbar,.skip{backgrou
 @media(max-width:620px){.showcase-intro{height:151px}.video-message-stack{font-size:18px!important}}
 @media(prefers-reduced-motion:reduce){.video-message-stack span{transition:none}}
 .showcase-intro{height:100px}.video-message-stack{font-size:18px!important;min-height:23px}@media(max-width:620px){.showcase-intro{height:140px}.video-message-stack{min-height:45px}}
+.video-carousel .concept-viewport{margin-left:0;margin-right:0}
