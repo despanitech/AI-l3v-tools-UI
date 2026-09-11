@@ -21,4 +21,11 @@ for(const record of records){
   await writeFile(path.join(out,`${base}.html`),`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L3V private invitation ${id}</title><style>html{background:#e9e8df}body{max-width:1200px;margin:32px auto;padding:0 20px;font-family:Arial,sans-serif;color:#171712}.certificate{background:#faf9f3;box-shadow:0 12px 40px #0002}.certificate svg{display:block;width:100%;height:auto}.actions{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}.actions a,.actions button{padding:11px 16px;border:1px solid #726b39;border-radius:7px;background:#faf9f3;color:#171712;text-decoration:none;font:inherit;cursor:pointer}@media print{html{background:white}body{margin:0;max-width:none;padding:0}.actions{display:none}.certificate{box-shadow:none}}</style></head><body><div class="actions"><button type="button" onclick="copySecret(this)">Copy three-word secret</button><a href="${qrName}" download>Download QR image</a><a href="${svgName}" download>Download printable certificate</a></div><script>function copySecret(button){const secret=${JSON.stringify(phrase)};const done=()=>button.textContent='Copied';if(navigator.clipboard?.writeText)navigator.clipboard.writeText(secret).then(done);else{const field=document.createElement('textarea');field.value=secret;document.body.append(field);field.select();document.execCommand('copy');field.remove();done()}}</script><main class="certificate">${certificate}</main></body></html>`);
 }
 
+const issuedAt=new Date().toISOString(),kv=records.flatMap(({accountId,phraseHash})=>[
+  {key:`token:${accountId}`,value:accountId,metadata:{kind:'token'}},
+  {key:`phrase:${phraseHash}`,value:accountId,metadata:{kind:'phrase'}},
+  {key:`account:${accountId}`,value:JSON.stringify({accountId,issuedAt,version:1}),metadata:{kind:'account'}}
+]);
+await writeFile(path.join(out,'invitation-kv.json'),JSON.stringify(kv,null,2));
+
 console.log(`Added HTML cards and PNG QR images for ${records.length} invitations in ${out}`);
