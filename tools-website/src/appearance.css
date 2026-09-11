@@ -56,3 +56,8 @@ body{background:var(--background);color:var(--foreground)}.topbar,.skip{backgrou
 .appearance summary,.appearance button,.mode-control>span,.tile-variations span{font-size:10px}
 .identity-try-button{font-size:12px}
 .concept-play,.concept-controls select{font-size:10px}
+/* Give display glyphs enough room and avoid tiny, broken-looking strokes. */
+.brand span{font-family:"Audiowide",sans-serif;font-weight:400;font-synthesis:none;letter-spacing:0;line-height:1.6}
+.topbar nav a{font-size:14px;line-height:1.6;white-space:nowrap;overflow:visible;min-height:48px;padding-top:10px;padding-bottom:10px}
+.appearance summary,.mode-control>span{font-size:12px;line-height:1.6}
+@media(max-width:800px){.topbar nav{height:auto;min-height:48px;gap:18px}.topbar nav a{font-size:12px;padding:12px 0;min-height:48px}}
