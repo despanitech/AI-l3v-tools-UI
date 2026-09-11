@@ -30,26 +30,36 @@ export default {
       if(!body || typeof body!=='object' || Array.isArray(body))return json({error:'Invalid request'},400);
       let payload=action==='catalog'?{}:{access};
       if(action==='generate') {
-        if(Object.keys(body).some(key=>!['first','last','styleId','requestKey','token'].includes(key)))return json({error:'Invalid fields'},400);
-        for(const key of ['first','last','styleId','requestKey'])if(typeof body[key]!=='string' || body[key].length>100)return json({error:'Invalid name or style'},400);
+        if(Object.keys(body).some(key=>!['first','last','styleId','styles','requestKey','token'].includes(key)))return json({error:'Invalid fields'},400);
+        for(const key of ['first','last','requestKey'])if(typeof body[key]!=='string' || body[key].length>100)return json({error:'Invalid name or style'},400);
         if(typeof body.token!=='string' || body.token.length>2048)return json({error:'Complete the security check'},403);
+        const styles=body.styles;
+        if(styles!==undefined && (!Array.isArray(styles)||styles.length<1||styles.length>20||styles.some(s=>!s||Object.keys(s).sort().join(',')!=='id,mode'||!['logo','initials','signature'].includes(s.mode)||typeof s.id!=='string'||s.id.length>100)))return json({error:'Choose available styles'},400);
+        if(styles===undefined && typeof body.styleId!=='string')return json({error:'Choose a style'},400);
+        if(styles!==undefined && body.styleId!==undefined)return json({error:'Invalid selection'},400);
         const ip=request.headers.get('CF-Connecting-IP');if(!ip)return json({error:'Cannot verify request'},403);
         const limit=await env.NAME_LOGO_LIMITER.limit({key:ip});if(!limit.success)return json({error:'Please wait before creating another design'},429);
         const verification=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',body:new URLSearchParams({secret:env.TURNSTILE_SECRET,response:body.token,remoteip:ip}),signal:AbortSignal.timeout(10000)});
         const checked=await verification.json();
         if(!checked.success || checked.hostname!==url.hostname || checked.action!=='name_logo')return json({error:'Security check expired'},403);
-        payload={...payload,quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','styleId','requestKey'].map(key=>[key,body[key]]))};
+        payload={...payload,...(styles?{styles}:{styleId:body.styleId}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
       }
       if(action==='status' || action==='image') {
         const id=action==='image'?url.searchParams.get('id'):body.id;
         if(typeof id!=='string' || !(action==='image'?/^[a-f0-9]{32}$/:/^[a-f0-9]{64}$/).test(id))return json({error:'Invalid design'},400);
         payload.id=id;
+        if(action==='image' && url.searchParams.get('format')==='svg')payload.format='svg';
       }
       const upstream=new URL(env.NAME_LOGO_URL);if(upstream.protocol!=='https:')throw new Error('Invalid gateway');upstream.pathname='/name-logo/'+action;upstream.search='';
       const response=await fetch(upstream,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.NAME_LOGO_TOKEN},body:JSON.stringify(payload),redirect:'manual',signal:AbortSignal.timeout(30000)});
       if(response.status>=300 && response.status<400)return json({error:'The design service could not complete this request'},503);
       if(!response.ok)return json({error:response.status===404?'Design not found or expired':'The design service could not complete this request'},[400,403,404,409,429].includes(response.status)?response.status:503);
       const bytes=await bounded(response,action==='image'?25*1024*1024:150000);
+      if(action==='image' && payload.format==='svg') {
+        const svg=new TextDecoder().decode(bytes);
+        if(!svg.startsWith('<svg ')||/<(?:script|image|foreignObject)\b|\bon\w+\s*=|(?:href|url)\s*[:=(]/i.test(svg))throw new Error('Invalid vector');
+        return new Response(svg,{headers:{'Content-Type':'image/svg+xml','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':'attachment; filename="design.svg"','Content-Security-Policy':"default-src 'none'; sandbox"}});
+      }
       if(action==='image') {
         if(![137,80,78,71,13,10,26,10].every((b,i)=>bytes[i]===b))throw new Error('Invalid image');
         return new Response(bytes,{headers:{'Content-Type':'image/png','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':`${url.searchParams.get('download')==='1'?'attachment':'inline'}; filename="name-logo.png"`}});
