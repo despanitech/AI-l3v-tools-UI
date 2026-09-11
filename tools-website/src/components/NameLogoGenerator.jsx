@@ -1,16 +1,14 @@
 import {useEffect, useRef, useState} from 'react';
 import SecurityCheck from './SecurityCheck.jsx';
-import {post} from '../lib/api-client.mjs';
-
-const storageKey = 'l3v-name-logo-request';
-function savedRequest() { try { return JSON.parse(sessionStorage.getItem(storageKey)) || null; } catch { return null; } }
-function remember(value) { try { value ? sessionStorage.setItem(storageKey, JSON.stringify(value)) : sessionStorage.removeItem(storageKey); } catch {} }
+import {savedRequest,remember,createRequest,call,imageUrl} from '../lib/name-logo-request.mjs';
 
 export default function NameLogoGenerator({first, last, visible}) {
   const [config, setConfig] = useState(null), [style, setStyle] = useState('');
   const [request, setRequest] = useState(savedRequest), [result, setResult] = useState(null);
   const [message, setMessage] = useState(''), [busy, setBusy] = useState(false), [token, setToken] = useState('');
   const active = useRef(null);
+  const [image,setImage]=useState(null);
+  useEffect(()=>()=>{if(image)URL.revokeObjectURL(image)},[image]);
   useEffect(() => {
     if (!visible) return;
     const controller = new AbortController();
@@ -28,10 +26,11 @@ export default function NameLogoGenerator({first, last, visible}) {
     try {
       const deadline = Date.now() + 15 * 60 * 1000;
       while (Date.now() < deadline) {
-        const data = await post('/api/name-logo/status', {id:current.id}, controller.signal);
+        const data = await call('status',current,{id:current.id},controller.signal);
         const design = data.designs?.[0];
         if (!design || !/^[a-f0-9]{32}$/.test(design.id)) throw new Error('Could not read the design status.');
         if (design.status === 'succeeded') {
+          const url=await imageUrl(current,design.id,controller.signal);setImage(url);
           setResult({...data, design}); setMessage('Your design is ready.'); return;
         }
         if (!['queued','running'].includes(design.status)) {
@@ -46,24 +45,26 @@ export default function NameLogoGenerator({first, last, visible}) {
   }
 
   async function generate() {
-    if (busy || request || !first.trim() || !last.trim() || !style || !token) return;
-    const current = {requestKey:crypto.randomUUID(), first:first.trim(), last:last.trim(), styleId:style};
+    if (busy || request?.id || !token) return;
+    let current;
+    try {current=request || createRequest(first,last,style)} catch {setMessage('Allow browser storage before generating so your request can be recovered.');return;}
     remember(current); setRequest(current); setBusy(true); setMessage('Submitting your design…');
     const controller = new AbortController(); active.current = controller;
     try {
-      const data = await post('/api/name-logo/generate', {...current, token}, controller.signal);
+      const data = await call('generate',current,{first:current.first,last:current.last,styleId:current.styleId,requestKey:current.requestKey,token},controller.signal);
       if (!/^[a-f0-9]{64}$/.test(data.id)) throw new Error('Invalid request receipt');
       const accepted = {...current, id:data.id}; remember(accepted); setRequest(accepted); await poll(accepted);
     } catch (error) { if (error.name !== 'AbortError') setMessage('Submission could not be confirmed. Do not submit again; keep the request reference below for support.'); }
     finally { setBusy(false); setToken(''); }
   }
   if (!visible || !config?.enabled) return null;
-  const image = result && '/api/name-logo/image?id=' + result.design.id;
+
   return <section className="live-logo-generator" aria-label="Generate your name logo">
     <h2>Create your name logo</h2>
     {!request && <><label>Style <select aria-label="Name logo style" value={style} onChange={e => setStyle(e.target.value)}>{config.styles.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><SecurityCheck config={config} action="name_logo" onToken={setToken} onError={setMessage} /><button className="identity-try-button" disabled={!first.trim() || !last.trim() || !token || busy} onClick={generate}>Generate name logo</button></>}
     <p role="status">{message}</p>
+    {request && !request.id && <><SecurityCheck config={config} action="name_logo" onToken={setToken} onError={setMessage} /><button disabled={busy||!token} onClick={generate}>Recover saved request</button></>}
     {request && <><p>{request.first} {request.last} · Request <small>{request.requestKey}</small></p>{request.id && !result && <button className="text-button" disabled={busy} onClick={() => poll(request)}>Check progress</button>}</>}
-    {result && <div className="results-main"><div className="results-art"><img src={image} alt={`${result.identity.first} — generated name logo`} /></div><div className="results-caption"><div><strong>{result.design.styleName}</strong><span>{result.design.output.width} × {result.design.output.height} · Original image</span></div><a className="identity-try-button" href={image + '&download=1'} download>Download PNG ↓</a></div><button className="text-button" onClick={() => {remember(null); setRequest(null); setResult(null); setMessage('');}}>Create another variation</button></div>}
+    {result && <div className="results-main"><div className="results-art"><img src={image} alt={`${result.identity.first} — generated name logo`} /></div><div className="results-caption"><div><strong>{result.design.styleName}</strong><span>{result.design.output.width} × {result.design.output.height} · Original image</span></div><a className="identity-try-button" href={image} download="name-logo.png">Download PNG ↓</a></div><button className="text-button" onClick={() => {remember(null); setRequest(null); setResult(null); setMessage('');}}>Create another variation</button></div>}
   </section>;
 }
