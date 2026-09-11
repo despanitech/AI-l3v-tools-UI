@@ -9,7 +9,7 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/name-logo/*"],
+    "run_worker_first": ["/api/name-logo/*", "/api/analyzer/config", "/api/analyze", "/api/first-frame", "/api/image-to-video", "/api/jobs"],
     "not_found_handling": "404-page"
   }
 }

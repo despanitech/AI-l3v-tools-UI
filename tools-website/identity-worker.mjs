@@ -1,3 +1,4 @@
+import videoWorker from './video-worker.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
 async function signature(value, secret) {
@@ -20,6 +21,7 @@ async function bounded(response, limit) {
 export default {
   async fetch(request, env) {
     const url=new URL(request.url), prefix='/api/name-logo/';
+    if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
     if(!['catalog','generate','status','image'].includes(action)) return json({error:'Not found'},404);

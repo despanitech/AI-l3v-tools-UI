@@ -104,6 +104,42 @@ test('changing a reference discards a pending analysis', async ({page}) => {
   await expect(page.getByRole('button', {name: 'Get video suggestions'})).toBeDisabled();
 });
 
+test('blocked receipt storage stops analysis before network submission', async ({page}) => {
+  await enabledService(page);
+  await page.addInitScript(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (key.startsWith('l3v-video-request-v1:')) throw new Error('Storage blocked');
+      return original.call(this, key, value);
+    };
+  });
+  let calls = 0;
+  await page.route('**/api/analyze', route => {calls++;return route.abort();});
+  await page.goto('/#video');
+  await page.getByLabel('Choose a reference image').setInputFiles(imageFile);
+  await page.getByRole('button', {name:'Get video suggestions'}).click();
+  await expect(page.locator('#status')).toContainText('Nothing new was submitted');
+  expect(calls).toBe(0);
+});
+
+test('lost analysis response retains the receipt for manual recovery', async ({page}) => {
+  await enabledService(page);
+  const roots=[];
+  await page.route('**/api/analyze', route => {
+    roots.push(route.request().headers()['x-l3v-request-id']);
+    if (roots.length===1) return route.abort();
+    return route.fulfill({json:{job:{id:'d'.repeat(32),status:'succeeded'},report:{summary:'Recovered analysis',models:[],prompt:'Pan slowly'}}});
+  });
+  await page.goto('/#video');
+  await page.getByLabel('Choose a reference image').setInputFiles(imageFile);
+  await page.getByRole('button', {name:'Get video suggestions'}).click();
+  await expect(page.getByRole('button', {name:'Get video suggestions'})).toBeEnabled();
+  expect(roots).toHaveLength(1);
+  await page.getByRole('button', {name:'Get video suggestions'}).click();
+  await expect(page.locator('#analysis-result')).toContainText('Recovered analysis');
+  expect(roots).toHaveLength(2);expect(roots[0]).toBe(roots[1]);
+});
+
 test('public hostname never connects to local editor and desktop layout renders', async ({page}) => {
   const localCalls = [];
   page.on('request', req => { if (req.url().includes('/api/logo-status') || req.url().includes(':4184')) localCalls.push(req.url()); });
