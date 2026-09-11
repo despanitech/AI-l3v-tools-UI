@@ -91,7 +91,7 @@ export default function Video({hidden}) {
     const say = value => { if (version === generation.current) setStatus(value); };
     try {
       const access = lastReceipt();
-      if (!access) throw new Error('There is no saved request in this tab yet.');
+      if (!access) throw new Error('There is no saved request in this browser yet.');
       requestAccess.current = access;
       const transport = receiptTransport(access), analysisId = access.stages['/api/analyze']?.jobId;
       if (!analysisId) throw new Error('The first response was not saved. Add the same image or Reel link again to recover the existing analysis.');
@@ -124,7 +124,7 @@ export default function Video({hidden}) {
     <p id="status" role="status" aria-live="polite">{status}</p>
     <div id="analysis-security">{config && <SecurityCheck key={securityVersion} config={config} action="reference_analyze" onToken={setToken} onError={setConfigError} />}</div>
     <div className="submit-row"><button className="primary" disabled={!enabled} aria-describedby="service-note" onClick={analyze}>Analyze reference <span aria-hidden="true">↗</span></button><p id="service-note">{note}</p></div>
-    {config?.enabled && <button className="text-button" disabled={busy} onClick={restore}>Check saved request</button>}
+    {config?.enabled && <><button className="text-button" disabled={busy} onClick={restore}>Check saved request</button><p className="hint">Your latest request can be recovered in this browser after closing the tab.</p></>}
     <p className="privacy">{config ? 'On submission, your image or sampled frames are sent to the analysis service.' : 'Your files stay on this device in this preview.'}</p>
     {result && <AnalysisResult key={generation.current + ':' + requestAccess.current?.access.requestId} data={result} requestAccess={requestAccess.current} config={config} onFrame={generateFrame} frameUsed={frameUsed} frame={frame} busy={busy} onError={setStatus} />}
   </section>;

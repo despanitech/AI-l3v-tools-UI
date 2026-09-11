@@ -51,3 +51,44 @@ test('missing saved receipt and foreign destinations fail closed',async()=>{
   await assert.rejects(transport('https://other.test/api/jobs',options({})));
   store.map.clear();await assert.rejects(transport('/api/jobs',options({id:'c'.repeat(32)})),/Nothing new was submitted/);
 });
+
+test('closing a tab preserves completed analysis and followup access',async()=>{
+  globalThis.localStorage=storage();globalThis.sessionStorage=storage();
+  try {
+    const record=await receiptForReference(reference);
+    await receiptTransport(record,async()=>Response.json({job:{id:'d'.repeat(32)}}))('/api/analyze',options({...reference,token:'challenge'}));
+    globalThis.sessionStorage=storage();
+    const recovered=lastReceipt();
+    assert.deepEqual(recovered.access,record.access);
+    assert.equal(recovered.stages['/api/analyze'].jobId,'d'.repeat(32));
+    let calls=0;
+    await receiptTransport(recovered,async(path,opts)=>{
+      calls++;assert.equal(path,'/api/jobs');
+      assert.equal(opts.headers.get('X-L3V-Request-Receipt'),record.access.receipt);
+      return Response.json({});
+    })('/api/jobs',options({id:'d'.repeat(32)}));
+    assert.equal(calls,1);
+    assert.ok(!JSON.stringify([...localStorage.map.values()]).includes(reference.image));
+    assert.deepEqual((await receiptForReference(reference)).access,record.access);
+  } finally {delete globalThis.localStorage;delete globalThis.sessionStorage;}
+});
+
+test('an open legacy tab migrates its receipt before it closes',async()=>{
+  globalThis.localStorage=storage();globalThis.sessionStorage=storage();
+  try {
+    const record=await receiptForReference(reference,sessionStorage);
+    await receiptTransport(record,async()=>Response.json({job:{id:'e'.repeat(32)}}),sessionStorage)('/api/analyze',options(reference));
+    assert.equal(lastReceipt().stages['/api/analyze'].jobId,'e'.repeat(32));
+    globalThis.sessionStorage=storage();
+    assert.deepEqual(lastReceipt().access,record.access);
+  } finally {delete globalThis.localStorage;delete globalThis.sessionStorage;}
+});
+
+test('unavailable persistent storage cannot silently fall back to tab-only access',async()=>{
+  globalThis.localStorage={getItem(){throw Error('blocked');},setItem(){}};
+  globalThis.sessionStorage=storage();
+  try {
+    await assert.rejects(receiptForReference(reference),/Nothing new was submitted/);
+    assert.throws(()=>lastReceipt(),/Nothing new was submitted/);
+  } finally {delete globalThis.localStorage;delete globalThis.sessionStorage;}
+});
