@@ -41,17 +41,17 @@ test('upload previews stay local, removal and invalid sources', async ({page}) =
   const calls = [];
   page.on('request', req => { if (req.url().includes('/api/analyze')) calls.push(req); });
   await page.goto('/#video');
-  await page.getByLabel('Choose a reference image or video').setInputFiles(imageFile);
+  await page.getByLabel('Choose a reference image').setInputFiles(imageFile);
   await expect(page.getByAltText('Your reference image')).toBeVisible();
   await expect(page.getByRole('button', {name: 'Get video suggestions'})).toBeDisabled();
   await page.getByRole('button', {name: 'Remove', exact: true}).click();
   await expect(page.locator('#reference')).toHaveCount(0);
-  await page.getByLabel('Choose a reference image or video').setInputFiles({name: 'bad.txt', mimeType: 'text/plain', buffer: Buffer.from('bad')});
+  await page.getByLabel('Choose a reference image').setInputFiles({name: 'bad.txt', mimeType: 'text/plain', buffer: Buffer.from('bad')});
   await expect(page.locator('#status')).toContainText('Choose a JPG');
-  await page.getByRole('tab', {name: 'Paste a video link'}).click();
+  await page.getByRole('tab', {name: 'Facebook Reel URL'}).click();
   await page.getByLabel('Video link', {exact: true}).fill('javascript:alert(1)');
-  await page.getByRole('button', {name: 'Preview', exact: true}).click();
-  await expect(page.locator('#status')).toContainText('direct HTTPS link');
+  await page.getByRole('button', {name: 'Add link', exact: true}).click();
+  await expect(page.locator('#status')).toContainText('Facebook Reel URL');
   expect(calls).toHaveLength(0);
 });
 
@@ -76,7 +76,7 @@ test('enabled API: analysis, price controls and one first-frame request', async 
   await page.route('**/api/analyze', route => { analyses++; return route.fulfill({json: {report: {summary: 'A soft landscape', models: [{id: modelId, reason: 'Camera motion'}], prompt: 'Create a quiet scene', workflow: ['Choose a model']}, frameTicket: 'a'.repeat(32)}}); });
   await page.route('**/api/first-frame', route => { frames++; return route.fulfill({json: {image: 'data:image/png;base64,' + image.toString('base64'), motionPrompt: 'Slow pan'}}); });
   await page.goto('/#video');
-  await page.getByLabel('Choose a reference image or video').setInputFiles(imageFile);
+  await page.getByLabel('Choose a reference image').setInputFiles(imageFile);
   await page.getByRole('button', {name: 'Get video suggestions'}).click();
   await expect(page.getByRole('heading', {name: 'Your video direction'})).toBeVisible();
   await expect(page.getByLabel('Provider and configuration')).toBeVisible();
@@ -95,7 +95,7 @@ test('changing a reference discards a pending analysis', async ({page}) => {
   const gate = new Promise(resolve => { release = resolve; });
   await page.route('**/api/analyze', async route => { await gate; await route.fulfill({json: {report: {summary: 'Stale result', models: [], prompt: 'Old'}}}).catch(() => {}); });
   await page.goto('/#video');
-  await page.getByLabel('Choose a reference image or video').setInputFiles(imageFile);
+  await page.getByLabel('Choose a reference image').setInputFiles(imageFile);
   await page.getByRole('button', {name: 'Get video suggestions'}).click();
   await expect(page.locator('#status')).toContainText('Submitting');
   await page.getByRole('button', {name: 'Remove', exact: true}).click();
