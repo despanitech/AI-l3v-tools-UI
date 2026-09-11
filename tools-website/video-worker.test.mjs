@@ -90,3 +90,8 @@ test('video credit cap rejects before paid admission',async t=>{
   const response=await worker.fetch(request('/api/image-to-video',{request:{frameId:'c'.repeat(32),duration:6,resolution:'480p',audio:false},token:'challenge'}),env);
   assert.equal(response.status,400);assert.equal(globalThis.fetch.mock.callCount(),0);
 });
+
+test('Video gateway rejects redirects without forwarding credentials',async t=>{
+ let calls=0;t.mock.method(globalThis,'fetch',async(url,init)=>{calls++;assert.equal(init.redirect,'manual');return new Response(null,{status:302,headers:{Location:'https://untrusted.example'}})});
+ const response=await worker.fetch(request(),env);assert.equal(response.status,503);assert.equal(calls,1);assert.ok(!(await response.text()).includes('untrusted'));
+});

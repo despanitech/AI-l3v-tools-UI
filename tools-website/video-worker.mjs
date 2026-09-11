@@ -49,10 +49,11 @@ export default {
    const visitor=Array.from(new Uint8Array(identity),b=>b.toString(16).padStart(2,'0')).join('');
    const target=new URL(env.HERMES_URL);if(target.protocol!=='https:'||target.username||target.password)throw new Error('configuration');
    target.pathname=video?'/image-to-video':frame?'/first-frame':polling?'/jobs':'/analyze';target.search='';target.hash='';
-   const result=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.HERMES_TOKEN},body:JSON.stringify({...reference,visitor,access}),redirect:'error',signal:AbortSignal.timeout(frame?165000:90000)});
+   const result=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.HERMES_TOKEN},body:JSON.stringify({...reference,visitor,access}),redirect:'manual',signal:AbortSignal.timeout(frame?165000:90000)});
    if(result.status===429)return reply({error:'The analysis allowance has been reached. Please try tomorrow.'},429);
    if(result.status===404)return reply({error:'Analysis not found or expired.'},404);
    if(result.status===409)return reply({error:'This request already used different settings. Check its saved status.'},409);
+   if(result.status>=300 && result.status<400)return reply({error:'Gateway redirect rejected'},503);
    if(!result.ok)throw new Error('upstream');
    const data=await boundedJSON(result,(frame||polling)?6000000:50000);
    if(polling&&data.job?.id!==reference.id)throw new Error('Mismatched job');
@@ -70,4 +71,7 @@ async function boundedJSON(response,limit){const reader=response.body.getReader(
 function validateJob(body){if(typeof body.id!=='string'||!/^[a-f0-9]{32}$/.test(body.id))throw new Error('Invalid analysis job.');return {id:body.id}}
 
 function validateFrame(data){if(typeof data.image!=='string'||!/^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(data.image)||typeof data.motionPrompt!=='string'||data.motionPrompt.length>4000)throw new Error('Invalid frame');return {image:data.image,motionPrompt:data.motionPrompt,model:'gpt-image-2'}}
+
+
+
 
