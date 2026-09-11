@@ -79,3 +79,9 @@ body{background:var(--background);color:var(--foreground)}.topbar,.skip{backgrou
 
 .preview-person{text-align:right;margin:0 0 10px;font-family:var(--menu-font);font-size:14px;overflow-wrap:anywhere}
 .workspace-rail button strong,.workspace-rail button small{font-weight:700;font-synthesis:weight}
+.workspace-preview{border:2px solid color-mix(in srgb,var(--accent) 55%,var(--border))}
+.workspace-browse{position:relative;justify-content:center}
+.workspace-browse>button:first-child,.workspace-browse>button:last-child{position:absolute;top:-142px;transform:translateY(-50%);display:grid;place-items:center;width:44px;height:44px;padding:0;border-color:color-mix(in srgb,var(--accent) 65%,var(--border));border-radius:50%;background:var(--panel)}
+.workspace-browse>button:first-child{left:0}.workspace-browse>button:last-child{right:0}
+@media(min-width:901px){.simple-name-entry:has(.identity-workspace) .workspace-browse>button:first-child,.simple-name-entry:has(.identity-workspace) .workspace-browse>button:last-child{top:-172px}}
+@media(max-width:600px){.workspace-browse>button:first-child,.workspace-browse>button:last-child{top:-117px;width:38px;height:38px}}
