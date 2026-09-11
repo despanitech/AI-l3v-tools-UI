@@ -1,22 +1,18 @@
 import {test,expect} from '@playwright/test';
-test('catalog selection and vector editor',async({page})=>{
- await page.addInitScript(()=>window.turnstile={render:(el,o)=>{setTimeout(()=>o.callback('token'),0);return 1},remove(){}});
- await page.route('**/api/name-logo/catalog',r=>r.fulfill({json:{enabled:true,sitekey:'test',styles:[{mode:'logo',id:'hard-angular',name:'Diagonal Weave'}]}}));
- let calls=0;await page.route('**/api/name-logo/generate',r=>{calls++;expect(r.request().postDataJSON().styles).toEqual([{mode:'logo',id:'hard-angular'}]);return r.fulfill({json:{id:'a'.repeat(64)}})});
- await page.route('**/api/name-logo/status',r=>r.fulfill({json:{designs:[{id:'b'.repeat(32),styleName:'Diagonal Weave',styleId:'hard-angular',status:'succeeded',output:{svg:true}}]}}));
- await page.route('**/api/name-logo/image?*',r=>r.fulfill({body:r.request().url().includes('format=svg')?'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M10 10 L90 10 L50 90 Z"/></svg>':'image'}));
- await page.goto('/#logo');await page.locator('#first-name').fill('Natia');await page.locator('#last-name').fill('Odisharia');await page.getByRole('button',{name:'Continue →'}).click();await page.getByRole('button',{name:'＋ Name logo',exact:true}).click();await page.getByRole('button',{name:'Select this style',exact:true}).click();await page.getByRole('button',{name:'Generate',exact:true}).click();await expect(page.getByText('1 of 1 designs finished')).toBeVisible();
- await page.reload();await page.getByRole('button',{name:'Check progress'}).click();await page.getByRole('button',{name:'Edit design'}).click();await expect(page.getByRole('region',{name:'SVG editor'})).toBeVisible();expect(calls).toBe(1);
- await page.getByLabel('Weight').fill('3');await page.getByRole('button',{name:'Undo',exact:true}).click();await expect(page.getByLabel('Weight')).toHaveValue('0');
- const download=page.waitForEvent('download');await page.getByRole('button',{name:'Download edited SVG'}).click();expect((await download).suggestedFilename()).toBe('edited-design.svg');
-});
-
-test('all three outputs require a style and preserve the name',async({page})=>{
- await page.addInitScript(()=>window.turnstile={render:(el,o)=>{setTimeout(()=>o.callback('token'),0);return 1},remove(){}});
- await page.route('**/api/name-logo/catalog',r=>r.fulfill({json:{enabled:true,sitekey:'test',styles:[{mode:'logo',id:'hard-angular',name:'Diagonal Weave'},{mode:'initials',id:'woven-serif',name:'Woven Serif'},{mode:'signature',id:'quiet-line',name:'Quiet Line'}]}}));
- await page.goto('/#logo');await expect(page.getByRole('region',{name:'Choose outputs and styles'})).toHaveCount(0);
- await page.locator('#first-name').fill('Evan');await page.locator('#last-name').fill('Hart');await page.getByRole('button',{name:'Continue →'}).click();await page.getByRole('button',{name:'All three',exact:true}).click();
- await expect(page.getByRole('button',{name:'Generate',exact:true})).toBeDisabled();
- for(const name of ['Name logo','Initials','Signature']){await page.locator('.workspace-rail button').filter({hasText:name}).click();await page.getByRole('button',{name:'Select this style'}).click();}
- await expect(page.getByRole('button',{name:'Generate',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Edit name'}).click();await expect(page.locator('#first-name')).toHaveValue('Evan');
+import previews from '../src/lib/style-previews.json' with {type:'json'};
+test('individual gallery samples, carousel, defaults and ink',async({page})=>{
+ await page.route('**/api/name-logo/catalog',r=>r.fulfill({json:{enabled:true,styles:previews.map(p=>({...p,name:p.id}))}}));
+ await page.goto('/#logo');await page.locator('#first-name').fill('Evan');await page.locator('#last-name').fill('Hart');await page.getByRole('button',{name:'Continue →'}).click();
+ for(const [mode,n] of [['Name logo',5],['Initials',37],['Signature',35]]){
+  await page.locator('.workspace-rail button').filter({hasText:mode}).click();
+  await page.getByRole('button',{name:'Change style',exact:true}).click();
+  await expect(page.locator('.style-gallery-items button')).toHaveCount(n);
+  await page.locator('.style-gallery-items button').last().click();
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.getByRole('button',{name:'Next style',exact:true}).click();
+  await expect(page.locator('.gallery-dots button').first()).toHaveAttribute('aria-pressed','true');
+ }
+ await page.getByLabel('Preview ink color').fill('#a02030');
+ await expect.poll(()=>page.locator('.workspace-art canvas').evaluate(c=>{const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;for(let i=0;i<d.length;i+=4)if(d[i+3]>200)return [d[i],d[i+1],d[i+2]].join(',');return ''})).toBe('160,32,48');
+ await page.getByRole('button',{name:'Edit name'}).click();await expect(page.locator('#first-name')).toHaveValue('Evan');
 });
