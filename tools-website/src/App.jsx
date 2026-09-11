@@ -5,13 +5,13 @@ import Home from './components/Home.jsx';
 import Identity from './components/Identity.jsx';
 import Video from './components/Video.jsx';
 
-const route = () => ['logo', 'initials', 'signature', 'video'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home';
+const route = () => ['logo', 'initials', 'signature', 'video', 'demo'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'home';
 export default function App() {
   const [tool, setTool] = useState(route);
   const localPreview = ['localhost', '127.0.0.1'].includes(location.hostname);
-  const identity = ['logo', 'initials', 'signature'].includes(tool);
+  const identity = ['logo', 'initials', 'signature', 'demo'].includes(tool);
   useEffect(() => { const change = () => setTool(route()); window.addEventListener('hashchange', change); return () => window.removeEventListener('hashchange', change); }, []);
-  useEffect(() => { document.title = tool === 'home' ? 'l3v AI tools' : `${({logo: 'Magic Identity', initials: 'Magic Initials', signature: 'Magic Signature', video: 'AI Video Suggestion'})[tool]} · l3v AI tools`; }, [tool]);
+  useEffect(() => { document.title = tool === 'home' ? 'l3v AI tools' : `${({logo: 'Magic Identity', initials: 'Magic Initials', signature: 'Magic Signature', video: 'AI Video Suggestion', demo:'Magic Identity Demo'})[tool]} · l3v AI tools`; }, [tool]);
   useEffect(() => {
     if (!document.modelContext?.registerTool) return;
     const lifecycle = new AbortController();
@@ -20,4 +20,5 @@ export default function App() {
   }, []);
   return <><a className="skip" href="#workspace">Skip to tool</a><header className="topbar"><a className="brand" href="#home" aria-label="l3v AI tools home"><img src="/assets/l3v-mark.png" alt="" width="54" height="36" /><span>AI tools</span></a><nav aria-label="Tools"><a href="#home" id="nav-home" aria-current={tool === 'home' ? 'page' : undefined}>All tools</a><a href="#logo" id="nav-logo" aria-current={identity ? 'page' : undefined}>Magic Identity</a><a href="#video" id="nav-video" aria-current={tool === 'video' ? 'page' : undefined}>AI Video Suggestion</a></nav><Appearance /></header><MenuFontPicker /><main id="workspace" tabIndex={-1}><Home hidden={tool !== 'home'} /><Video hidden={tool !== 'video'} /><Identity tool={tool} localPreview={localPreview} /></main><footer><span>l3v AI tools</span><span>A little less friction. A little more creating.</span></footer></>;
 }
+
 

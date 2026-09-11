@@ -5,6 +5,11 @@
   "compatibility_date": "2026-09-10",
   "workers_dev": false,
   "preview_urls": false,
+  "ratelimits": [
+    {"name":"VIDEO_ADMISSION_LIMITER","namespace_id":"20331","simple":{"limit":8,"period":60}},
+    {"name":"VIDEO_POLL_LIMITER","namespace_id":"20332","simple":{"limit":60,"period":60}},
+    {"name":"NAME_LOGO_LIMITER","namespace_id":"20333","simple":{"limit":8,"period":60}}
+  ],
   "routes": [{"pattern": "tools.l3v.ai", "custom_domain": true}],
   "assets": {
     "directory": "./dist",

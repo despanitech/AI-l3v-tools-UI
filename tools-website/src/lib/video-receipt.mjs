@@ -19,7 +19,7 @@ function save(record, storage) {
 }
 export async function receiptForReference(reference, storage = sessionStorage) {
   try {
-    const fingerprint = await digest({kind: reference.kind, image: reference.image});
+    const fingerprint = await digest(reference.kind === 'facebook-reel' ? {kind: reference.kind, sourceUrl: reference.sourceUrl} : {kind: reference.kind, image: reference.image});
     const raw = storage.getItem(prefix + fingerprint);
     const record = raw === null ? {fingerprint, access: {
       requestId: hex(crypto.getRandomValues(new Uint8Array(16))),

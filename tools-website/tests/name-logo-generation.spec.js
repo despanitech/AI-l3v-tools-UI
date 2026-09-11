@@ -9,7 +9,7 @@ test('a mocked response flow preserves submitted name and polls without duplicat
   await page.route('**/api/name-logo/image?*',route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWQAAAABJRU5ErkJggg==','base64')}));
   await page.goto('/#logo');
   await page.locator('#first-name').fill('Natia');await page.locator('#last-name').fill('Odisharia');
-  await page.getByRole('button',{name:'Generate name logo',exact:true}).click();
+  await page.getByRole('button',{name:'Generate',exact:true}).click();
   await expect(page.getByText('Your design is ready.')).toBeVisible();
   await expect(page.getByRole('link',{name:'Download PNG'})).toHaveAttribute('href',/^blob:/);
   expect(submits).toBe(1);
@@ -21,5 +21,14 @@ test('lost admission response can replay same saved request after reload',async(
  await page.route('**/api/name-logo/catalog',r=>r.fulfill({json:{enabled:true,sitekey:'test',styles:[{id:'hard-angular',name:'Diagonal Weave'}]}}));
  await page.route('**/api/name-logo/generate',r=>{const req=r.request();if(!submitted){submitted={body:req.postDataJSON(),receipt:req.headers()['x-l3v-request-receipt']};return r.abort()}expect(req.headers()['x-l3v-request-receipt']).toBe(submitted.receipt);expect(req.postDataJSON().requestKey).toBe(submitted.body.requestKey);return r.fulfill({json:{id:'a'.repeat(64)}})});
  await page.route('**/api/name-logo/status',r=>r.fulfill({json:{designs:[{id:'b'.repeat(32),status:'ambiguous'}]}}));
- await page.goto('/#logo');await page.locator('#first-name').fill('Natia');await page.locator('#last-name').fill('Odisharia');await page.getByRole('button',{name:'Generate name logo',exact:true}).click();await expect(page.getByText(/Submission could not be confirmed/)).toBeVisible();await page.reload();await page.getByRole('button',{name:'Recover saved request'}).click();await expect(page.getByText(/result is uncertain/)).toBeVisible();
+ await page.goto('/#logo');await page.locator('#first-name').fill('Natia');await page.locator('#last-name').fill('Odisharia');await page.getByRole('button',{name:'Generate',exact:true}).click();await expect(page.getByText(/Submission could not be confirmed/)).toBeVisible();await page.reload();await page.getByRole('button',{name:'Recover saved request'}).click();await expect(page.getByText(/result is uncertain/)).toBeVisible();
+});
+
+
+test('catalog connection failure stops the loading message and keeps generation disabled',async({page})=>{
+ await page.route('**/api/name-logo/catalog',route=>route.abort());
+ await page.goto('/#logo');
+ await expect(page.getByText('Could not connect. Refresh the page to check again.')).toBeVisible();
+ await expect(page.getByText('Checking availability…')).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Generate',exact:true})).toBeDisabled();
 });
