@@ -37,3 +37,33 @@ test('disabled Reel gate cannot submit even with a valid link',async({page})=>{
   await expect(page.getByRole('button',{name:'Analyze reference'})).toBeDisabled();
 });
 
+
+test('sample dialog preserves the reference and returns focus without submitting',async({page})=>{
+  await page.route('**/api/analyzer/config',r=>r.fulfill({json:{enabled:true,sitekey:'test',reelAnalysis:true}}));
+  await page.route('https://challenges.cloudflare.com/**',r=>r.fulfill({contentType:'text/javascript',body:'window.turnstile={render(e,o){o.callback("token");return 1},remove(){}}'}));
+  let submissions=0;
+  await page.route('**/api/analyze',r=>{submissions++;return r.abort()});
+  await page.goto('/#video');
+  await page.getByRole('tab',{name:'Facebook Reel URL'}).click();
+  const input=page.getByRole('textbox',{name:'Facebook Reel URL',exact:true});
+  await input.fill('https://www.facebook.com/reel/123');
+  await page.getByRole('button',{name:'Add link'}).click();
+  const trigger=page.getByRole('button',{name:'View sample',exact:true});
+  const dialog=page.getByRole('dialog',{name:'Sample video direction'});
+  await expect(dialog).not.toBeVisible();
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText('Example landscape',{exact:true})).toBeVisible();
+  await expect(dialog).not.toContainText('https://www.facebook.com/reel/123');
+  await expect(dialog.getByRole('button',{name:'Close sample'})).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).not.toBeVisible();
+  await expect(trigger).toBeFocused();
+  await expect(input).toHaveValue('https://www.facebook.com/reel/123');
+  await expect(page.getByRole('button',{name:'Analyze reference'})).toBeEnabled();
+  await trigger.click();
+  await dialog.getByRole('button',{name:'Close sample'}).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(trigger).toBeFocused();
+  expect(submissions).toBe(0);
+});
