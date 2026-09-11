@@ -13,8 +13,8 @@ export default function VideoSampleResult({mode, label, onClose}) {
     <h3>Recommended approach</h3><p>Create an original first frame that carries the reference’s mood, then animate it with restrained movement.</p>
     <div className="sample-model"><h4>Seedance 2.5 via Runway</h4><p>Example choice for a short image-to-video shot. The real recommendation will depend on the reference.</p><p><strong>Example setup:</strong> 5 seconds · 480p · no audio</p><p><strong>Illustrative cost:</strong> $1.00, based on our earlier test. Confirm a current estimate before generation.</p></div>
     <h3>Creation steps</h3><ol><li>Review the reference analysis and choose the direction.</li><li>Create and approve the first frame.</li><li>Review motion instructions and the price.</li><li>Generate the video and retrieve it from this request.</li></ol>
-    <h3>First frame</h3><div className="sample-placeholder"><strong>First-frame result appears here</strong><span>No image has been generated for this sample.</span></div>
-    <h3>Video result</h3><div className="sample-placeholder"><strong>Video player appears here</strong><span>The real result will have playback and download controls.</span></div>
+    <div className="sample-outputs"><div><h3>First frame</h3><div className="sample-placeholder"><strong>First-frame result appears here</strong><span>No image generated for this sample.</span></div></div>
+    <div><h3>Video result</h3><div className="sample-placeholder"><strong>Video player appears here</strong><span>Playback and download controls in the real result.</span></div></div></div>
     <p className="privacy">Sample only. No request receipt is created and no paid action is available here.</p>
   </section>;
 }
