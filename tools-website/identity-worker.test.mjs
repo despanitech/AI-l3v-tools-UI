@@ -64,3 +64,9 @@ test('foreign receipt rejection from gateway stays private at the edge',async()=
   assert.deepEqual(await response.json(),{error:'Design not found or expired'});
  }finally{globalThis.fetch=original}
 });
+
+test('gateway redirects are rejected without following or exposing their destination',async()=>{
+ const original=globalThis.fetch;let calls=0;
+ globalThis.fetch=async(url,init)=>{calls++;assert.equal(init.redirect,'manual');return new Response(null,{status:302,headers:{Location:'https://untrusted.example/'}})};
+ try{const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/catalog'),env);assert.equal(response.status,503);assert.equal(calls,1);assert.ok(!(await response.text()).includes('untrusted'));}finally{globalThis.fetch=original}
+});

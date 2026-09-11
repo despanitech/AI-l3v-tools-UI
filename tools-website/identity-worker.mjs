@@ -46,7 +46,8 @@ export default {
         payload.id=id;
       }
       const upstream=new URL(env.NAME_LOGO_URL);if(upstream.protocol!=='https:')throw new Error('Invalid gateway');upstream.pathname='/name-logo/'+action;upstream.search='';
-      const response=await fetch(upstream,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.NAME_LOGO_TOKEN},body:JSON.stringify(payload),redirect:'error',signal:AbortSignal.timeout(30000)});
+      const response=await fetch(upstream,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.NAME_LOGO_TOKEN},body:JSON.stringify(payload),redirect:'manual',signal:AbortSignal.timeout(30000)});
+      if(response.status>=300 && response.status<400)return json({error:'The design service could not complete this request'},503);
       if(!response.ok)return json({error:response.status===404?'Design not found or expired':'The design service could not complete this request'},[400,403,404,409,429].includes(response.status)?response.status:503);
       const bytes=await bounded(response,action==='image'?25*1024*1024:150000);
       if(action==='image') {
@@ -59,3 +60,4 @@ export default {
     } catch {return json({error:'The name service is temporarily unavailable. Keep your request reference.'},503)}
   }
 };
+
