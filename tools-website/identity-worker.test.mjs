@@ -11,6 +11,14 @@ test('static pages still use assets',async()=>{
   const response=await worker.fetch(new Request('https://tools.l3v.ai/'),{ASSETS:{fetch:()=>new Response('page')}});
   assert.equal(await response.text(),'page');
 });
+test('opaque invitation links serve private, unindexed certificates with copy control',async()=>{
+  const slug='a'.repeat(43),store={get:key=>key===`share:${slug}`?'<svg xmlns="http://www.w3.org/2000/svg"></svg>':null};
+  const page=await worker.fetch(new Request(`https://tools.l3v.ai/invite/${slug}`),{INVITATIONS:store});
+  assert.equal(page.status,200);assert.match(page.headers.get('Cache-Control'),/no-store/);assert.match(page.headers.get('X-Robots-Tag'),/noindex/);assert.match(await page.text(),/Copy invitation link/);
+  const image=await worker.fetch(new Request(`https://tools.l3v.ai/invite/${slug}/certificate.svg`),{INVITATIONS:store});
+  assert.equal(image.headers.get('Content-Type'),'image/svg+xml; charset=utf-8');assert.match(await image.text(),/^<svg/);
+  assert.equal((await worker.fetch(new Request('https://tools.l3v.ai/invite/'+'b'.repeat(43)),{INVITATIONS:store})).status,404);
+});
 test('invitation validation is rate limited before revealing validity',async()=>{
  const account='d'.repeat(64),records=new Map([[`token:${account}`,account]]);
  const request=new Request('https://tools.l3v.ai/api/invitation/validate',{headers:{'X-L3V-Invitation':'d'.repeat(43),'CF-Connecting-IP':'192.0.2.8'}});
