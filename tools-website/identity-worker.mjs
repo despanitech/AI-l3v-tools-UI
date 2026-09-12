@@ -44,7 +44,7 @@ export default {
       return json({claimed:true});
     }
     if(api&&env.INVITATION_ONLY==='true'&&!account)return json({error:'Invitation required'},403);
-    if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs'].includes(url.pathname)) return videoWorker.fetch(request,env);
+    if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs','/api/capacity-status'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
     if(!['catalog','generate','status','image','mockup-generate','mockup-status','mockup-image'].includes(action)) return json({error:'Not found'},404);
