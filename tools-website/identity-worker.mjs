@@ -1,6 +1,7 @@
 import videoWorker from './video-worker.mjs';
 import {invitationAccount} from './invitation-worker.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
+import {invitationShare} from './invitation-share.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
 async function signature(value, secret) {
@@ -16,6 +17,7 @@ async function bounded(response, limit) {
 export default {
   async fetch(request, env) {
     const url=new URL(request.url), prefix='/api/name-logo/';
+    if(url.pathname.startsWith('/invite/'))return invitationShare(request,env);
     if(url.pathname==='/api/admin/invitations')return issueInvitation(request,env);
     const api=url.pathname.startsWith('/api/');
     const account=api?await invitationAccount(request,env):null;
