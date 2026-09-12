@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {waitForJob,estimateRate,post} from './src/lib/api-client.mjs';
 const catalog=JSON.parse(fs.readFileSync(new URL('./public/pricing.json',import.meta.url)));
+test('public support config uses the creator page, never a management URL',()=>{
+  const config=fs.readFileSync(new URL('./public/integration-config.js',import.meta.url),'utf8');
+  assert.match(config,/https:\/\/ko-fi\.com\/l3vcoffe/);assert.doesNotMatch(config,/ko-fi\.com\/manage/);
+});
 test('catalog estimate respects provider duration, takes, and stale verification',()=>{
   const value=estimateRate(catalog,'runway-gen45-720-standard',5,3,Date.parse('2026-09-09T12:00Z'));
   assert.equal(value.perTake,'0.60');assert.equal(value.estimatedTotal,'1.80');assert.equal(value.stale,false);
