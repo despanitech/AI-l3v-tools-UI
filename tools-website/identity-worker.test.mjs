@@ -14,7 +14,7 @@ test('static pages still use assets',async()=>{
 test('opaque invitation links activate access and keep certificates private',async()=>{
   const slug='a'.repeat(43),account='d'.repeat(64),tokenHash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(slug)),hash=Array.from(new Uint8Array(tokenHash),b=>b.toString(16).padStart(2,'0')).join(''),store={get:key=>key===`share:${slug}`?'<svg xmlns="http://www.w3.org/2000/svg"></svg>':key===`token:${hash}`?account:null};
   const page=await worker.fetch(new Request(`https://tools.l3v.ai/invite/${slug}`),{INVITATIONS:store});
-  assert.equal(page.status,200);assert.match(page.headers.get('Cache-Control'),/no-store/);assert.match(page.headers.get('X-Robots-Tag'),/noindex/);const html=await page.text();assert.match(html,/l3v-master-access-v1/);assert.match(html,/location\.replace\('\/'\)/);assert.match(html,new RegExp(account));
+  assert.equal(page.status,200);assert.match(page.headers.get('Cache-Control'),/no-store/);assert.match(page.headers.get('X-Robots-Tag'),/noindex/);const html=await page.text();assert.match(html,/l3v-master-access-v1/);assert.match(html,/Enter private tools/);assert.match(html,/Copy invitation link/);assert.doesNotMatch(html,/location\.replace/);assert.match(html,new RegExp(account));
   const image=await worker.fetch(new Request(`https://tools.l3v.ai/invite/${slug}/certificate.svg`),{INVITATIONS:store});
   assert.equal(image.headers.get('Content-Type'),'image/svg+xml; charset=utf-8');assert.match(await image.text(),/^<svg/);
   assert.equal((await worker.fetch(new Request('https://tools.l3v.ai/invite/'+'b'.repeat(43)),{INVITATIONS:store})).status,404);
