@@ -12,11 +12,11 @@ test('static pages still use assets',async()=>{
   assert.equal(await response.text(),'page');
 });
 test('opaque invitation links activate access and keep certificates private',async()=>{
-  const slug='a'.repeat(43),account='d'.repeat(64),tokenHash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(slug)),hash=Array.from(new Uint8Array(tokenHash),b=>b.toString(16).padStart(2,'0')).join(''),store={get:key=>key===`share:${slug}`?'<svg xmlns="http://www.w3.org/2000/svg"></svg>':key===`token:${hash}`?account:null};
+  const slug='a'.repeat(43),account='d'.repeat(64),tokenHash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(slug)),hash=Array.from(new Uint8Array(tokenHash),b=>b.toString(16).padStart(2,'0')).join(''),qr=new Uint8Array([137,80,78,71]).buffer,store={get:(key,options)=>key===`share-data:${slug}`?JSON.stringify({id:'002',phrase:'velvet penguin moonlight'}):key===`share-qr:${slug}`&&options?.type==='arrayBuffer'?qr:key===`token:${hash}`?account:null};
   const page=await worker.fetch(new Request(`https://tools.l3v.ai/invite/${slug}`),{INVITATIONS:store});
-  assert.equal(page.status,200);assert.match(page.headers.get('Cache-Control'),/no-store/);assert.match(page.headers.get('X-Robots-Tag'),/noindex/);const html=await page.text();assert.match(html,/l3v-master-access-v1/);assert.match(html,/Enter private tools/);assert.match(html,/Copy invitation link/);assert.doesNotMatch(html,/location\.replace/);assert.match(html,new RegExp(account));
-  const image=await worker.fetch(new Request(`https://tools.l3v.ai/invite/${slug}/certificate.svg`),{INVITATIONS:store});
-  assert.equal(image.headers.get('Content-Type'),'image/svg+xml; charset=utf-8');assert.match(await image.text(),/^<svg/);
+  assert.equal(page.status,200);assert.match(page.headers.get('Cache-Control'),/no-store/);assert.match(page.headers.get('X-Robots-Tag'),/noindex/);const html=await page.text();assert.match(html,/l3v-master-access-v1/);assert.match(html,/Enter private tools/);assert.match(html,/Copy invitation link/);assert.match(html,/Copy three-word secret/);assert.doesNotMatch(html,/location\.replace|certificate\.svg/);assert.equal((html.match(/<img\b/g)||[]).length,1);assert.match(html,new RegExp(account));
+  const image=await worker.fetch(new Request(`https://tools.l3v.ai/invite/${slug}/qr.png`),{INVITATIONS:store});
+  assert.equal(image.headers.get('Content-Type'),'image/png');assert.deepEqual(new Uint8Array(await image.arrayBuffer()),new Uint8Array(qr));
   assert.equal((await worker.fetch(new Request('https://tools.l3v.ai/invite/'+'b'.repeat(43)),{INVITATIONS:store})).status,404);
 });
 test('invitation validation is rate limited before revealing validity',async()=>{
