@@ -1,26 +1,31 @@
-import {randomBytes,randomInt,createHash} from 'node:crypto';
-import {mkdir,writeFile,readFile} from 'node:fs/promises';
-import path from 'node:path';import QRCode from 'qrcode';
-const words=(await readFile(new URL('./eff-large-wordlist.txt',import.meta.url),'utf8')).trim().split(/\r?\n/).map(line=>line.split(/\s+/)[1]).filter(word=>/^[a-z]+$/.test(word));
-if(words.length<7000)throw Error('English word list is incomplete');
-const threeWords=()=>{const selected=new Set();while(selected.size<3)selected.add(words[randomInt(words.length)]);return [...selected].join(' ')};
-const normalize=value=>value.trim().toLowerCase().replace(/[.!?]+$/,'').replace(/\s+/g,' '),sha=value=>createHash('sha256').update(value).digest('hex');
-const count=Number(process.argv[2]||100),out=path.resolve(process.argv[3]||'private-invitations');if(!Number.isInteger(count)||count<1||count>100)throw Error('Count must be 1-100');
-await mkdir(out,{recursive:false});const encoded={};for(const name of ['magic-name.png','magic-initials.png','magic-signature.png','invitation-analysis-preview.png','invitation-frame-preview.png','invitation-video-preview.png'])encoded[name]='data:image/png;base64,'+(await readFile(path.resolve('public/assets',name.startsWith('magic-')?'identity/'+name:name))).toString('base64');const records=[];
-for(let i=0;i<count;i++){
-  const token=randomBytes(32).toString('base64url'),accountId=sha(token),id=String(i+1).padStart(3,'0'),phrase=threeWords(),phraseHash=sha(normalize(phrase)),payload=JSON.stringify({type:'l3v-access',version:1,token,phrase});
+import {readFile,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import QRCode from 'qrcode';
+
+const out=path.resolve(process.argv[2]||'private-invitations');
+const records=JSON.parse(await readFile(path.join(out,'PRIVATE-invitations.json'),'utf8'));
+if(!Array.isArray(records)||!records.length)throw Error('PRIVATE-invitations.json is missing or empty');
+const encoded={};
+for(const name of ['magic-name.png','magic-initials.png','magic-signature.png','invitation-analysis-preview.png','invitation-frame-preview.png','invitation-video-preview.png'])encoded[name]='data:image/png;base64,'+(await readFile(path.resolve('public/assets',name.startsWith('magic-')?'identity/'+name:name))).toString('base64');
+
+for(const record of records){
+  const {id,token,phrase}=record;
+  if(!/^\d{3}$/.test(id)||typeof token!=='string'||typeof phrase!=='string')throw Error(`Invitation ${id||'?'} is invalid`);
+  const base=`l3v-invitation-${id}`,qrName=`${base}-qr.png`,svgName=`${base}.svg`;
+  const payload=JSON.stringify({type:'l3v-access',version:1,token,phrase});
   const qr=await QRCode.toString(payload,{type:'svg',errorCorrectionLevel:'H',margin:1,width:420,color:{dark:'#171712',light:'#faf9f3'}}),inner=qr.slice(qr.indexOf('>')+1,qr.lastIndexOf('</svg>'));
   const tile=(x,label,name)=>'<g transform="translate('+x+' 285)"><rect width="92" height="170" rx="14" fill="#eeede5"/><image href="'+encoded[name]+'" x="8" y="26" width="76" height="88" preserveAspectRatio="xMidYMid meet"/><text x="46" y="148" text-anchor="middle" font-family="Arial" font-size="10">'+label+'</text></g>',tiles=tile(70,'NAME LOGO','magic-name.png')+tile(172,'INITIALS','magic-initials.png')+tile(274,'SIGNATURE','magic-signature.png')+tile(376,'ANALYSIS','invitation-analysis-preview.png')+tile(478,'FIRST FRAME','invitation-frame-preview.png')+tile(580,'VIDEO','invitation-video-preview.png');
   const certificate=`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760"><rect width="1200" height="760" fill="#faf9f3"/><rect x="28" y="28" width="1144" height="704" rx="24" fill="none" stroke="#726b39" stroke-width="3"/><text x="90" y="115" font-family="Arial,sans-serif" font-size="24" letter-spacing="5" fill="#726b39">L3V AI TOOLS</text><text x="90" y="185" font-family="Arial,sans-serif" font-size="52" fill="#171712">Private invitation</text><text x="90" y="235" font-family="Arial,sans-serif" font-size="21" fill="#57574f">Your key to every signature, image, analysis and video you create.</text>${tiles}<g transform="translate(700 105) scale(6)">${inner}</g><text x="90" y="515" font-family="Arial,sans-serif" font-size="17" fill="#726b39">YOUR THREE-WORD SECRET</text><text x="90" y="565" font-family="Georgia,serif" font-size="31" fill="#171712">${phrase}</text><text x="90" y="625" font-family="Arial,sans-serif" font-size="17" fill="#57574f">Type these three words, or upload this image at tools.l3v.ai</text><text x="90" y="685" font-family="Arial,sans-serif" font-size="18" fill="#171712">Invitation ${id}</text></svg>`;
-  const base=`l3v-invitation-${id}`,qrName=`${base}-qr.png`,svgName=`${base}.svg`;
   await writeFile(path.join(out,svgName),certificate);
   await QRCode.toFile(path.join(out,qrName),payload,{errorCorrectionLevel:'H',margin:2,width:900,color:{dark:'#171712',light:'#faf9f3'}});
   await writeFile(path.join(out,`${base}.html`),`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>L3V private invitation ${id}</title><style>html{background:#e9e8df}body{max-width:1200px;margin:32px auto;padding:0 20px;font-family:Arial,sans-serif;color:#171712}.certificate{background:#faf9f3;box-shadow:0 12px 40px #0002}.certificate svg{display:block;width:100%;height:auto}.actions{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}.actions a,.actions button{padding:11px 16px;border:1px solid #726b39;border-radius:7px;background:#faf9f3;color:#171712;text-decoration:none;font:inherit;cursor:pointer}@media print{html{background:white}body{margin:0;max-width:none;padding:0}.actions{display:none}.certificate{box-shadow:none}}</style></head><body><div class="actions"><button type="button" onclick="copySecret(this)">Copy three-word secret</button><a href="${qrName}" download>Download QR image</a><a href="${svgName}" download>Download printable certificate</a></div><script>function copySecret(button){const secret=${JSON.stringify(phrase)};const done=()=>button.textContent='Copied';if(navigator.clipboard?.writeText)navigator.clipboard.writeText(secret).then(done);else{const field=document.createElement('textarea');field.value=secret;document.body.append(field);field.select();document.execCommand('copy');field.remove();done()}}</script><main class="certificate">${certificate}</main></body></html>`);
-  records.push({id,token,accountId,phrase,phraseHash});
 }
+
 const issuedAt=new Date().toISOString(),kv=records.flatMap(({accountId,phraseHash})=>[
   {key:`token:${accountId}`,value:accountId,metadata:{kind:'token'}},
   {key:`phrase:${phraseHash}`,value:accountId,metadata:{kind:'phrase'}},
   {key:`account:${accountId}`,value:JSON.stringify({accountId,issuedAt,version:1}),metadata:{kind:'account'}}
 ]);
-await writeFile(path.join(out,'PRIVATE-invitations.json'),JSON.stringify(records,null,2));await writeFile(path.join(out,'invitation-hashes.json'),JSON.stringify(records.map(({id,accountId})=>({id,hash:accountId})),null,2));await writeFile(path.join(out,'invitation-aliases.json'),JSON.stringify(records.map(({id,phraseHash,accountId})=>({id,phraseHash,accountId})),null,2));await writeFile(path.join(out,'invitation-kv.json'),JSON.stringify(kv,null,2));console.log(`Generated ${count} private invitation certificates in ${out}`);
+await writeFile(path.join(out,'invitation-kv.json'),JSON.stringify(kv,null,2));
+
+console.log(`Added HTML cards and PNG QR images for ${records.length} invitations in ${out}`);
