@@ -1,0 +1,49 @@
+name: UI release artifact
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: tools-website/pnpm-lock.yaml
+      - name: Test and build
+        working-directory: tools-website
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm check
+      - name: Package deployable Worker
+        run: |
+          revision="$GITHUB_SHA"
+          package="ui-release-$revision.tar.gz"
+          mkdir -p staging/tools-website staging/analyzer staging/app dist
+          cp -R tools-website/dist staging/tools-website/dist
+          cp tools-website/*.mjs tools-website/wrangler.jsonc staging/tools-website/
+          cp analyzer/contract.mjs staging/analyzer/
+          cp app/guide.json staging/app/
+          printf '%s\n' "$revision" > staging/REVISION
+          tar -C staging -czf "dist/$package" .
+          sha256sum "dist/$package" > "dist/$package.sha256"
+      - name: Publish immutable release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          revision="$GITHUB_SHA"
+          tag="ui-$revision"
+          package="ui-release-$revision.tar.gz"
+          gh release view "$tag" >/dev/null 2>&1 || gh release create "$tag" --target "$revision" --title "UI ${revision:0:12}" --notes "Immutable l3v-tools UI release for $revision."
+          gh release upload "$tag" "dist/$package" "dist/$package.sha256" --clobber
