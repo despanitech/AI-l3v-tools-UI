@@ -13,6 +13,7 @@ export default function VideoSampleResult({mode, open, onClose}) {
       <div className="dialog-heading"><div><p className="eyebrow">SAMPLE RESULT</p><h2 id="sample-heading">Video creation plan</h2></div><button autoFocus className="secondary" onClick={() => dialog.current.close()}>Close</button></div>
       <div className="sample-plan-body">
         <p className="sample-context">This example shows what appears after your {source} is analyzed.</p>
+        <aside className="video-demo-cta"><div><strong>Try yours now</strong><span>Analyze your own {source} and build a real 5-second video.</span></div><button type="button" onClick={() => dialog.current.close()}>Start creating →</button></aside>
         <div className="result-stage-grid sample-stage-grid">
           <article className="result-stage"><div className="stage-top"><span className="stage-number">01</span><span className="stage-state complete">Complete</span></div><h3>Analysis</h3><p>A calm cinematic landscape with a clear subject, muted color and soft directional light.</p><button className="text-button" type="button" onClick={() => details.current?.showModal()}>Review details</button></article>
           <article className="result-stage"><div className="stage-top"><span className="stage-number">02</span><span className="stage-state active">Next</span></div><h3>First frame</h3><p>Create a still image of the proposed new scene and approve it before video generation.</p><button className="secondary" type="button" disabled>Create a first frame</button></article>

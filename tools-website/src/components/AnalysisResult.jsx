@@ -23,7 +23,7 @@ export default function AnalysisResult({data, reference, requestAccess, config, 
 
   return <section id="analysis-result" aria-label="Video creation plan">
     <header className="result-heading"><div><p className="eyebrow">VIDEO CREATION PLAN</p><h2>Your video direction</h2><p>Analysis complete. Continue through the three stages below.</p></div><span className="result-state">Analysis ready</span></header>
-    {reference && !reference.reel && <figure className="analysis-reference"><img src={reference.src} alt="Original reference used for this analysis"/><figcaption><span>Original reference</span><strong>{reference.label}</strong></figcaption></figure>}
+    {reference && !reference.reel && <figure className="analysis-reference">{reference.video?<video src={reference.src} aria-label="Original reference video used for this analysis" controls muted playsInline preload="metadata"/>:<img src={reference.src} alt="Original reference used for this analysis"/>}<figcaption><span>Original reference</span><strong>{reference.label}</strong></figcaption></figure>}
     <div className="result-stage-grid">
       <article className="result-stage"><div className="stage-top"><span className="stage-number">01</span><span className="stage-state complete">Complete</span></div><h3>Analysis</h3><p>{report.summary}</p><button className="secondary review-analysis" type="button" onClick={() => details.current?.showModal()}>Review full analysis <span aria-hidden="true">→</span></button></article>
       <article className="result-stage"><div className="stage-top"><span className="stage-number">02</span><span className={'stage-state ' + (frame ? 'complete' : 'active')}>{frame ? 'Ready' : 'Next'}</span></div><h3>First frame</h3>
