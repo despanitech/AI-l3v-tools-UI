@@ -11,12 +11,25 @@ export default {
   const frame=url.pathname==='/api/first-frame';
   const polling=url.pathname==='/api/jobs';
   const video=url.pathname==='/api/image-to-video';
+  const capacity=url.pathname==='/api/capacity-status';
   const origin=env.ALLOWED_ORIGIN||'https://tools.l3v.ai';
   const ip=request.headers.get('CF-Connecting-IP');
   const admitted=env.VIDEO_ACCESS_MODE==='public'||(env.VIDEO_ACCESS_MODE==='private'&&!!ip&&(env.VIDEO_TEST_IPS||'').split(',').map(s=>s.trim()).includes(ip));
   const ready=admitted&&env.VIDEO_RECEIPTS_READY==='true'&&env.ANALYZER_ENABLED==='true'&&!!env.HERMES_URL&&!!env.HERMES_TOKEN&&!!env.TURNSTILE_SECRET&&!!env.TURNSTILE_SITEKEY&&!!env.VIDEO_ADMISSION_LIMITER&&!!env.VIDEO_POLL_LIMITER;
   if(url.pathname==='/api/analyzer/config') return request.method==='GET'?reply({enabled:ready,sitekey:ready?env.TURNSTILE_SITEKEY:'',newScenePlanner:ready&&env.FRAMES_ENABLED==='true',videoGeneration:ready&&env.VIDEO_ENABLED==='true',reelAnalysis:ready&&env.REELS_ENABLED==='true',videoMaxCredits:Number(env.VIDEO_MAX_CREDITS_PER_JOB||100)}):reply({error:'Invalid method'},405);
-  if(url.pathname!=='/api/analyze'&&!frame&&!polling&&!video)return env.ASSETS.fetch(request);
+  if(url.pathname!=='/api/analyze'&&!frame&&!polling&&!video&&!capacity)return env.ASSETS.fetch(request);
+  if(capacity){
+   if(request.method!=='GET')return reply({error:'Invalid method'},405);
+   if(request.headers.get('Origin')&&request.headers.get('Origin')!==origin||request.headers.get('Sec-Fetch-Site')&&!['same-origin','same-site'].includes(request.headers.get('Sec-Fetch-Site')))return reply({error:'Open this status on this website.'},403);
+   if(!accountId||!env.HERMES_URL||!env.HERMES_TOKEN)return reply({error:'Capacity unavailable.'},503);
+   try{
+    const target=new URL(env.HERMES_URL);if(target.protocol!=='https:'||target.username||target.password)throw new Error('configuration');
+    target.pathname='/capacity-status';target.search='';target.hash='';
+    const response=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.HERMES_TOKEN},body:'{}',redirect:'manual',signal:AbortSignal.timeout(10000)});
+    if(!response.ok||response.status>=300&&response.status<400)throw new Error('upstream');
+    return reply(validateCapacity(await boundedJSON(response,4096)));
+   }catch{return reply({error:'Capacity unavailable.'},503)}
+  }
   if(request.method!=='POST')return reply({error:'Use the reference form.'},405);
   if(request.headers.get('Origin')!==origin)return reply({error:'Open the form on this website.'},403);
   if(!ready)return reply({error:'The reference analyzer is not available yet.'},503);
@@ -73,6 +86,12 @@ async function boundedJSON(response,limit){const reader=response.body.getReader(
 function validateJob(body){if(typeof body.id!=='string'||!/^[a-f0-9]{32}$/.test(body.id))throw new Error('Invalid analysis job.');return {id:body.id}}
 
 function validateFrame(data){if(typeof data.image!=='string'||!/^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(data.image)||typeof data.motionPrompt!=='string'||data.motionPrompt.length>4000)throw new Error('Invalid frame');return {image:data.image,motionPrompt:data.motionPrompt,model:'gpt-image-2'}}
+
+function validateCapacity(data){
+ const q=data?.queue,s=data?.server,integer=value=>Number.isInteger(value)&&value>=0;
+ if(!q||!s||![q.queued,q.running,q.inFlight,q.maxPending,q.maxRunning,q.availableRunning,s.cpuCount,s.loadPercent,s.memoryUsedPercent].every(integer)||q.inFlight!==q.queued+q.running||q.inFlight>q.maxPending||q.running>q.maxRunning||q.availableRunning!==Math.max(0,q.maxRunning-q.running)||s.cpuCount<1||s.memoryUsedPercent>100)throw new Error('Invalid capacity');
+ return {queue:{queued:q.queued,running:q.running,inFlight:q.inFlight,maxPending:q.maxPending,maxRunning:q.maxRunning,availableRunning:q.availableRunning},server:{loadPercent:s.loadPercent,memoryUsedPercent:s.memoryUsedPercent}};
+}
 
 
 

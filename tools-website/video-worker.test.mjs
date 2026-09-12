@@ -46,6 +46,21 @@ test('new readiness gate disables configuration and admissions',async()=>{
   assert.equal(config.enabled,false);assert.equal(config.videoGeneration,false);
   assert.equal((await worker.fetch(request(),disabled)).status,503);
 });
+test('capacity status exposes only validated aggregate load',async t=>{
+  t.mock.method(globalThis,'fetch',async(target,options)=>{
+    assert.equal(String(target),'https://tools-api.example/capacity-status');
+    assert.equal(options.method,'POST');assert.equal(options.headers.Authorization,'Bearer server-secret');
+    return Response.json({queue:{queued:3,running:1,inFlight:4,maxPending:20,maxRunning:2,availableRunning:1},server:{cpuCount:4,loadOne:1,loadPercent:25,memoryUsedPercent:40}});
+  });
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/capacity-status',{headers:{'X-L3V-Invitation':'ticket'}}),{...env,INVITATIONS:{get:async()=> 'f'.repeat(64)}});
+  assert.equal(response.status,200);
+  assert.deepEqual(await response.json(),{queue:{queued:3,running:1,inFlight:4,maxPending:20,maxRunning:2,availableRunning:1},server:{loadPercent:25,memoryUsedPercent:40}});
+});
+test('capacity status rejects cross-site reads before upstream access',async t=>{
+  t.mock.method(globalThis,'fetch',()=>{throw Error('unexpected fetch')});
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/capacity-status',{headers:{'X-L3V-Invitation':'ticket','Sec-Fetch-Site':'cross-site'}}),{...env,INVITATIONS:{get:async()=> 'f'.repeat(64)}});
+  assert.equal(response.status,403);assert.equal(globalThis.fetch.mock.callCount(),0);
+});
 test('missing receipt or foreign origin never reaches upstream',async t=>{
   t.mock.method(globalThis,'fetch',()=>{throw Error('unexpected fetch');});
   assert.equal((await worker.fetch(request('/api/jobs',{}, {'X-L3V-Request-Receipt':''}),env)).status,404);
