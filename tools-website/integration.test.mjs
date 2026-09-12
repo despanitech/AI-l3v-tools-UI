@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {waitForJob,estimateRate,post} from './src/lib/api-client.mjs';
 const catalog=JSON.parse(fs.readFileSync(new URL('./public/pricing.json',import.meta.url)));
+test('Cloudflare sends the capacity endpoint through the Worker',()=>{
+  const config=JSON.parse(fs.readFileSync(new URL('./wrangler.jsonc',import.meta.url),'utf8'));
+  assert.ok(config.assets.run_worker_first.includes('/api/capacity-status'));
+});
 test('public support config uses the creator page, never a management URL',()=>{
   const config=fs.readFileSync(new URL('./public/integration-config.js',import.meta.url),'utf8');
   assert.match(config,/https:\/\/ko-fi\.com\/l3vcoffe/);assert.doesNotMatch(config,/ko-fi\.com\/manage/);
