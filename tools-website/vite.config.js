@@ -1,7 +1,18 @@
 import {defineConfig} from 'vite';
 import react from '@vitejs/plugin-react';
+import {execFileSync} from 'node:child_process';
+
+function buildRevision() {
+  const supplied = process.env.CF_PAGES_COMMIT_SHA || process.env.L3V_BUILD_REVISION;
+  if (/^[a-f0-9]{40}$/.test(supplied || '')) return supplied;
+  try {
+    const revision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
+    return /^[a-f0-9]{40}$/.test(revision) ? revision : 'development';
+  } catch { return 'development'; }
+}
 
 export default defineConfig({
+  define: {__L3V_BUILD_REVISION__: JSON.stringify(buildRevision())},
   plugins: [react(), {
     name: 'local-editor-status',
     configureServer(server) {
