@@ -33,6 +33,8 @@ jobs:
           mkdir -p staging/tools-website staging/analyzer staging/app dist
           cp -R tools-website/dist staging/tools-website/dist
           cp tools-website/*.mjs tools-website/wrangler.jsonc staging/tools-website/
+          mkdir -p staging/tools-website/src/lib
+          cp tools-website/src/lib/facebook-reel.mjs staging/tools-website/src/lib/
           cp analyzer/contract.mjs staging/analyzer/
           cp app/guide.json staging/app/
           printf '%s\n' "$revision" > staging/REVISION
