@@ -47,10 +47,10 @@ export default {
     if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
-    if(!['catalog','generate','status','image'].includes(action)) return json({error:'Not found'},404);
+    if(!['catalog','generate','status','image','mockup-generate','mockup-status','mockup-image'].includes(action)) return json({error:'Not found'},404);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
     if(!ready) return action==='catalog' ? json({enabled:false,styles:[]}) : json({error:'Name generation is not available yet'},503);
-    if(request.method !== (['catalog','image'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
+    if(request.method !== (['catalog','image','mockup-image'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
     if(request.method==='POST' && request.headers.get('Origin')!==url.origin)return json({error:'Open the form on this website'},403);
     try {
       const access={requestId:request.headers.get('X-L3V-Request-Id'),receipt:request.headers.get('X-L3V-Request-Receipt')};
@@ -74,6 +74,17 @@ export default {
         if(!checked.success || checked.hostname!==url.hostname || checked.action!=='name_logo')return json({error:'Security check expired'},403);
         payload={...payload,...account&&{accountId:account},...(styles?{styles}:{styleId:body.styleId}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
       }
+      if(action==='mockup-generate') {
+        if(Object.keys(body).sort().join(',')!=='designId,template' || !/^[a-f0-9]{32}$/.test(body.designId||'') || !/^[a-z-]{1,32}$/.test(body.template||''))return json({error:'Choose an available visualization'},400);
+        payload={...payload,designId:body.designId,template:body.template};
+      }
+      if(action==='mockup-status') {
+        if(Object.keys(body).join(',')!=='id' || !/^[a-f0-9]{32}$/.test(body.id||''))return json({error:'Invalid visualization'},400);
+        payload.id=body.id;
+      }
+      if(action==='mockup-image') {
+        const id=url.searchParams.get('id');if(!/^[a-f0-9]{32}$/.test(id||''))return json({error:'Invalid visualization'},400);payload.id=id;
+      }
       if(action==='status' || action==='image') {
         const id=action==='image'?url.searchParams.get('id'):body.id;
         if(typeof id!=='string' || !(action==='image'?/^[a-f0-9]{32}$/:/^[a-f0-9]{64}$/).test(id))return json({error:'Invalid design'},400);
@@ -84,15 +95,16 @@ export default {
       const response=await fetch(upstream,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.NAME_LOGO_TOKEN},body:JSON.stringify(payload),redirect:'manual',signal:AbortSignal.timeout(30000)});
       if(response.status>=300 && response.status<400)return json({error:'The design service could not complete this request'},503);
       if(!response.ok)return json({error:response.status===404?'Design not found or expired':'The design service could not complete this request'},[400,403,404,409,429].includes(response.status)?response.status:503);
-      const bytes=await bounded(response,action==='image'?25*1024*1024:150000);
+      const isImage=action==='image'||action==='mockup-image';
+      const bytes=await bounded(response,isImage?25*1024*1024:150000);
       if(action==='image' && payload.format==='svg') {
         const svg=new TextDecoder().decode(bytes);
         if(!svg.startsWith('<svg ')||/<(?:script|image|foreignObject)\b|\bon\w+\s*=|(?:href|url)\s*[:=(]/i.test(svg))throw new Error('Invalid vector');
         return new Response(svg,{headers:{'Content-Type':'image/svg+xml','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':'attachment; filename="design.svg"','Content-Security-Policy':"default-src 'none'; sandbox"}});
       }
-      if(action==='image') {
+      if(isImage) {
         if(![137,80,78,71,13,10,26,10].every((b,i)=>bytes[i]===b))throw new Error('Invalid image');
-        return new Response(bytes,{headers:{'Content-Type':'image/png','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':`${url.searchParams.get('download')==='1'?'attachment':'inline'}; filename="name-logo.png"`}});
+        return new Response(bytes,{headers:{'Content-Type':'image/png','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':`${url.searchParams.get('download')==='1'?'attachment':'inline'}; filename="${action==='mockup-image'?'visualization':'name-logo'}.png"`}});
       }
       const data=JSON.parse(new TextDecoder().decode(bytes));
       if(action==='catalog')data.sitekey=env.TURNSTILE_SITEKEY;

@@ -1,0 +1,14 @@
+import {useEffect,useRef,useState} from 'react';
+import {call,headers} from '../lib/name-logo-request.mjs';
+
+export default function IdentityMockup({request,designId,templates,onClose}){
+ const [template,setTemplate]=useState(templates[0]?.id||'cap'),[job,setJob]=useState(null),[image,setImage]=useState(''),[message,setMessage]=useState('Choose where you want to see this design.'),[busy,setBusy]=useState(false);
+ const active=useRef(null);
+ useEffect(()=>()=>{active.current?.abort();if(image)URL.revokeObjectURL(image)},[image]);
+ async function generate(){if(busy)return;const c=new AbortController();active.current=c;setBusy(true);if(image)URL.revokeObjectURL(image);setImage('');setMessage('Creating a real product visualization…');try{
+  let current=await call('mockup-generate',request,{designId,template},c.signal);setJob(current);const deadline=Date.now()+15*60*1000;
+  while(Date.now()<deadline){current=await call('mockup-status',request,{id:current.id},c.signal);setJob(current);if(current.status==='succeeded')break;if(!['queued','running'].includes(current.status))throw Error();await new Promise(r=>setTimeout(r,2500));c.signal.throwIfAborted()}
+  if(current.status!=='succeeded')throw Error();const response=await fetch('/api/name-logo/mockup-image?id='+current.id,{headers:headers(request),signal:c.signal});if(!response.ok)throw Error();setImage(URL.createObjectURL(await response.blob()));setMessage('Your original design is unchanged.');
+ }catch(e){if(e.name!=='AbortError')setMessage('The visualization could not be confirmed. You can try this placement again.')}finally{setBusy(false)}}
+ return <section className="mockup-studio" aria-label="Visualize your design"><header><div><small>YOUR DESIGN IN CONTEXT</small><h3>Visualize your design</h3><p>Choose a real scene. The image generator will place this exact design into it.</p></div><button onClick={onClose}>Close</button></header><div className="mockup-layout"><aside><h4>Choose a placement</h4><div className="mockup-template-list">{templates.map(item=><button key={item.id} aria-pressed={template===item.id} disabled={busy} onClick={()=>setTemplate(item.id)}><strong>{item.name}</strong></button>)}</div><button className="identity-try-button" disabled={busy} onClick={generate}>{busy?'Creating…':'Create visualization'}</button></aside><div className="mockup-workspace"><div className="mockup-generated-preview">{image?<img src={image} alt={`Generated ${template} visualization`}/>:<div><strong>Generated preview</strong><p>Select a placement to create a real scene with your design.</p></div>}</div><p role="status">{message}</p>{image&&<a className="identity-try-button" href={image} download={`${template}-visualization.png`}>Download PNG ↓</a>} {job&&!image&&<small>Visualization reference: {job.id}</small>}</div></div></section>
+}
