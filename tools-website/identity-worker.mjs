@@ -31,6 +31,16 @@ export default {
       if(!response.ok)return json({error:'Work index unavailable'},503);
       return json(JSON.parse(new TextDecoder().decode(await bounded(response,250000))));
     }
+    if(url.pathname==='/api/account/claim'){
+      if(!account)return json({error:'Invitation required'},403);
+      if(request.method!=='POST')return json({error:'Invalid method'},405);
+      const requestId=request.headers.get('X-L3V-Request-Id'),receipt=request.headers.get('X-L3V-Request-Receipt');
+      if(!/^[a-f0-9]{32}$/.test(requestId||'')||!/^[a-f0-9]{64}$/.test(receipt||''))return json({error:'Request not found or expired'},404);
+      const target=new URL(env.HERMES_URL);target.pathname='/account/claim';target.search='';target.hash='';
+      const response=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.HERMES_TOKEN},body:JSON.stringify({accountId:account,access:{requestId,receipt}}),redirect:'manual',signal:AbortSignal.timeout(15000)});
+      if(!response.ok)return json({error:'Request not found or expired'},response.status===404?404:503);
+      return json({claimed:true});
+    }
     if(api&&env.INVITATION_ONLY==='true'&&!account)return json({error:'Invitation required'},403);
     if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);

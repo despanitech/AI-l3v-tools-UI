@@ -54,6 +54,18 @@ export function lastReceipt(storage = browserStorage) {
     return record;
   } catch { throw error(); }
 }
+export function savedReceipts(storage = browserStorage) {
+  const receipts=[];
+  try {
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(!key?.startsWith(prefix)||key===latest)continue;
+      const record=JSON.parse(storage.getItem(key));
+      if(valid(record)&&key===prefix+record.fingerprint)receipts.push(record.access);
+    }
+  } catch { return []; }
+  return receipts;
+}
 export function receiptTransport(record, transport = fetch, storage = browserStorage) {
   return async (path, options) => {
     if (!valid(record) || !(stages.has(path) || path === '/api/jobs')) throw error();
