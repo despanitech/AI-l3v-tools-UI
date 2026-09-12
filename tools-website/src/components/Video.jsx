@@ -32,9 +32,10 @@ export default function Video({hidden}) {
   }
   function useFile(value) {
     clear(); if (!value) return;
-    const video = false;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(value.type)) { setStatus('Choose a JPG, PNG or WebP image.'); return; }
-    if (!value.size || value.size > 8 * 1024 * 1024) { setStatus('Choose an image up to 8 MB.'); return; }
+    const video = ['video/mp4', 'video/webm', 'video/quicktime'].includes(value.type);
+    if (!video && !['image/jpeg', 'image/png', 'image/webp'].includes(value.type)) { setStatus('Choose a JPG, PNG, WebP, MP4, WebM or MOV file.'); return; }
+    const limit = (video ? 30 : 8) * 1024 * 1024;
+    if (!value.size || value.size > limit) { setStatus(`Choose ${video?'a video up to 30 MB':'an image up to 8 MB'}.`); return; }
     objectUrl.current = URL.createObjectURL(value);
     setReference({src: objectUrl.current, video, label: value.name, revision: generation.current});
   }
@@ -47,9 +48,8 @@ export default function Video({hidden}) {
   }
   function choose(next) { setSource(next); clear(); }
   function navigate(event, i) { const next = {ArrowLeft: 1 - i, ArrowRight: 1 - i, Home: 0, End: 1}[event.key]; if (next === undefined) return; event.preventDefault(); choose(next ? 'link' : 'upload'); tabs.current[next].focus(); }
-  const localVideo = reference?.video && reference.src.startsWith('blob:');
   const submitted = Boolean(requestAccess.current);
-  const enabled = config?.enabled && token && reference && (!reference.reel || config.reelAnalysis) && !busy && !localVideo && !submitted;
+  const enabled = config?.enabled && token && reference && (!reference.reel || config.reelAnalysis) && !busy && !submitted;
   const note = submitted ? (result ? 'Continue with the creation plan below.' : 'This request is already saved. Use Check saved request to recover its status.') : configError || (reference?.reel ? config?.reelAnalysis?'Public Reels only, up to 90 seconds and 30 MB. Visual samples only; no audio analysis.':'Reel analysis is not available yet. You can upload an image.' : config?.enabled ? 'Get model recommendations and a suggested creation plan.' : 'Suggestions are being connected. You can preview your reference here.');
   async function analyze() {
     if (!enabled || locked.current) return;
@@ -122,16 +122,16 @@ export default function Video({hidden}) {
   } : {
     eyebrow: 'AI VIDEO SUGGESTION',
     title: 'Start with a reference.',
-    copy: 'Share a Facebook Reel or an image. Get a step-by-step creation plan, recommended AI models, and estimated costs.'
+    copy: 'Upload an image or short video, or share a Facebook Reel. Get a step-by-step creation plan, recommended AI models, and estimated costs.'
   };
   return <section id="video-panel" aria-labelledby="video-title" hidden={hidden}>
     <div className={'intro' + (result ? ' analysis-complete-intro' : '')}><p className="eyebrow">{intro.eyebrow}</p><h1 id="video-title">{intro.title}</h1><p>{intro.copy}</p></div>
     <button className="text-button video-sample-link" aria-haspopup="dialog" onClick={() => setSample(true)}>View sample</button>
     <VideoSampleResult mode={source === 'link' ? 'reel' : 'image'} open={sample && !hidden} onClose={() => setSample(false)} />
-    <div className="input-tabs" role="tablist" aria-label="Reference source">{[['upload', 'Image'], ['link', 'Facebook Reel URL']].map(([id, label], i) => <button key={id} role="tab" id={id + '-tab'} aria-selected={source === id} aria-controls={id + '-pane'} tabIndex={source === id ? 0 : -1} ref={el => { tabs.current[i] = el; }} onClick={() => choose(id)} onKeyDown={event => navigate(event, i)}>{label}</button>)}</div>
-    <div id="upload-pane" role="tabpanel" aria-labelledby="upload-tab" hidden={source !== 'upload'}><label className={'dropzone' + (dragging ? ' dragging' : '')} id="dropzone" onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragEnter={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={e => { e.preventDefault(); setDragging(false); useFile(e.dataTransfer.files[0]); }}><input id="file" ref={file} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose a reference image" onChange={e => useFile(e.target.files[0])} /><span className="upload-icon" aria-hidden="true">＋</span><strong>Drop an image here</strong><span>or <u>choose a file</u></span><small>JPG, PNG, WebP · up to 8 MB</small></label></div>
+    <div className="input-tabs" role="tablist" aria-label="Reference source">{[['upload', 'Image or video'], ['link', 'Facebook Reel URL']].map(([id, label], i) => <button key={id} role="tab" id={id + '-tab'} aria-selected={source === id} aria-controls={id + '-pane'} tabIndex={source === id ? 0 : -1} ref={el => { tabs.current[i] = el; }} onClick={() => choose(id)} onKeyDown={event => navigate(event, i)}>{label}</button>)}</div>
+    <div id="upload-pane" role="tabpanel" aria-labelledby="upload-tab" hidden={source !== 'upload'}><label className={'dropzone' + (dragging ? ' dragging' : '')} id="dropzone" onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragEnter={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={e => { e.preventDefault(); setDragging(false); useFile(e.dataTransfer.files[0]); }}><input id="file" ref={file} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" aria-label="Choose a reference image or video" onChange={e => useFile(e.target.files[0])} /><span className="upload-icon" aria-hidden="true">＋</span><strong>Drop an image or video here</strong><span>or <u>choose a file</u></span><small>Images: JPG, PNG, WebP · up to 8 MB<br/>Videos: MP4, WebM, MOV · up to 30 MB and 60 seconds</small></label></div>
     <div id="link-pane" role="tabpanel" aria-labelledby="link-tab" hidden={source !== 'link'}><label htmlFor="video-url">Facebook Reel URL</label><div className="url-row"><input id="video-url" type="url" placeholder="https://www.facebook.com/reel/…" autoComplete="off" value={url} onChange={e => {setUrl(e.target.value); if (reference) clear();}} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); loadLink(); } }} /><button id="load-link" className="secondary" onClick={loadLink}>Add link</button></div><p className="hint">Facebook Reels only for now. Paste the full Reel URL; shortened share links are not supported yet.</p></div>
-    {reference && <div id="reference" className="reference">{!reference.reel && <div id="media"><img key={reference.revision} ref={media} src={reference.src} alt="Your reference image" onError={mediaError} /></div>}<div className="file-row"><span id="filename">{reference.label}</span><button id="remove" className="text-button" onClick={clear}>Remove</button></div></div>}
+    {reference && <div id="reference" className="reference">{!reference.reel && <div id="media">{reference.video?<video key={reference.revision} ref={media} src={reference.src} aria-label="Your reference video" controls muted preload="metadata" onError={mediaError}/>:<img key={reference.revision} ref={media} src={reference.src} alt="Your reference image" onError={mediaError}/>}</div>}<div className="file-row"><span id="filename">{reference.label}</span><button id="remove" className="text-button" onClick={clear}>Remove</button></div></div>}
     <p id="status" className={result ? 'workflow-status' : ''} role="status" aria-live="polite">{status}</p>
     <div id="analysis-security">{config && <SecurityCheck key={securityVersion} config={config} action="reference_analyze" onToken={setToken} onError={setConfigError} />}</div>
     <div className="submit-row"><button className="primary" disabled={!enabled} aria-describedby="service-note" onClick={analyze}>{submitted ? (result ? 'Analysis complete' : 'Request already submitted') : 'Analyze reference'} <span aria-hidden="true">{submitted ? '✓' : '↗'}</span></button><p id="service-note">{note}</p></div>
