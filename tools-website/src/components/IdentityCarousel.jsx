@@ -41,7 +41,7 @@ export default function IdentityCarousel({hidden, video = false}) {
     <div className="tile-top"><span className="identity-ai-label">{video ? 'AI-POWERED VIDEO IDEAS' : 'AI-POWERED PERSONAL DESIGN'}</span><span aria-hidden="true">✦</span></div>
         <div className="showcase-intro">
       {video ? <h2 className="video-message-stack">{videoMessages.map((message, i) => <span key={message} className={i === index % videoMessages.length ? 'is-active' : ''} aria-hidden={i !== index % videoMessages.length}>{message}</span>)}</h2> : <h2>Magic Identity</h2>}
-      <p>{video ? 'Add a video, screenshot, or link. Get recommended AI models, prompts, and estimated costs.' : 'Your name. Reimagined by AI.'}</p>
+      <p>{video ? 'Upload an image or short video, or add a Facebook Reel link. Get recommended AI models, prompts, and estimated costs.' : 'Your name. Reimagined by AI.'}</p>
     </div>
     <div className="concept-viewport" role="region" aria-roledescription="carousel" aria-label={video ? '20 video concepts' : '20 identity design concepts'} tabIndex={0}
       onKeyDown={e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); move(e.key === 'ArrowRight' ? 1 : -1); } }}

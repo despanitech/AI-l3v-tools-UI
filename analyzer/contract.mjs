@@ -1,13 +1,15 @@
 export function validateReference(body) {
-  if (!body || typeof body !== 'object') throw new Error('Choose an image or a video URL.');
+  if (!body || typeof body !== 'object') throw new Error('Choose an image or video reference.');
   if (body.kind !== 'image' && body.kind !== 'video') throw new Error('Unsupported reference type.');
   if (typeof body.image !== 'string' || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(body.image) || body.image.length > 1400000) throw new Error('Use a JPEG reference smaller than 1 MB after resizing.');
   const bytes = Uint8Array.from(atob(body.image.split(',')[1]), c => c.charCodeAt(0));
   if (bytes.length < 100 || bytes[0] !== 255 || bytes[1] !== 216 || bytes[2] !== 255) throw new Error('The reference is not a valid JPEG.');
   if (body.kind === 'video') {
-    if (typeof body.sourceUrl !== 'string' || body.sourceUrl.length > 2048) throw new Error('Enter a public HTTPS video URL.');
-    const u = new URL(body.sourceUrl);
-    if (u.protocol !== 'https:' || u.username || u.password) throw new Error('Enter a public HTTPS video URL.');
+    if (body.sourceUrl !== undefined) {
+      if (typeof body.sourceUrl !== 'string' || body.sourceUrl.length > 2048) throw new Error('Enter a public HTTPS video URL.');
+      const url = new URL(body.sourceUrl);
+      if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Enter a public HTTPS video URL.');
+    }
   }
   return {kind: body.kind, image: body.image};
 }
