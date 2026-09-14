@@ -25,5 +25,14 @@ export default defineConfig({
       });
     },
   }],
-  server: {strictPort: true},
+  server: {
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: process.env.L3V_API_ORIGIN || 'https://tools.l3v.ai',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
 });
