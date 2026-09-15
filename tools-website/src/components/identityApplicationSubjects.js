@@ -7,6 +7,9 @@ export const applicationGroups = [
   'Outdoor & large format',
 ];
 
+// Category sheets. Nothing renders these yet -- they were previously read
+// only to derive thumbnail filenames, which is what applicationThumbnailStems
+// now does. The six sheet images ship but are currently unreferenced.
 export const applicationPreviewSheets = {
   'Personal & accessories':'/assets/identity-subjects/branded/personal-john-smith.png',
   'Apparel':'/assets/identity-subjects/branded/apparel-john-smith.png',
@@ -20,10 +23,23 @@ export function applicationPreviewStyle(subject){
   return {backgroundImage:`url(${applicationPreviewImage(subject)})`,backgroundPosition:'center',backgroundSize:'cover'};
 }
 
+// Declared explicitly rather than derived from the sheet filename: two
+// categories ship thumbnails under a different stem than their sheet
+// ('Stationery & office' has an office sheet but stationery thumbnails,
+// 'Packaging & products' a products sheet but packaging thumbnails).
+export const applicationThumbnailStems = {
+  'Personal & accessories':'personal-john-smith',
+  'Apparel':'apparel-john-smith',
+  'Stationery & office':'stationery-john-smith',
+  'Packaging & products':'packaging-john-smith',
+  'Spaces & signage':'spaces-john-smith',
+  'Outdoor & large format':'outdoor-john-smith',
+};
+
 export function applicationPreviewImage(subject){
   const group=applicationSubjects.filter(item=>item.group===subject.group);
   const index=group.findIndex(item=>item.id===subject.id);
-  const stem=applicationPreviewSheets[subject.group].split('/').pop().replace('.png','');
+  const stem=applicationThumbnailStems[subject.group];
   return `/assets/identity-subjects/branded/${stem}-${(index%5)+1}.png`;
 }
 
