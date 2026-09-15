@@ -89,8 +89,8 @@ test('visualization requests preserve receipt ownership and source design id',as
  const original=globalThis.fetch;let sent;
  globalThis.fetch=async(url,init)=>{sent={url:String(url),body:JSON.parse(init.body)};return Response.json({id:'f'.repeat(32),status:'queued'})};
  try{
-  const request=new Request('https://tools.l3v.ai/api/name-logo/mockup-generate',{method:'POST',headers:{Origin:'https://tools.l3v.ai','X-L3V-Request-Id':'a'.repeat(32),'X-L3V-Request-Receipt':'b'.repeat(64)},body:JSON.stringify({designId:'c'.repeat(32),template:'storefront'})});
-  const response=await worker.fetch(request,env);assert.equal(response.status,200);assert.equal(sent.body.designId,'c'.repeat(32));assert.equal(sent.body.template,'storefront');assert.equal(sent.body.access.receipt,'b'.repeat(64));assert.match(sent.url,/mockup-generate$/);
+  const request=new Request('https://tools.l3v.ai/api/name-logo/visualization-generate',{method:'POST',headers:{Origin:'https://tools.l3v.ai','X-L3V-Request-Id':'a'.repeat(32),'X-L3V-Request-Receipt':'b'.repeat(64)},body:JSON.stringify({designId:'c'.repeat(32),template:'storefront'})});
+  const response=await worker.fetch(request,env);assert.equal(response.status,200);assert.equal(sent.body.designId,'c'.repeat(32));assert.equal(sent.body.template,'storefront');assert.equal(sent.body.access.receipt,'b'.repeat(64));assert.match(sent.url,/visualization-generate$/);
  }finally{globalThis.fetch=original}
 });
 
@@ -98,7 +98,7 @@ test('visualization image is private and returned as PNG',async()=>{
  const original=globalThis.fetch;const png=Uint8Array.from([137,80,78,71,13,10,26,10,1]);
  globalThis.fetch=async()=>new Response(png,{headers:{'Content-Type':'image/png'}});
  try{
-  const request=new Request('https://tools.l3v.ai/api/name-logo/mockup-image?id='+'d'.repeat(32),{headers:{'X-L3V-Request-Id':'a'.repeat(32),'X-L3V-Request-Receipt':'b'.repeat(64)}});
+  const request=new Request('https://tools.l3v.ai/api/name-logo/visualization-image?id='+'d'.repeat(32),{headers:{'X-L3V-Request-Id':'a'.repeat(32),'X-L3V-Request-Receipt':'b'.repeat(64)}});
   const response=await worker.fetch(request,env);assert.equal(response.status,200);assert.equal(response.headers.get('Content-Type'),'image/png');assert.match(response.headers.get('Content-Disposition'),/visualization\.png/);
  }finally{globalThis.fetch=original}
 });

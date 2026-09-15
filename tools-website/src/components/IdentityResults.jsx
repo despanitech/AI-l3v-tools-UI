@@ -1,22 +1,20 @@
-import {useState} from 'react';
-import './IdentityResults.css';
+import IdentityGenerationStage from './IdentityGenerationStage.jsx';
 
-const samples = [
-  {id: 'name', label: 'Magic Name', style: 'Diagonal Weave', text: 'Evan', file: 'magic-name.png'},
-  {id: 'initials', label: 'Magic Initials', style: 'Airy Ribbon', text: 'E.H.', file: 'magic-initials.png'},
-  {id: 'signature', label: 'Magic Signature', style: 'Bold Autograph', text: 'E. Hart', file: 'magic-signature.png'},
+const designs=[
+ {id:'sample-name',mode:'logo',styleName:'Diagonal Weave',styleId:'diagonal-weave',status:'succeeded',output:{}},
+ {id:'sample-initials',mode:'initials',styleName:'Airy Ribbon',styleId:'airy-ribbon',status:'succeeded',output:{}},
+ {id:'sample-signature',mode:'signature',styleName:'Bold Autograph',styleId:'bold-autograph',status:'succeeded',output:{}},
 ];
+const assets={
+ 'sample-name':{png:'/assets/identity/magic-name.png'},
+ 'sample-initials':{png:'/assets/identity/magic-initials.png'},
+ 'sample-signature':{png:'/assets/identity/magic-signature.png'},
+};
 
-export default function IdentityResults({onBack}) {
-  const [selected, setSelected] = useState('name');
-  const design = samples.find(item => item.id === selected);
-  return <section className="identity-results" aria-label="Sample results">
-    <header className="results-heading"><div><p className="eyebrow">SAMPLE COLLECTION</p><h1>Evan Hart</h1><p>Explore the results layout with our existing examples.</p></div><button className="text-button" onClick={onBack}>← Back to your name</button></header>
-    <aside className="demo-primary-cta" aria-label="Create your own identity"><div><strong>Try your name now</strong><span>Turn your name into a logo, initials and signature.</span></div><button onClick={onBack}>Create yours →</button></aside>
-    <div className="results-categories" aria-label="Design category">{samples.map(item => <button key={item.id} aria-pressed={selected === item.id} onClick={() => setSelected(item.id)}>{item.label}</button>)}</div>
-    <div className="results-layout">
-      <div className="results-main"><div className="results-art"><img key={design.id} src={'/assets/identity/' + design.file} alt={`${design.text} — ${design.style} sample`} /></div><div className="results-caption"><div><strong>{design.style}</strong><span>{design.text} · Sample artwork</span></div><a className="identity-try-button" href={'/assets/identity/' + design.file} download={`evan-hart-${design.id}-sample.png`}>Download sample ↓</a></div></div>
-      <aside className="results-options"><h2>Your collection</h2><p>One identity, three directions.</p>{samples.map(item => <button className="result-thumbnail" key={item.id} aria-pressed={selected === item.id} onClick={() => setSelected(item.id)}><img src={'/assets/identity/' + item.file} alt="" /><span><strong>{item.label}</strong><small>{item.style}</small></span></button>)}<p className="results-note">These are Evan Hart examples, not designs generated from your name. Personal generation and the full style library are not connected yet.</p></aside>
-    </div>
-  </section>;
+export default function IdentityResults({onBack,generating=false}){
+ const buildStep=generating?Number(new URLSearchParams(location.search).get('buildStep'))||3:4;
+ const previewingGeneration=generating&&buildStep===3;
+ const shownDesigns=previewingGeneration?designs.map(design=>({...design,status:'running'})):designs;
+ const shownAssets=previewingGeneration?{}:assets;
+ return <section className={`identity-results${generating?'':' identity-results-demo'}`} aria-label={generating?'Generated identity results':'Example demo results'}>{!generating&&<div className="demo-alert-banner">EXAMPLE DEMO · SAMPLE ARTWORK</div>}<IdentityGenerationStage sample={!generating} request={{first:'Evan',last:'Hart',requestKey:'sample-preview'}} result={{designs:shownDesigns}} assets={shownAssets} busy={previewingGeneration} message={previewingGeneration?'All 3 jobs are running in parallel':'3 of 3 designs finished'} onReset={onBack}/>{!generating&&<div className="demo-alert-footer">EXAMPLE DEMO · THESE ARE NOT YOUR GENERATED DESIGNS</div>}</section>;
 }
