@@ -76,7 +76,7 @@ export default {
           console.warn('name-logo security rejected',JSON.stringify({success:checked.success===true,hostnameMatches:checked.hostname===url.hostname,action:checked.action||'',errors:Array.isArray(checked['error-codes'])?checked['error-codes']:[]}));
           return json({error:'Security check expired'},403);
         }
-        payload={...payload,...(styles?{styles}:{styleId:body.styleId}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
+        payload={...payload,...account&&{accountId:account},...(styles?{styles}:{styleId:body.styleId}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
       }
       if(action==='visualization-generate') {
         if(Object.keys(body).sort().join(',')!=='designId,template' || !/^[a-f0-9]{32}$/.test(body.designId||'') || !/^[a-z-]{1,32}$/.test(body.template||''))return json({error:'Choose an available visualization'},400);
