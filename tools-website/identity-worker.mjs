@@ -47,18 +47,19 @@ export default {
     if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs','/api/capacity-status'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
-    if(!['catalog','generate','status','image','mockup-generate','mockup-status','mockup-image'].includes(action)) return json({error:'Not found'},404);
+    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image'].includes(action)) return json({error:'Not found'},404);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
     if(!ready) return action==='catalog' ? json({enabled:false,styles:[]}) : json({error:'Name generation is not available yet'},503);
-    if(request.method !== (['catalog','image','mockup-image'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
+    if(request.method !== (['catalog','health','image','visualization-image'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
     if(request.method==='POST' && request.headers.get('Origin')!==url.origin)return json({error:'Open the form on this website'},403);
     try {
       const access={requestId:request.headers.get('X-L3V-Request-Id'),receipt:request.headers.get('X-L3V-Request-Receipt')};
-      if(action!=='catalog' && (!/^[a-f0-9]{32}$/.test(access.requestId||'') || !/^[a-f0-9]{64}$/.test(access.receipt||''))) return json({error:'Request not found or expired'},404);
+      if(!['catalog','health'].includes(action) && (!/^[a-f0-9]{32}$/.test(access.requestId||'') || !/^[a-f0-9]{64}$/.test(access.receipt||''))) return json({error:'Request not found or expired'},404);
       let body={};
       if(request.method==='POST')body=JSON.parse(new TextDecoder().decode(await bounded(request,16384)));
       if(!body || typeof body!=='object' || Array.isArray(body))return json({error:'Invalid request'},400);
-      let payload=action==='catalog'?{}:{access};
+      const traceId=crypto.randomUUID().replaceAll('-','');
+      let payload=['catalog','health'].includes(action)?{}:{access};
       if(action==='generate') {
         if(Object.keys(body).some(key=>!['first','last','styleId','styles','requestKey','token'].includes(key)))return json({error:'Invalid fields'},400);
         for(const key of ['first','last','requestKey'])if(typeof body[key]!=='string' || body[key].length>100)return json({error:'Invalid name or style'},400);
@@ -71,18 +72,24 @@ export default {
         const limit=await env.NAME_LOGO_LIMITER.limit({key:ip});if(!limit.success)return json({error:'Please wait before creating another design'},429);
         const verification=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',body:new URLSearchParams({secret:env.TURNSTILE_SECRET,response:body.token,remoteip:ip}),signal:AbortSignal.timeout(10000)});
         const checked=await verification.json();
-        if(!checked.success || checked.hostname!==url.hostname || checked.action!=='name_logo')return json({error:'Security check expired'},403);
-        payload={...payload,...account&&{accountId:account},...(styles?{styles}:{styleId:body.styleId}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
+        if(!checked.success || checked.hostname!==url.hostname || checked.action!=='name_logo'){
+          console.warn('name-logo security rejected',JSON.stringify({success:checked.success===true,hostnameMatches:checked.hostname===url.hostname,action:checked.action||'',errors:Array.isArray(checked['error-codes'])?checked['error-codes']:[]}));
+          return json({error:'Security check expired'},403);
+        }
+        payload={...payload,...(styles?{styles}:{styleId:body.styleId}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
       }
-      if(action==='mockup-generate') {
+      if(action==='visualization-generate') {
         if(Object.keys(body).sort().join(',')!=='designId,template' || !/^[a-f0-9]{32}$/.test(body.designId||'') || !/^[a-z-]{1,32}$/.test(body.template||''))return json({error:'Choose an available visualization'},400);
         payload={...payload,designId:body.designId,template:body.template};
       }
-      if(action==='mockup-status') {
+      if(action==='visualization-status') {
         if(Object.keys(body).join(',')!=='id' || !/^[a-f0-9]{32}$/.test(body.id||''))return json({error:'Invalid visualization'},400);
         payload.id=body.id;
       }
-      if(action==='mockup-image') {
+      if(action==='visualization-list') {
+        if(Object.keys(body).length)return json({error:'Invalid fields'},400);
+      }
+      if(action==='visualization-image') {
         const id=url.searchParams.get('id');if(!/^[a-f0-9]{32}$/.test(id||''))return json({error:'Invalid visualization'},400);payload.id=id;
       }
       if(action==='status' || action==='image') {
@@ -92,10 +99,13 @@ export default {
         if(action==='image' && url.searchParams.get('format')==='svg')payload.format='svg';
       }
       const upstream=new URL(env.NAME_LOGO_URL);if(upstream.protocol!=='https:')throw new Error('Invalid gateway');upstream.pathname='/name-logo/'+action;upstream.search='';
-      const response=await fetch(upstream,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.NAME_LOGO_TOKEN},body:JSON.stringify(payload),redirect:'manual',signal:AbortSignal.timeout(30000)});
+      const started=Date.now();
+      const response=await fetch(upstream,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.NAME_LOGO_TOKEN,'X-L3V-Trace-Id':traceId,...(access.requestId?{'X-L3V-Request-Id':access.requestId}:{})},body:JSON.stringify(payload),redirect:'manual',signal:AbortSignal.timeout(30000)});
+      console.log(JSON.stringify({event:'name-logo.edge-request',action,status:response.status,durationMs:Date.now()-started,traceId}));
+      if(!response.ok)console.warn('name-logo upstream rejected',JSON.stringify({action,status:response.status,traceId}));
       if(response.status>=300 && response.status<400)return json({error:'The design service could not complete this request'},503);
       if(!response.ok)return json({error:response.status===404?'Design not found or expired':'The design service could not complete this request'},[400,403,404,409,429].includes(response.status)?response.status:503);
-      const isImage=action==='image'||action==='mockup-image';
+      const isImage=action==='image'||action==='visualization-image';
       const bytes=await bounded(response,isImage?25*1024*1024:150000);
       if(action==='image' && payload.format==='svg') {
         const svg=new TextDecoder().decode(bytes);
@@ -104,11 +114,11 @@ export default {
       }
       if(isImage) {
         if(![137,80,78,71,13,10,26,10].every((b,i)=>bytes[i]===b))throw new Error('Invalid image');
-        return new Response(bytes,{headers:{'Content-Type':'image/png','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':`${url.searchParams.get('download')==='1'?'attachment':'inline'}; filename="${action==='mockup-image'?'visualization':'name-logo'}.png"`}});
+        return new Response(bytes,{headers:{'Content-Type':'image/png','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':`${url.searchParams.get('download')==='1'?'attachment':'inline'}; filename="${action==='visualization-image'?'visualization':'name-logo'}.png"`}});
       }
       const data=JSON.parse(new TextDecoder().decode(bytes));
       if(action==='catalog')data.sitekey=env.TURNSTILE_SITEKEY;
-      return json(data);
+      const result=json(data,response.status);result.headers.set('X-L3V-Trace-Id',traceId);return result;
     } catch {return json({error:'The name service is temporarily unavailable. Keep your request reference.'},503)}
   }
 };
