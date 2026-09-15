@@ -32,6 +32,16 @@ export default defineConfig({
         target: process.env.L3V_API_ORIGIN || 'https://tools.l3v.ai',
         changeOrigin: true,
         secure: true,
+        configure(proxy) {
+          proxy.on('proxyRes', (proxyRes, req) => {
+            if ((proxyRes.statusCode || 500) >= 400) {
+              console.warn(`[api proxy] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+            }
+          });
+          proxy.on('error', (error, req) => {
+            console.error(`[api proxy] ${req.method} ${req.url} -> ${error.message}`);
+          });
+        },
       },
     },
   },

@@ -1,0 +1,163 @@
+import {useState} from 'react';
+import {createPortal} from 'react-dom';
+import IdentityPackages from './IdentityPackages';
+import {applicationPreviewStyle} from './identityApplicationSubjects';
+import './IdentityResults.css';
+
+const slots=[
+  {type:'name-logo',label:'Name logo',number:'01'},
+  {type:'initials',label:'Initials',number:'02'},
+  {type:'signature',label:'Signature',number:'03'},
+];
+
+function designKind(design,index){
+  const value=String(design?.output||design?.type||design?.kind||'').toLowerCase();
+  if(value.includes('initial'))return 'initials';
+  if(value.includes('signature'))return 'signature';
+  if(value.includes('name')||value.includes('logo'))return 'name-logo';
+  return slots[index]?.type;
+}
+
+function styleName(design){
+  return design?.styleName||design?.style?.name||design?.title||design?.name||'Generated design';
+}
+
+function personName(request){
+  return [request?.first||request?.firstName||request?.first_name||request?.givenName,request?.last||request?.lastName||request?.last_name||request?.familyName].filter(Boolean).join(' ')||request?.name||'Your name';
+}
+
+function previewTitle(item){return item?.title||item?.label||item?.name||item?.subject||item?.id||'Real-world application'}
+
+export default function IdentityGenerationStage({
+  request,result,busy,message,assets={},recovery,onPoll,onReset,onEdit,onMockup,
+  showPackages=false,onNext,visualizations={},sample=false,
+}){
+  const [showResults,setShowResults]=useState(false);
+  const designs=(result?.designs||[]).slice(0,3);
+  const shown=slots.map((slot,index)=>designs.find((design,designIndex)=>designKind(design,designIndex)===slot.type)||designs[index]||null);
+  const complete=shown.every(design=>design?.status==='succeeded'&&assets[design.id]?.png);
+  const finished=shown.filter(design=>design?.status==='succeeded').length;
+  const previews=Object.values(visualizations);
+  const readyPreviews=previews.filter(item=>item.status==='succeeded').length;
+  const failedPreviews=previews.filter(item=>item.status==='failed').length;
+  const previewTotal=9;
+  const previewProgress=Math.round((readyPreviews/previewTotal)*100);
+  const previewBatchFailed=failedPreviews===previewTotal;
+
+  const downloadAll=()=>shown.forEach((design,index)=>{
+    const href=assets[design?.id]?.png;
+    if(!href)return;
+    const link=document.createElement('a');
+    link.href=href;
+    link.download=`${slots[index].type}.png`;
+    link.click();
+  });
+
+  if(complete&&showPackages){
+    return <div className="identity-generation-stage identity-step4-stage identity-wide-stage">
+      <div className="identity-step4-layout identity-package-workspace">
+        <aside className="identity-step4-sidebar">
+          <div>
+            <p className="eyebrow">YOUR GENERATED IDENTITY</p>
+            <h2>Name, initials, signature</h2>
+            <p>All three designs are ready to apply.</p>
+          </div>
+          <div className="identity-step4-designs">
+            {shown.map((design,index)=><figure key={design.id}>
+              <img src={assets[design.id]?.png} alt={`${slots[index].label} result`}/>
+              <figcaption><strong>{slots[index].label}</strong><small>{styleName(design)}</small></figcaption>
+            </figure>)}
+          </div>
+          <div className="identity-step4-sidebar-actions">
+            <button className="primary-action" type="button" onClick={()=>setShowResults(true)}>Visualise results</button>
+            <button type="button" onClick={downloadAll}>Download images</button>
+            <button type="button" onClick={onReset}>Start over</button>
+          </div>
+        </aside>
+        <IdentityPackages request={request} name={personName(request)} designs={shown}/>
+      </div>
+      {showResults&&typeof document!=='undefined'&&createPortal(
+        <div className="identity-results-overlay" role="dialog" aria-modal="true" aria-label="Generated identity results" onMouseDown={event=>event.target===event.currentTarget&&setShowResults(false)}>
+          <section>
+            <header><div><small>YOUR GENERATED IDENTITY</small><h2>{personName(request)}</h2></div><button type="button" onClick={()=>setShowResults(false)}>Close</button></header>
+            <div>{shown.map((design,index)=><figure key={design.id}><img src={assets[design.id]?.png} alt={`${slots[index].label} result`}/><figcaption><strong>{slots[index].label}</strong><small>{styleName(design)}</small></figcaption></figure>)}</div>
+          </section>
+        </div>,document.body)}
+    </div>;
+  }
+
+  if(complete){
+    return <section className="identity-generation-stage identity-wide-stage identity-step3-complete" aria-label="Review generated identity and applications">
+      <div className="identity-step3-workspace">
+        <aside className="identity-step3-design-rail">
+          <div><p className="eyebrow">YOUR ACTIVE SET</p><h2>{personName(request)}</h2><p>Your generated designs are saved.</p></div>
+          {shown.map((design,index)=><figure key={design.id}>
+            <img src={assets[design.id]?.png} alt={`${slots[index].label} result`}/>
+            <figcaption><strong>{slots[index].label}</strong><small>{styleName(design)}</small></figcaption>
+          </figure>)}
+        </aside>
+        <main className="identity-step3-applications">
+          <header><div><p className="eyebrow">SEE IT TAKE SHAPE</p><h2>Adding your identity</h2><p>Applying your generated designs to apparel, products, and places.</p></div><strong>{readyPreviews} / {previewTotal} ready</strong></header>
+          <div className="identity-step3-preview-progress" aria-label={`${readyPreviews} of ${previewTotal} previews ready`}><i style={{width:`${Math.max(previews.length?4:0,previewProgress)}%`}}/><span>{readyPreviews?`${readyPreviews} complete · `:''}{failedPreviews?`${failedPreviews} need attention · `:''}{Math.max(0,previewTotal-readyPreviews-failedPreviews)} in progress</span></div>
+          <div className="identity-step3-application-grid">
+            {(previews.length?previews:Array.from({length:9},(_,index)=>({key:`waiting-${index}`,status:'waiting'}))).map(item=><figure key={item.key}>
+              <div style={!item.imageUrl&&item.id?applicationPreviewStyle(item):undefined}>{item.imageUrl?<img src={item.imageUrl} alt={`${previewTitle(item)} visualization`}/>:<span className={item.status==='failed'?'is-failed':''}>{item.status!=='failed'&&<i className="identity-preview-spinner"/>}{item.status==='failed'?'Preview needs attention':'Adding your identity…'}</span>}</div>
+              <figcaption><strong>{item.id?previewTitle(item):'Selecting application'}</strong><small>{item.status==='succeeded'?'Ready':item.status==='failed'?'Not completed':'In progress'}</small></figcaption>
+            </figure>)}
+          </div>
+          <footer className="identity-step3-next">
+            <div><small>{previewBatchFailed?'PREVIEWS NEED ATTENTION':'NEXT'}</small><strong>{previewBatchFailed?'The preview batch did not complete. Retry it without regenerating your identity.':'Select apparel and products to apply your identity to.'}</strong></div>
+            <button type="button" onClick={previewBatchFailed?()=>location.reload():onNext}>{previewBatchFailed?'Retry previews':'Next'}</button>
+          </footer>
+        </main>
+      </div>
+    </section>;
+  }
+
+  return <section className={`identity-generation-stage identity-wide-stage${complete?' is-complete':''}`} aria-label="Generate and review identity designs">
+    <header className="generation-heading">
+      <div>
+        <p className="eyebrow">{complete?'YOUR IDENTITY IS READY':'CREATING YOUR COLLECTION'}</p>
+        <h2>{personName(request)}</h2>
+        <p>{complete?'Review your three finished designs, then continue when you are ready.':'Your three designs are being created in parallel. Each finished design appears here automatically.'}</p>
+      </div>
+      <button type="button" onClick={onReset}>Start over</button>
+    </header>
+
+    {!complete&&<div className="collection-progress">
+      <div><strong>{busy?'Generating your identity':'Generation in progress'}</strong><span>{finished} of 3 ready</span></div>
+      <div className="collection-progress-track"><i style={{width:`${Math.max(4,finished/3*100)}%`}}/></div>
+    </div>}
+
+    <div className="identity-generating-selected">
+      <ol className="identity-generation-timeline">
+        <li className="complete"><strong>Request accepted</strong><span>Your selections are locked in.</span></li>
+        <li className={complete?'complete':'active'}><strong>Generating</strong><span>Three workers create the designs in parallel.</span></li>
+        <li className={complete?'complete':''}><strong>Review</strong><span>Continue only when you are ready.</span></li>
+      </ol>
+      <div className="identity-generation-placeholders">
+        {slots.map((slot,index)=>{
+          const design=shown[index];
+          const image=design&&assets[design.id]?.png;
+          const failed=design?.status==='failed';
+          return <article key={slot.type}>
+            <div className="identity-generation-placeholder-frame">
+              <span>{slot.number}</span>
+              {image?<img src={image} alt={`${slot.label} result`}/>:<div>{!failed&&<span className="style-spinner"/>}<strong>{failed?'Could not generate':'Generating'}</strong><small>{failed?(design?.error||'Please try again.'):`${slot.label} will appear here.`}</small></div>}
+            </div>
+            <footer><div><strong>{slot.label}</strong><small>{design?styleName(design):'Preparing worker'}</small></div><b>{image?'Ready':failed?'Failed':'Working'}</b></footer>
+          </article>;
+        })}
+        <p className="identity-generation-stability-note">Finished designs stay in place while the remaining work completes.</p>
+      </div>
+    </div>
+
+    {complete&&<div className="identity-step3-ready-actions">
+      <div><small>STEP 3 COMPLETE</small><strong>Your identity is ready. Continue to choose how you want to see it applied.</strong></div>
+      <button type="button" onClick={onNext}>Next: See It Live</button>
+    </div>}
+
+    {!complete&&message&&<p className="generation-status-message">{message}</p>}
+    {!complete&&recovery&&<div className="generation-recovery"><strong>{recovery.title||'Generation needs attention'}</strong><p>{recovery.message||message}</p>{onPoll&&<button type="button" onClick={onPoll}>Check again</button>}</div>}
+  </section>;
+}
