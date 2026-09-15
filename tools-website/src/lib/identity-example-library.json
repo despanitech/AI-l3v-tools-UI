@@ -1,0 +1,274 @@
+[
+  {
+    "category": "logo",
+    "styleId": "soft-angular",
+    "styleName": "Soft angular",
+    "job": "logo-01-soft-angular",
+    "target": "John",
+    "src": "/review/john-smith-34/logo-01-soft-angular.png"
+  },
+  {
+    "category": "logo",
+    "styleId": "tall-stems",
+    "styleName": "Tall stems",
+    "job": "logo-02-tall-stems",
+    "target": "John",
+    "src": "/review/john-smith-34/logo-02-tall-stems.png"
+  },
+  {
+    "category": "logo",
+    "styleId": "flowing-curves",
+    "styleName": "Flowing curves",
+    "job": "logo-03-flowing-curves",
+    "target": "John",
+    "src": "/review/john-smith-34/logo-03-flowing-curves.png"
+  },
+  {
+    "category": "logo",
+    "styleId": "hard-angular",
+    "styleName": "Hard angular",
+    "job": "logo-04-hard-angular",
+    "target": "John",
+    "src": "/review/john-smith-34/logo-04-hard-angular.png"
+  },
+  {
+    "category": "logo",
+    "styleId": "geometric-emblem",
+    "styleName": "Geometric emblem",
+    "job": "logo-05-geometric-emblem",
+    "target": "John",
+    "src": "/review/john-smith-34/logo-05-geometric-emblem.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "heritage-ornament",
+    "styleName": "Heritage Ornament",
+    "job": "initials-01-heritage-ornament",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-01-heritage-ornament.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "geometric-lock",
+    "styleName": "Geometric Lock",
+    "job": "initials-02-geometric-lock",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-02-geometric-lock.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "deco-lines",
+    "styleName": "Deco Lines",
+    "job": "initials-03-deco-lines",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-03-deco-lines.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "gothic-weave",
+    "styleName": "Gothic Weave",
+    "job": "initials-04-gothic-weave",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-04-gothic-weave.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "script-ligature",
+    "styleName": "Script Ligature",
+    "job": "initials-05-script-ligature",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-05-script-ligature.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "pen-mark",
+    "styleName": "Pen Mark",
+    "job": "initials-06-pen-mark",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-06-pen-mark.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "ini-gothic-roundel",
+    "styleName": "Gothic Roundel",
+    "job": "initials-07-ini-gothic-roundel",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-07-ini-gothic-roundel.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "ini-leaf-weave",
+    "styleName": "Leaf Weave",
+    "job": "initials-08-ini-leaf-weave",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-08-ini-leaf-weave.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "ini-engraved-spine",
+    "styleName": "Engraved Spine",
+    "job": "initials-09-ini-engraved-spine",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-09-ini-engraved-spine.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "ini-loop-nest",
+    "styleName": "Loop Nest",
+    "job": "initials-10-ini-loop-nest",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-10-ini-loop-nest.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "ini-twin-sweep",
+    "styleName": "Twin Sweep",
+    "job": "initials-11-ini-twin-sweep",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-11-ini-twin-sweep.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "ini-cathedral-nest",
+    "styleName": "Cathedral Nest",
+    "job": "initials-12-ini-cathedral-nest",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-12-ini-cathedral-nest.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "ini-oval-diagonal",
+    "styleName": "Oval Diagonal",
+    "job": "initials-13-ini-oval-diagonal",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-13-ini-oval-diagonal.png"
+  },
+  {
+    "category": "initials",
+    "styleId": "ini-ribbon-knot",
+    "styleName": "Ribbon Knot",
+    "job": "initials-14-ini-ribbon-knot",
+    "target": "JS",
+    "src": "/review/john-smith-34/initials-14-ini-ribbon-knot.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "executive-edge",
+    "styleName": "Executive Edge",
+    "job": "signature-01-executive-edge",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-01-executive-edge.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "orbital-flourish",
+    "styleName": "Orbital Flourish",
+    "job": "signature-02-orbital-flourish",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-02-orbital-flourish.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "couture-sweep",
+    "styleName": "Couture Sweep",
+    "job": "signature-03-couture-sweep",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-03-couture-sweep.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "compact-autograph",
+    "styleName": "Compact Autograph",
+    "job": "signature-04-compact-autograph",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-04-compact-autograph.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-open-horizon",
+    "styleName": "Open Horizon",
+    "job": "signature-05-sig-open-horizon",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-05-sig-open-horizon.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-twin-pillars",
+    "styleName": "Twin Pillars",
+    "job": "signature-06-sig-twin-pillars",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-06-sig-twin-pillars.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-low-tide",
+    "styleName": "Low Tide",
+    "job": "signature-07-sig-low-tide",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-07-sig-low-tide.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-bookend-thread",
+    "styleName": "Bookend Thread",
+    "job": "signature-08-sig-bookend-thread",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-08-sig-bookend-thread.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-tucked-ribbon",
+    "styleName": "Tucked Ribbon",
+    "job": "signature-09-sig-tucked-ribbon",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-09-sig-tucked-ribbon.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-shared-crossbar",
+    "styleName": "Shared Crossbar",
+    "job": "signature-10-sig-shared-crossbar",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-10-sig-shared-crossbar.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-angular-envelope",
+    "styleName": "Angular Envelope",
+    "job": "signature-11-sig-angular-envelope",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-11-sig-angular-envelope.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-stem-cadence",
+    "styleName": "Stem Cadence",
+    "job": "signature-12-sig-stem-cadence",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-12-sig-stem-cadence.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-delta-bridge",
+    "styleName": "Delta Bridge",
+    "job": "signature-13-sig-delta-bridge",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-13-sig-delta-bridge.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-knot-and-release",
+    "styleName": "Knot and Release",
+    "job": "signature-14-sig-knot-and-release",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-14-sig-knot-and-release.png"
+  },
+  {
+    "category": "signature",
+    "styleId": "sig-tilted-orbit",
+    "styleName": "Tilted Orbit",
+    "job": "signature-15-sig-tilted-orbit",
+    "target": "J. Smith",
+    "src": "/review/john-smith-34/signature-15-sig-tilted-orbit.png"
+  }
+]
