@@ -44,9 +44,9 @@ export function sampleForDesign(mode, styleId) {
   return pool.find(item => item.styleId === styleId) || pool[0] || null;
 }
 
-export function sampleForTemplate(template) {
+export function sampleForTemplate(template, mode) {
   const subject = applicationSubjects.find(item => item.id === template);
-  return subject ? applicationPreviewImage(subject) : null;
+  return subject ? applicationPreviewImage(subject, mode) : null;
 }
 
 export function simulatedCatalog() {
@@ -153,7 +153,10 @@ export async function simulate(store, assets, {action, payload = {}, now = Date.
   if (action === 'visualization-image') {
     const record = valid32(requestId) && valid32(payload.id) ? await readJson(store, previewKey(requestId, payload.id)) : null;
     if (!record || stage(record.createdAt, previewDoneAt(record.id), now) !== 'succeeded') return {status: 404, json: {error: 'Visualization not found'}};
-    const bytes = await assets(sampleForTemplate(record.template));
+    // The design this preview was made from decides which demo it shows.
+    const designs = await readJson(store, designsKey(requestId));
+    const mode = designs?.designs?.find(design => design.id === record.designId)?.mode;
+    const bytes = await assets(sampleForTemplate(record.template, mode));
     return bytes ? {status: 200, bytes} : {status: 404, json: {error: 'Sample missing'}};
   }
 
@@ -182,6 +185,9 @@ export function simulatedCaller(env, origin) {
 /** The simulator's answer as a Response, so the Worker's pipeline is unchanged. */
 export async function simulatedResponse(env, origin, action, payload) {
   const result = await simulate(env.IDENTITY_BUNDLES, siteAssets(env, origin), {action, payload});
-  if (result.bytes) return new Response(result.bytes, {status: 200, headers: {'Content-Type': 'image/png'}});
+  if (result.bytes) {
+    const png = [137, 80, 78, 71].every((b, i) => result.bytes[i] === b);
+    return new Response(result.bytes, {status: 200, headers: {'Content-Type': png ? 'image/png' : 'image/jpeg'}});
+  }
   return Response.json(result.json, {status: result.status});
 }

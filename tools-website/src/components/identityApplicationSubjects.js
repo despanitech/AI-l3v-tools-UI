@@ -1,5 +1,5 @@
-import {applicationGroups,applicationThumbnailStems,applicationSubjects,applicationPreviewImage} from '../lib/application-templates.mjs';
-export {applicationGroups,applicationThumbnailStems,applicationSubjects,applicationPreviewImage};
+import {applicationGroups,applicationThumbnailStems,applicationSubjects,applicationPreviewImage,demoPreviewImage} from '../lib/application-templates.mjs';
+export {applicationGroups,applicationThumbnailStems,applicationSubjects,applicationPreviewImage,demoPreviewImage};
 
 // Category sheets. Nothing renders these yet -- they were previously read
 // only to derive thumbnail filenames, which is what applicationThumbnailStems
@@ -13,8 +13,8 @@ export const applicationPreviewSheets = {
   'Outdoor & large format':'/assets/identity-subjects/branded/outdoor-john-smith.png',
 };
 
-export function applicationPreviewStyle(subject){
-  return {backgroundImage:`url(${applicationPreviewImage(subject)})`,backgroundPosition:'center',backgroundSize:'cover'};
+export function applicationPreviewStyle(subject,mode){
+  return {backgroundImage:`url(${applicationPreviewImage(subject,mode)})`,backgroundPosition:'center',backgroundSize:'cover'};
 }
 
 // Declared explicitly rather than derived from the sheet filename: two

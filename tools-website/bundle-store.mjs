@@ -35,7 +35,8 @@ export async function buildBundle(env, {accountId, requestId, receipt, name, gat
   for (const [index, item] of ready.entries()) {
     const bytes = await gateway('visualization-image', {access: {requestId, receipt}, id: item.id}, true);
     if (!bytes || bytes.length > MAX_IMAGE_BYTES) continue;
-    files.push({name: safeEntryName(item.output.template, index), bytes});
+    // The gateway returns PNG; the simulated lanes may return the JPEG demo set.
+    files.push({name: safeEntryName(item.output.template, index, bytes[0] === 0xFF ? 'jpg' : 'png'), bytes});
   }
   if (!files.length) return null;
 

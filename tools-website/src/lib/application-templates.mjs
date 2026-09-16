@@ -98,7 +98,19 @@ export const applicationSubjects = [
   {id:'bicycle-delivery-box',name:'Bicycle delivery box',group:'Outdoor & large format'},
 ];
 
-export function applicationPreviewImage(subject){
+import demoManifest from './demo-manifest.json' with {type: 'json'};
+
+// John Smith demo of one product carrying one artwork type, generated with
+// the real pipeline. Falls back to the older category crops for anything the
+// demo set does not cover, so a missing file never leaves a tile blank.
+export function demoPreviewImage(subject, mode) {
+  const list = demoManifest[mode];
+  return Array.isArray(list) && list.includes(subject.id) ? `/assets/identity-subjects/demo/${mode}/${subject.id}.jpg` : null;
+}
+
+export function applicationPreviewImage(subject, mode){
+  const demo = demoPreviewImage(subject, mode);
+  if (demo) return demo;
   const group=applicationSubjects.filter(item=>item.group===subject.group);
   const index=group.findIndex(item=>item.id===subject.id);
   const stem=applicationThumbnailStems[subject.group];
