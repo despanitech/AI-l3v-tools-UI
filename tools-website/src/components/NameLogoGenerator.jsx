@@ -8,7 +8,7 @@ import IdentityAutoVisualizationPrimer from './IdentityAutoVisualizationPrimer.j
 import {savedRequest,remember,createRequest,call,headers} from '../lib/name-logo-request.mjs';
 import {accessFetch} from '../lib/master-access.mjs';
 
-export default function NameLogoGenerator({first,last,visible,onFirst,onLast,intro,onStepChange,onActiveSetCleared,buildStep}){
+export default function NameLogoGenerator({first,last,visible,onFirst,onLast,intro,onStepChange,onReachable,onActiveSetCleared,buildStep}){
  const localSample=typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.location.hostname);
  const [config,setConfig]=useState(null),[selected,setSelected]=useState([{mode:'logo',id:'soft-angular'},{mode:'initials',id:'woven-serif'},{mode:'signature',id:'compact-autograph'}]),[request,setRequest]=useState(savedRequest),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[token,setToken]=useState(''),[message,setMessage]=useState(''),[assets,setAssets]=useState({}),[editing,setEditing]=useState(null),[mockup,setMockup]=useState(null);
  const [step,setStep]=useState(()=>localSample&&new URLSearchParams(location.search).get('buildStep')==='2'?'styles':'name');
@@ -80,6 +80,10 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
  const generationComplete=generatedDesigns.length>0&&generatedDesigns.every(design=>design.status==='succeeded');
  const currentStep=manualStep||(request?(generationComplete&&showPackages?4:3):step==='styles'?2:1);
  useEffect(()=>onStepChange?.(currentStep),[currentStep,onStepChange]);
+ // A finished set has already passed the step 3 tollgate, so step 4 stays
+ // reachable. Without this the stepper's furthest step resets on reload and a
+ // paid set could not be reopened without walking forward through every step.
+ useEffect(()=>{if(generationComplete)onReachable?.(4)},[generationComplete,onReachable]);
  const viewingPast=Boolean(request&&(manualStep===1||manualStep===2));
  const generationFooter=step==='styles'?(request?<button className="identity-try-button" onClick={()=>setManualStep(3)}>Continue to generated designs →</button>:<button className="identity-try-button" disabled={!config?.enabled||selected.length!==3||selected.some(s=>!s.id)||!first.trim()||!last.trim()||!token||busy} onClick={generate}>Generate collection</button>):null;
  const generationSecurity=!request&&step==='styles'&&config?.enabled?<SecurityCheck config={config} action="name_logo" size="compact" onToken={setToken} onError={setMessage}/>:null;
