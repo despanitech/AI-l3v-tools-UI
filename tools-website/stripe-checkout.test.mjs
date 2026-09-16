@@ -97,9 +97,9 @@ test('a recorded purchase reads back for that request only', async () => {
 
 test('corrupt stored data does not grant entitlement', async () => {
   const kv = store();
-  await kv.put('purchase:' + REQUEST, '{not json');
+  await kv.put('purchase:test:' + REQUEST, '{not json');
   assert.equal(await purchaseFor(kv, REQUEST, 'test'), null);
-  await kv.put('purchase:' + REQUEST, JSON.stringify({packageId: 'free'}));
+  await kv.put('purchase:test:' + REQUEST, JSON.stringify({packageId: 'free'}));
   assert.equal(await purchaseFor(kv, REQUEST, 'test'), null);
 });
 
@@ -244,4 +244,15 @@ test('only the configured mode is tried when the other has no secret', async () 
   const header = `t=${t},v1=${await sign(payload, t, 'whsec_only_live')}`;
   const found = await verifyWebhookForModes(payload, header, {test: '', live: 'whsec_only_live'}, now);
   assert.equal(found.mode, 'live');
+});
+
+test('a test and a live purchase for one request coexist', async () => {
+  // Both endpoints post to the same URL, so both records can exist at once.
+  // Keyed only by request id, the second would have overwritten the first.
+  const kv = store();
+  await recordPurchase(kv, session({metadata: {requestId: REQUEST, packageId: 'creator'}}), 'test');
+  await recordPurchase(kv, session({metadata: {requestId: REQUEST, packageId: 'studio'}}), 'live');
+  assert.equal((await purchaseFor(kv, REQUEST, 'test')).packageId, 'creator');
+  assert.equal((await purchaseFor(kv, REQUEST, 'live')).packageId, 'studio');
+  assert.equal(kv.map.size, 2);
 });

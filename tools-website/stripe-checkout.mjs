@@ -177,7 +177,9 @@ export async function verifyWebhookForModes(payload, header, secrets, now = Date
   return null;
 }
 
-const purchaseKey = requestId => PURCHASE_PREFIX + requestId;
+// Keyed by mode as well as request: test and live purchases are separate
+// facts and must not overwrite one another in the shared namespace.
+const purchaseKey = (requestId, mode) => `${PURCHASE_PREFIX}${mode}:${requestId}`;
 
 /** Record a completed purchase. Called only after the signature verifies. */
 export async function recordPurchase(store, session, mode = 'test') {
@@ -193,19 +195,20 @@ export async function recordPurchase(store, session, mode = 'test') {
     currency: typeof session.currency === 'string' ? session.currency : '',
     paidAt: new Date().toISOString(),
   };
-  await store.put(purchaseKey(requestId), JSON.stringify(record));
+  await store.put(purchaseKey(requestId, record.mode), JSON.stringify(record));
   return {requestId, ...record};
 }
 
 /** What a request has paid for, or null. Never derived from anything the client sends. */
 export async function purchaseFor(store, requestId, mode = 'test') {
   if (!/^[a-f0-9]{32}$/.test(requestId || '')) return null;
-  const raw = await store.get(purchaseKey(requestId));
+  const raw = await store.get(purchaseKey(requestId, mode));
   if (!raw) return null;
   try {
     const record = JSON.parse(raw);
     if (!PAID_PACKAGES[record?.packageId]) return null;
-    // A purchase made with a test card must never unlock real generation.
+    // Checked again even though the key is scoped: a purchase made with a
+    // test card must never unlock real generation.
     return record.mode === mode ? record : null;
   } catch { return null; }
 }
