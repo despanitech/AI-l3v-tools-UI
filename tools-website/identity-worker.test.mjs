@@ -168,3 +168,14 @@ test('the bundle listing asks R2 for custom metadata',async()=>{
   assert.equal(bundles[0].count,10);
   assert.equal(bundles[0].name,'Someone');
 });
+
+test('visualization status accepts only the id field',async()=>{
+  // The automatic previews sent {id, jobId}. The edge compares the key list
+  // against exactly "id", so every poll answered 400 and nine perfectly good
+  // previews were reported as failed.
+  const body=JSON.stringify({id:'a'.repeat(32),jobId:'a'.repeat(32)});
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/visualization-status',
+    {method:'POST',headers:access,body}),stripeEnv());
+  assert.equal(response.status,400);
+  assert.deepEqual(await response.json(),{error:'Invalid visualization'});
+});
