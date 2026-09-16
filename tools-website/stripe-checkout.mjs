@@ -36,6 +36,28 @@ async function hmac(value, secret) {
   return hex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(value)));
 }
 
+// Configuration may name a price directly or a product whose default price
+// should be used. Resolved ids are cached for the life of the isolate so a
+// product lookup does not happen on every checkout.
+const resolvedPrices = new Map();
+
+export async function resolvePrice(env, configured) {
+  if (/^price_[A-Za-z0-9]+$/.test(configured)) return configured;
+  if (!/^prod_[A-Za-z0-9]+$/.test(configured)) throw new Error('Configured value is neither a price nor a product id');
+  const cached = resolvedPrices.get(configured);
+  if (cached) return cached;
+  const response = await fetch(`${API}/products/${encodeURIComponent(configured)}`, {
+    headers: {Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY},
+    signal: AbortSignal.timeout(10000),
+  });
+  const payload = await response.json().catch(() => ({}));
+  const price = typeof payload?.default_price === 'string' ? payload.default_price
+    : typeof payload?.default_price?.id === 'string' ? payload.default_price.id : '';
+  if (!response.ok || !price) throw new Error('Product has no default price: ' + configured);
+  resolvedPrices.set(configured, price);
+  return price;
+}
+
 export function checkoutReady(env) {
   return Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET
     && env.STRIPE_PRICE_CREATOR && env.STRIPE_PRICE_STUDIO);
@@ -49,8 +71,9 @@ export function checkoutReady(env) {
 export async function createCheckoutSession(env, {requestId, packageId, origin}) {
   const chosen = PAID_PACKAGES[packageId];
   if (!chosen) throw new Error('Unknown package');
-  const price = env[chosen.priceVariable];
-  if (!price) throw new Error('Package price is not configured');
+  const configured = env[chosen.priceVariable];
+  if (!configured) throw new Error('Package price is not configured');
+  const price = await resolvePrice(env, configured);
 
   const response = await fetch(`${API}/checkout/sessions`, {
     method: 'POST',

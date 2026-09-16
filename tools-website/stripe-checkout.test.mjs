@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createCheckoutSession, verifyWebhook, recordPurchase, purchaseFor, checkoutReady} from './stripe-checkout.mjs';
+import {createCheckoutSession, verifyWebhook, recordPurchase, purchaseFor, checkoutReady, resolvePrice} from './stripe-checkout.mjs';
 
 const SECRET = 'whsec_test_secret';
 const REQUEST = 'a'.repeat(32);
@@ -145,4 +145,46 @@ test('an unknown package never reaches Stripe', async () => {
   try {
     await assert.rejects(() => createCheckoutSession(env(), {requestId: REQUEST, packageId: 'free', origin: 'https://tools.l3v.ai'}));
   } finally { globalThis.fetch = original; }
+});
+
+test('a price id is used as given, without calling Stripe', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error('must not be called'); };
+  try { assert.equal(await resolvePrice(env(), 'price_abc123'), 'price_abc123'); }
+  finally { globalThis.fetch = original; }
+});
+
+test('a product id resolves to its default price and is cached', async () => {
+  // The Stripe dashboard shows product ids, so configuration accepts either.
+  let calls = 0;
+  const original = globalThis.fetch;
+  globalThis.fetch = async url => {
+    calls++;
+    assert.match(String(url), /\/v1\/products\/prod_VGkF4LVYuX77ch$/);
+    return new Response(JSON.stringify({id: 'prod_VGkF4LVYuX77ch', default_price: 'price_from_product'}), {status: 200});
+  };
+  try {
+    assert.equal(await resolvePrice(env(), 'prod_VGkF4LVYuX77ch'), 'price_from_product');
+    assert.equal(await resolvePrice(env(), 'prod_VGkF4LVYuX77ch'), 'price_from_product');
+    assert.equal(calls, 1, 'second lookup is served from cache');
+  } finally { globalThis.fetch = original; }
+});
+
+test('an expanded default price object is accepted', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({default_price: {id: 'price_expanded'}}), {status: 200});
+  try { assert.equal(await resolvePrice(env(), 'prod_VGkCE5W13sNS4G'), 'price_expanded'); }
+  finally { globalThis.fetch = original; }
+});
+
+test('a product with no default price fails loudly', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({id: 'prod_VGkNoDefault01', default_price: null}), {status: 200});
+  try { await assert.rejects(() => resolvePrice(env(), 'prod_VGkNoDefault01'), /no default price/); }
+  finally { globalThis.fetch = original; }
+});
+
+test('a configured value that is neither price nor product is refused', async () => {
+  await assert.rejects(() => resolvePrice(env(), 'cus_wrong_kind'), /neither a price nor a product/);
+  await assert.rejects(() => resolvePrice(env(), 'price_bad id'), /neither a price nor a product/);
 });
