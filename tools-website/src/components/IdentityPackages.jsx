@@ -47,6 +47,10 @@ export default function IdentityPackages({request,name,designs=[]}){
  const generatedUrls=useRef(new Set());
  const chosen=packages.find(item=>item.id===selected);
  const paidFor=Boolean(entitlement&&entitlement.packageId===selected);
+ // A package already bought shows what it bought, but the other paid package
+ // must remain purchasable, and the state must be legible rather than the
+ // payment control simply vanishing.
+ const paidPackageName=entitlement?.packageId?packages.find(item=>item.id===entitlement.packageId)?.name:'';
  const checkoutEnabled=entitlement?.enabled===true;
  const generatedTattoo=includedVisualizations.find(item=>item.output?.template?.includes('tattoo'))?.imageUrl;
  const generatedCreator=includedVisualizations.find(item=>['perfume-bottle','product-box','candle-jar','mailing-box'].includes(item.output?.template))?.imageUrl||includedVisualizations.find(item=>item.imageUrl!==generatedTattoo)?.imageUrl;
@@ -153,6 +157,12 @@ export default function IdentityPackages({request,name,designs=[]}){
   progress.waiting&&`${progress.waiting} waiting`,
   progress.failed&&`${progress.failed} failed`,
  ].filter(Boolean);
+ const generatedItems=trackedSubjects
+  .map(id=>({id,job:jobs[id],subject:applicationSubjects.find(item=>item.id===id)}))
+  .filter(item=>item.job?.status==='succeeded'&&item.job.imageUrl)
+  .map(item=>({id:item.id,name:item.subject?.name||item.id,imageUrl:item.job.imageUrl}));
+ const selectionShort=Math.max(0,chosen.count-selectedSubjects.length);
+ const generationFinished=progressTotal>0&&progressSettled===progressTotal&&generatedItems.length>0;
  const purchasedSubjects=purchaseIntent?.subjects||[];
  const purchasedReady=purchasedSubjects.map(id=>({id,job:jobs[id],subject:applicationSubjects.find(item=>item.id===id)}))
   .filter(item=>item.job?.status==='succeeded'&&item.job.imageUrl)
@@ -164,11 +174,15 @@ export default function IdentityPackages({request,name,designs=[]}){
  // design+template and returns the existing job rather than charging again,
  // so a refresh mid-flight adopts the running jobs.
  useEffect(()=>{
-  if(purchaseStage!=='paid'||!purchaseIntent||!request?.access||purchaseStarted.current)return;
+  // Paying is the instruction. Nothing else should have to be pressed, whether
+  // the buyer is returning from Stripe or arriving already entitled.
+  if(!paidFor||!request?.access||purchaseStarted.current)return;
+  const subjects=purchaseIntent?.subjects?.length?purchaseIntent.subjects:selectedSubjects;
+  if(!subjects.length)return;
   purchaseStarted.current=true;
   const controller=new AbortController();generationController.current=controller;
-  const subjects=purchaseIntent.subjects;
-  const designId=purchaseIntent.designId||activeDesignId;
+  const designId=purchaseIntent?.designId||activeDesignId;
+  setIsGenerating(true);
   setJobs(Object.fromEntries(subjects.map(id=>[id,{status:'waiting'}])));
   let cursor=0;
   const worker=async()=>{
@@ -180,10 +194,11 @@ export default function IdentityPackages({request,name,designs=[]}){
   };
   Promise.all(Array.from({length:Math.min(3,subjects.length)},worker)).then(()=>{
    if(controller.signal.aborted)return;
+   setIsGenerating(false);
    setPurchaseStage('ready');
    try{sessionStorage.removeItem(INTENT_KEY)}catch{}
   });
- },[purchaseStage,purchaseIntent,request?.access?.requestId]);
+ },[paidFor,purchaseIntent,request?.access?.requestId]);
 
  const startCheckout=async()=>{
   if(checkingOut)return;
@@ -219,20 +234,6 @@ export default function IdentityPackages({request,name,designs=[]}){
   finally{setBundling(false)}
  };
 
- const generateSelection=async()=>{
-  if(selectedSubjects.length!==chosen.count||isGenerating)return;
-  const detail={packageId:chosen.id,price:chosen.price,subjects:selectedSubjects};
-  try{sessionStorage.setItem('l3v.identity.application-selection',JSON.stringify(detail))}catch{}
-  window.dispatchEvent(new CustomEvent('identity:application-selection',{detail}));
-  setSelectionSaved(true);
-  if(!activeDesignId){setGenerationError('Choose a completed identity design before generating visualizations.');return}
-  generationController.current?.abort();
-  const controller=new AbortController();generationController.current=controller;
-  setGenerationError('');setIsGenerating(true);setJobs(Object.fromEntries(selectedSubjects.map(id=>[id,{status:'waiting'}])));
-  let cursor=0;
-  const worker=async()=>{while(cursor<selectedSubjects.length){const subjectId=selectedSubjects[cursor++];try{await waitForVisualization(subjectId,controller.signal)}catch(error){if(error.name!=='AbortError')updateJob(subjectId,{status:'failed',error:error.message})}}};
-  try{await Promise.all(Array.from({length:Math.min(3,selectedSubjects.length)},worker))}finally{if(!controller.signal.aborted)setIsGenerating(false)}
- };
  return <section className="identity-package-picker" aria-labelledby="identity-package-title">
   <header><p>NEXT STEP</p><h2 id="identity-package-title">Use {name||'your identity'} in the real world</h2><span>Three clear package options, with one corresponding example shown inside each choice.</span></header>
   <div className="identity-package-grid" role="radiogroup" aria-label="Visualization packages">{packages.map(item=>{const generatedImage=generatedPackageImages[item.id],collage=packageCollage(item.id),select=()=>choosePackage(item.id);return <article key={item.id} className={`identity-package-card${selected===item.id?' selected':''}`} role="radio" aria-checked={selected===item.id} tabIndex={0} onClick={event=>{if(!event.target.closest('button'))select()}} onKeyDown={event=>{if(event.target!==event.currentTarget||!['Enter',' '].includes(event.key))return;event.preventDefault();select()}}><div className="identity-package-kicker"><span>{item.kicker}</span>{item.recommended&&<b>RECOMMENDED</b>}<button type="button" onClick={()=>setExample({...item,image:generatedImage||item.image,position:generatedImage?'center':item.position})}>See example</button></div>{previewsLoading?<div className="identity-package-collage identity-package-collage-loading" aria-label="Loading generated image collage">{Array.from({length:6},(_,index)=><i key={index}/>)}</div>:collage.length?<div className="identity-package-collage" aria-label={`${item.name} generated image collage`}>{collage.map(preview=><div className="identity-package-collage-tile" key={preview.id}><img src={preview.imageUrl} alt={`${preview.name} visualization`}/><button type="button" onClick={event=>{event.stopPropagation();window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:preview.imageUrl,alt:`${preview.name} visualization`}}))}}>View</button></div>) }<span>{item.id.toUpperCase()} EXAMPLES</span><strong>{item.headline}</strong></div>:<button className="identity-package-image" type="button" aria-label={`See ${item.headline} example`} onClick={()=>setExample({...item,image:item.image,position:item.position})} style={{backgroundImage:`url(${item.image})`,backgroundPosition:item.position}}><span>{item.id.toUpperCase()} EXAMPLE</span><strong>{item.example}</strong></button>}<div className="identity-package-copy">{item.oldPrice&&<span className="identity-founder-badge">FOUNDER'S EDITION</span>}<p>{item.oldPrice&&<del>{item.oldPrice}</del>} {item.price}</p><h3>{item.name}</h3><span>{item.description}</span><ul>{item.features.map(feature=><li key={feature}>{feature}</li>)}</ul></div><button className="identity-package-select" type="button" aria-pressed={selected===item.id} onClick={()=>choosePackage(item.id)}>{selected===item.id?'Selected':`Choose ${item.name.replace(' set','').replace('Signature studio','Studio')}`}</button></article>})}</div>
@@ -265,7 +266,7 @@ export default function IdentityPackages({request,name,designs=[]}){
    <p><strong>{progress.done}</strong> of {progressTotal} ready{progressParts.length?` - ${progressParts.join(', ')}`:''}</p>
    <small>Each image is generated by a provider and takes a little while. This page can be left open.</small>
   </div>}
-  <footer><div><span>YOUR SELECTION</span><strong>{chosen.price} · {chosen.headline}{selected!=='free'&&` · ${selectedSubjects.length}/${chosen.count} applications`}</strong></div>{selected==='free'?<button type="button" className="identity-bundle-download" disabled={bundling||!includedVisualizations.length} onClick={bundleAndDownload}>{bundling?'Preparing download...':`Bundle and download${includedVisualizations.length?` (${includedVisualizations.length})`:''}`}</button>:paidFor?<button type="button" disabled={selectedSubjects.length!==chosen.count||isGenerating} onClick={generateSelection}>{isGenerating?(progress.done?`${progress.done}/${chosen.count} ready`:progress.running?`Generating ${progress.running}...`:'Starting...'):selectionSaved&&Object.values(jobs).some(job=>job.status==='succeeded')?'Generation complete':`Generate ${chosen.count} images`}</button>:confirmingPayment?<button type="button" disabled>Confirming payment...</button>:checkoutEnabled?<button type="button" className="identity-checkout-start" disabled={checkingOut||selectedSubjects.length!==chosen.count} onClick={startCheckout}>{checkingOut?'Opening checkout...':`Continue to payment · ${chosen.price}${entitlement?.mode==='test'?' (test mode)':''}`}</button>:<button type="button" disabled>Payment setup in progress</button>}</footer>
+  <footer><div><span>{paidPackageName?`PAID - ${paidPackageName.toUpperCase()}`:'YOUR SELECTION'}</span><strong>{chosen.price} · {chosen.headline}{selected!=='free'&&` · ${selectedSubjects.length}/${chosen.count} applications`}</strong></div>{selected==='free'?<button type="button" className="identity-bundle-download" disabled={bundling||!includedVisualizations.length} onClick={bundleAndDownload}>{bundling?'Preparing download...':`Bundle and download${includedVisualizations.length?` (${includedVisualizations.length})`:''}`}</button>:paidFor?generatedItems.length&&progressSettled===progressTotal?<button type="button" className="identity-bundle-download" disabled={bundling} onClick={()=>bundleAndDownload(generatedItems,'collection')}>{bundling?'Preparing download...':`Download your ${generatedItems.length} images`}</button>:<button type="button" disabled>{progress.done?`${progress.done}/${progressTotal||chosen.count} ready`:progress.running?`Creating your images (${progress.running} in progress)`:'Starting your images...'}</button>:confirmingPayment?<button type="button" disabled>Confirming payment...</button>:checkoutEnabled?<button type="button" className="identity-checkout-start" disabled={checkingOut||selectedSubjects.length!==chosen.count} onClick={startCheckout}>{checkingOut?'Opening checkout...':selectionShort?`Choose ${selectionShort} more application${selectionShort>1?'s':''}`:`Continue to payment · ${chosen.price}${entitlement?.mode==='test'?' (test mode)':''}`}</button>:<button type="button" disabled>Payment setup in progress</button>}</footer>
   {example&&<ExampleModal item={example} onClose={()=>setExample(null)}/>} 
  </section>;
 }
