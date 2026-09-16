@@ -3,6 +3,7 @@ import IdentityResults from './IdentityResults.jsx';
 import NameLogoGenerator from './NameLogoGenerator.jsx';
 import RecentIdentityVisualizations from './RecentIdentityVisualizations.jsx';
 import exampleLibrary from '../lib/identity-example-library.json';
+import {savedRequest} from '../lib/name-logo-request.mjs';
 
 const exampleLabels={logo:'Name logo',initials:'Initials',signature:'Signature'};
 function randomExamples(){
@@ -13,7 +14,10 @@ function randomExamples(){
  });
 }
 export default function Identity({tool}) {
- const [first,setFirst]=useState(''),[last,setLast]=useState('');
+ // Rehydrate from the saved request so returning to Step 1 with an active set
+ // shows the name that set was generated from, rather than empty fields that
+ // read as an edit and raise the regeneration warning.
+ const [first,setFirst]=useState(()=>savedRequest()?.first||''),[last,setLast]=useState(()=>savedRequest()?.last||'');
  const [examples]=useState(randomExamples);
  const [lightbox,setLightbox]=useState(null);
  const localBuild=['localhost','127.0.0.1'].includes(location.hostname);
