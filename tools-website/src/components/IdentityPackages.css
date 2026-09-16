@@ -93,3 +93,5 @@
 .identity-subject-check.is-running::after{content:'';position:absolute;inset:50% auto auto 50%;width:11px;height:11px;margin:-6px 0 0 -6px;border:2px solid color-mix(in srgb,var(--accent) 35%,transparent);border-top-color:var(--accent);border-radius:50%;animation:identity-subject-spin .7s linear infinite}
 @keyframes identity-subject-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.identity-subject-check.is-running::after{animation-duration:2.4s}.identity-generation-bar i{transition:none}}
+.identity-refill-previews{margin-top:9px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--muted);font-size:.78rem}
+.identity-refill-previews:hover{border-color:var(--accent);color:var(--accent)}

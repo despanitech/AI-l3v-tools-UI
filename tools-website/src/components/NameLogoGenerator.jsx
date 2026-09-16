@@ -51,6 +51,24 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
   setStep('name');
  }
 
+ // Refilling expired previews costs real provider calls, so it only ever
+ // happens when the user asks for it. The expired entries are dropped first so
+ // the primer treats them as new work rather than resuming a dead job id.
+ useEffect(()=>{
+  const refill=()=>{
+   if(!request?.id)return;
+   const storageKey=`l3v-active-visualizations:${request.id}`;
+   try{
+    const saved=JSON.parse(sessionStorage.getItem(storageKey)||'{}');
+    for(const [key,value] of Object.entries(saved))if(value?.status==='expired')delete saved[key];
+    sessionStorage.setItem(storageKey,JSON.stringify(saved));
+   }catch{}
+   setAutoVisualizations(true);
+  };
+  window.addEventListener('identity:refill-previews',refill);
+  return()=>window.removeEventListener('identity:refill-previews',refill);
+ },[request?.id]);
+
  function requestChange(target,apply){if(!request){apply();return}setRegenerationWarning({target,apply})}
  function confirmChange(){if(!regenerationWarning)return;const {target,apply}=regenerationWarning;invalidateActiveSet(target);apply();setRegenerationWarning(null)}
  function changeFirst(value){requestChange(1,()=>onFirst(value))}
