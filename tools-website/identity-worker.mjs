@@ -3,7 +3,7 @@ import {invitationAccount} from './invitation-worker.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
 import {invitationShare} from './invitation-share.mjs';
 import {buildBundle,listBundles,getBundle} from './bundle-store.mjs';
-import {createCheckoutSession,verifyWebhookForModes,recordPurchase,purchaseFor,markDownloaded,checkoutReady,stripeConfig,webhookSecrets,PAID_PACKAGES} from './stripe-checkout.mjs';
+import {createCheckoutSession,verifyWebhookForModes,recordPurchase,purchaseFor,markDownloaded,clearPurchase,checkoutReady,stripeConfig,webhookSecrets,PAID_PACKAGES} from './stripe-checkout.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
 async function signature(value, secret) {
@@ -83,7 +83,7 @@ export default {
     if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs','/api/capacity-status'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
-    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded','bundle-build','bundle-list','bundle'].includes(action)) return json({error:'Not found'},404);
+    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded','purchase-reset','bundle-build','bundle-list','bundle'].includes(action)) return json({error:'Not found'},404);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
     if(!ready) return action==='catalog' ? json({enabled:false,styles:[]}) : json({error:'Name generation is not available yet'},503);
     if(request.method !== (['catalog','health','image','visualization-image','bundle'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
@@ -95,6 +95,13 @@ export default {
       if(request.method==='POST')body=JSON.parse(new TextDecoder().decode(await bounded(request,16384)));
       if(!body || typeof body!=='object' || Array.isArray(body))return json({error:'Invalid request'},400);
       const traceId=crypto.randomUUID().replaceAll('-','');
+      if(action==='purchase-reset'){
+        const mode=stripeConfig(env).mode;
+        if(mode!=='test')return json({error:'A completed purchase cannot be cleared'},403);
+        const cleared=env.INVITATIONS?await clearPurchase(env.INVITATIONS,access.requestId,mode):false;
+        console.log(JSON.stringify({event:'name-logo.purchase-reset',mode,cleared}));
+        return json({cleared});
+      }
       if(action==='downloaded'){
         const mode=stripeConfig(env).mode;
         const record=env.INVITATIONS?await markDownloaded(env.INVITATIONS,access.requestId,mode):null;

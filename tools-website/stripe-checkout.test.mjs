@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createCheckoutSession, verifyWebhook, verifyWebhookForModes, recordPurchase, purchaseFor, checkoutReady, resolvePrice, stripeConfig} from './stripe-checkout.mjs';
+import {createCheckoutSession, verifyWebhook, verifyWebhookForModes, recordPurchase, purchaseFor, checkoutReady, resolvePrice, stripeConfig, clearPurchase} from './stripe-checkout.mjs';
 
 const SECRET = 'whsec_test_secret';
 const REQUEST = 'a'.repeat(32);
@@ -255,4 +255,30 @@ test('a test and a live purchase for one request coexist', async () => {
   assert.equal((await purchaseFor(kv, REQUEST, 'test')).packageId, 'creator');
   assert.equal((await purchaseFor(kv, REQUEST, 'live')).packageId, 'studio');
   assert.equal(kv.map.size, 2);
+});
+
+test('a test purchase can be cleared so the flow can be exercised again', async () => {
+  const kv = store();
+  kv.delete = async key => void kv.map.delete(key);
+  await recordPurchase(kv, session(), 'test');
+  assert.ok(await purchaseFor(kv, REQUEST, 'test'));
+  assert.equal(await clearPurchase(kv, REQUEST, 'test'), true);
+  assert.equal(await purchaseFor(kv, REQUEST, 'test'), null);
+});
+
+test('a live purchase is never cleared', async () => {
+  // Someone was charged for it; forgetting it would hand back what they bought.
+  const kv = store();
+  kv.delete = async key => void kv.map.delete(key);
+  await recordPurchase(kv, session(), 'live');
+  assert.equal(await clearPurchase(kv, REQUEST, 'live'), false);
+  assert.ok(await purchaseFor(kv, REQUEST, 'live'), 'live purchase survives');
+});
+
+test('clearing refuses a malformed request id', async () => {
+  const kv = store();
+  let deletes = 0;
+  kv.delete = async () => { deletes++; };
+  assert.equal(await clearPurchase(kv, 'not-an-id', 'test'), false);
+  assert.equal(deletes, 0);
 });
