@@ -36,7 +36,6 @@ export default function IdentityPackages({request,name,designs=[]}){
  const [generationError,setGenerationError]=useState('');
  const [includedVisualizations,setIncludedVisualizations]=useState([]);
  const [previewsLoading,setPreviewsLoading]=useState(Boolean(request?.id));
- const [previewRefresh,setPreviewRefresh]=useState(0);
  const [bundling,setBundling]=useState(false);
  const [bundleError,setBundleError]=useState('');
  const [entitlement,setEntitlement]=useState(null);
@@ -72,33 +71,44 @@ export default function IdentityPackages({request,name,designs=[]}){
  const toggleSubject=id=>{setSelectionSaved(false);setSelectedSubjects(current=>current.includes(id)?current.filter(item=>item!==id):current.length<chosen.count?[...current,id]:current)};
  useEffect(()=>{if(!activeDesignId&&availableDesigns[0])setActiveDesignId(availableDesigns[0].id)},[activeDesignId,availableDesigns]);
  useEffect(()=>()=>{generationController.current?.abort();generatedUrls.current.forEach(URL.revokeObjectURL)},[]);
- // The included previews are usually still generating when step 4 is reached,
- // so a single fetch returns an empty list and the free package would stay
- // empty until a full reload. Re-read while the set is incomplete.
- useEffect(()=>{
-  if(!request?.id||includedVisualizations.length>=9||previewRefresh>=40)return;
-  const timer=setTimeout(()=>setPreviewRefresh(value=>value+1),5000);
-  return()=>clearTimeout(timer);
- },[request?.id,includedVisualizations.length,previewRefresh]);
-
+ // Previews are usually still generating when step 4 is reached, so one read
+ // returns an empty list. The retry loop lives inside this effect: driving it
+ // from a dependency re-ran the effect, and its cleanup aborted the in-flight
+ // image fetches before they could finish, so the list never populated.
  useEffect(()=>{
   if(!request?.id){setPreviewsLoading(false);return}
   const controller=new AbortController();
+  let cancelled=false,attempts=0;
   if(!includedVisualizations.length)setPreviewsLoading(true);
-  (async()=>{try{
-   const response=await call('visualization-list',request,{},controller.signal);
-   const completed=(response?.visualizations||[]).filter(item=>item.status==='succeeded'&&item.output?.template).slice(-9).sort((left,right)=>String(left.output.template).localeCompare(String(right.output.template))||String(left.id).localeCompare(String(right.id)));
-   const loaded=await Promise.all(completed.map(async item=>{
-    const image=await fetch(`/api/name-logo/visualization-image?id=${item.id}`,{headers:headers(request),signal:controller.signal});
-    if(!image.ok)return null;
-    const imageUrl=URL.createObjectURL(await image.blob());generatedUrls.current.add(imageUrl);
-    const subject=applicationSubjects.find(candidate=>candidate.id===item.output.template);
-    return {...item,imageUrl,name:subject?.name||item.output.template};
-   }));
-   setIncludedVisualizations(loaded.filter(Boolean));
-  }catch(error){if(error.name!=='AbortError')setGenerationError('Included previews could not be loaded.')}finally{if(!controller.signal.aborted)setPreviewsLoading(false)}})();
-  return()=>controller.abort();
- },[request?.id,previewRefresh]);
+  const read=async()=>{
+   if(cancelled)return;
+   try{
+    const response=await call('visualization-list',request,{},controller.signal);
+    const completed=(response?.visualizations||[]).filter(item=>item.status==='succeeded'&&item.output?.template).slice(-9)
+     .sort((left,right)=>String(left.output.template).localeCompare(String(right.output.template))||String(left.id).localeCompare(String(right.id)));
+    const loaded=await Promise.all(completed.map(async item=>{
+     const image=await fetch(`/api/name-logo/visualization-image?id=${encodeURIComponent(item.id)}`,{headers:headers(request),signal:controller.signal});
+     if(!image.ok)return null;
+     const imageUrl=URL.createObjectURL(await image.blob());generatedUrls.current.add(imageUrl);
+     const subject=applicationSubjects.find(candidate=>candidate.id===item.output.template);
+     return {...item,imageUrl,name:subject?.name||item.output.template};
+    }));
+    if(cancelled)return;
+    const items=loaded.filter(Boolean);
+    setIncludedVisualizations(items);
+    setPreviewsLoading(false);
+    if(items.length>=9)return;
+   }catch(error){
+    if(error.name==='AbortError'||cancelled)return;
+    setGenerationError('Included previews could not be loaded.');
+    setPreviewsLoading(false);
+   }
+   // About three minutes, then stop rather than poll a stalled request forever.
+   if(!cancelled&&++attempts<40)setTimeout(read,5000);
+  };
+  read();
+  return()=>{cancelled=true;controller.abort()};
+ },[request?.id]);
  const updateJob=(subjectId,change)=>setJobs(current=>({...current,[subjectId]:{...current[subjectId],...change}}));
  const waitForVisualization=async(subjectId,signal,designId=activeDesignId,update=updateJob)=>{
   let result=await call('visualization-generate',request,{designId,template:subjectId},signal);
