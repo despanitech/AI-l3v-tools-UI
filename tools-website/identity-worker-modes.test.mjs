@@ -76,19 +76,43 @@ test('dev checkout works with no Stripe configuration at all',async()=>{
   assert.equal(entitlement.enabled,true,'Pay is offered without Stripe in dev');
 });
 
-test('uat goes to Stripe test mode; neither dev nor uat will run on live keys',async()=>{
+test('test and uat go to Stripe test mode; dev, test and uat all refuse live keys',async()=>{
   const original=globalThis.fetch;
   let stripeCalled=false;
   globalThis.fetch=async url=>{stripeCalled=true;assert.match(String(url),/api\.stripe\.com/);return new Response(JSON.stringify({id:'cs_test_1',url:'https://checkout.stripe.com/c/pay/cs_test_1',status:'open'}),{status:200})};
   try{
-    const uat=await post('checkout',{packageId:'creator'},laneEnv('uat',{STRIPE_PRICE_CREATOR_TEST:'price_1'}));
-    assert.equal(uat.status,200);
-    assert.equal((await uat.json()).url,'https://checkout.stripe.com/c/pay/cs_test_1');
-    assert.equal(stripeCalled,true,'uat really goes to Stripe');
-    for(const mode of ['dev','uat']){
+    for(const mode of ['test','uat']){
+      stripeCalled=false;
+      const paid=await post('checkout',{packageId:'creator'},laneEnv(mode,{STRIPE_PRICE_CREATOR_TEST:'price_1'}));
+      assert.equal(paid.status,200);
+      assert.equal((await paid.json()).url,'https://checkout.stripe.com/c/pay/cs_test_1');
+      assert.equal(stripeCalled,true,mode+' really goes to Stripe');
+    }
+    for(const mode of ['dev','test','uat']){
       const live=await post('checkout',{packageId:'creator'},laneEnv(mode,{STRIPE_MODE:'live',STRIPE_SECRET_KEY_LIVE:'sk_live_x',STRIPE_WEBHOOK_SECRET_LIVE:'whsec_live',STRIPE_PRICE_CREATOR_LIVE:'price_l',STRIPE_PRICE_STUDIO_LIVE:'price_m'}));
       assert.equal(live.status,503,mode+' refuses live keys');
     }
+  }finally{globalThis.fetch=original}
+});
+
+test('uat generates for real: Turnstile verified and the gateway called',async()=>{
+  const original=globalThis.fetch;
+  const calls=[];
+  globalThis.fetch=async url=>{calls.push(String(url));if(/turnstile/.test(String(url)))return new Response(JSON.stringify({success:true,hostname:'tools.l3v.ai',action:'name_logo'}));return new Response(JSON.stringify({id:'f'.repeat(64)}),{status:200})};
+  try{
+    const response=await post('generate',{first:'John',last:'Smith',requestKey:'k',token:'tok',styleId:'soft-angular'},laneEnv('uat'));
+    assert.equal(response.status,200);
+    assert.ok(calls.some(url=>/turnstile/.test(url)),'Turnstile verified in uat');
+    assert.ok(calls.some(url=>/gateway\.example/.test(url)),'gateway called in uat');
+  }finally{globalThis.fetch=original}
+});
+
+test('test mode generates on the simulator like dev',async()=>{
+  const original=globalThis.fetch;globalThis.fetch=noNetwork;
+  try{
+    const response=await post('generate',{first:'John',last:'Smith',requestKey:'k',token:'x',styleId:'soft-angular'},laneEnv('test'));
+    assert.equal(response.status,200);
+    assert.match((await response.json()).id,/^[a-f0-9]{64}$/);
   }finally{globalThis.fetch=original}
 });
 
@@ -129,6 +153,7 @@ test('without an owner key configured the switch is not offered and the mode can
   const kv=new Map();
   const lane={...base,APP_MODE:'uat',INVITATIONS:{get:async key=>kv.get(key)??null,put:async(key,value)=>{kv.set(key,value)}}};
   assert.deepEqual(await (await worker.fetch(new Request('https://tools.l3v.ai/api/mode'),lane)).json(),{mode:'uat',switchable:false});
+  assert.equal((await (await worker.fetch(new Request('https://tools.l3v.ai/api/mode'),{...base,APP_MODE:'test'})).json()).mode,'test');
   const attempt=await worker.fetch(new Request('https://tools.l3v.ai/api/mode',{method:'POST',headers:{Authorization:'Bearer anything'},body:JSON.stringify({mode:'dev'})}),lane);
   assert.equal(attempt.status,404);
 });
