@@ -46,11 +46,11 @@ export default function IdentityGenerationStage({
 
   // The same advancement control is rendered above and below the content.
   const nextBar=className=><div className={className}>
-    <div><small>{previewBatchFailed?'PREVIEWS NEED ATTENTION':'NEXT'}</small><strong>{previewBatchFailed?'The preview batch did not complete. Retry it without regenerating your identity.':'Select apparel and products to apply your identity to.'}</strong></div>
+    <div><small>{previewBatchFailed?'PREVIEWS NEED ATTENTION':'NEXT'}</small><strong>{previewBatchFailed?'The preview batch did not complete. Retry it without regenerating your identity.':'Now select your package.'}</strong></div>
     <button type="button" onClick={previewBatchFailed?()=>location.reload():onNext}>{previewBatchFailed?'Retry previews':'Next'}</button>
   </div>;
   const readyActions=className=><div className={className}>
-    <div><small>STEP 3 COMPLETE</small><strong>Your identity is ready. Continue to choose how you want to see it applied.</strong></div>
+    <div><small>STEP 3 COMPLETE</small><strong>Your identity is ready. Now select your package.</strong></div>
     <button type="button" onClick={onNext}>Next: See It Live</button>
   </div>;
   const downloadAll=()=>shown.forEach((design,index)=>{
