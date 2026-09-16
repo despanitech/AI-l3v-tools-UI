@@ -142,7 +142,13 @@ export default {
       if(action==='checkout'){
         if(!checkoutReady(env)||!env.INVITATIONS)return json({error:'Payment is not available yet'},503);
         if(Object.keys(body).join(',')!=='packageId'||!PAID_PACKAGES[body.packageId])return json({error:'Choose an available package'},400);
-        if(await purchaseFor(env.INVITATIONS,access.requestId,stripeConfig(env).mode))return json({error:'This request is already paid'},409);
+        const checkoutMode=stripeConfig(env).mode;
+        const existing=await purchaseFor(env.INVITATIONS,access.requestId,checkoutMode,{includeFulfilled:true});
+        if(existing&&!existing.fulfilledAt)return json({error:'This request is already paid'},409);
+        // One purchase buys one identity. Once it is delivered the set belongs
+        // to My assets and a second order has to start from a new name, so
+        // checkout is refused here rather than handing back a spent session.
+        if(existing)return json({error:'This identity has already been purchased.',spent:true},409);
         try{
           const session=await createCheckoutSession(env,{requestId:access.requestId,packageId:body.packageId,origin:url.origin});
           console.log(JSON.stringify({event:'name-logo.checkout-created',traceId}));

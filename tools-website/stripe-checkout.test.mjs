@@ -308,3 +308,41 @@ test('delivery cannot be marked for a purchase that does not exist', async () =>
   assert.equal(await markFulfilled(kv, REQUEST, 'test'), null);
   assert.equal(kv.map.size, 0);
 });
+
+test('a replayed session that is no longer open is asked for again under a fresh key', async () => {
+  const original = globalThis.fetch;
+  const keys = [];
+  globalThis.fetch = async (url, options) => {
+    keys.push(options.headers['Idempotency-Key']);
+    // Stripe replays a completed session for 24 hours under the same key, so
+    // the first answer here is the dead one the buyer used to land on.
+    const complete = keys.length === 1;
+    return new Response(JSON.stringify({
+      id: complete ? 'cs_test_spent' : 'cs_test_fresh',
+      url: complete ? 'https://checkout.stripe.com/c/pay/cs_test_spent' : 'https://checkout.stripe.com/c/pay/cs_test_fresh',
+      status: complete ? 'complete' : 'open',
+    }), {status: 200});
+  };
+  try {
+    const result = await createCheckoutSession(env(), {requestId: REQUEST, packageId: 'creator', origin: 'https://tools.l3v.ai'});
+    assert.equal(keys.length, 2, 'the spent session is not handed to the buyer');
+    assert.notEqual(keys[0], keys[1], 'the retry uses a different idempotency key');
+    assert.equal(result.id, 'cs_test_fresh');
+    assert.equal(result.url, 'https://checkout.stripe.com/c/pay/cs_test_fresh');
+    assert.equal(result.status, 'open');
+  } finally { globalThis.fetch = original; }
+});
+
+test('an open session is used as is, without a second create', async () => {
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return new Response(JSON.stringify({id: 'cs_test_open', url: 'https://checkout.stripe.com/c/pay/cs_test_open', status: 'open'}), {status: 200});
+  };
+  try {
+    const result = await createCheckoutSession(env(), {requestId: REQUEST, packageId: 'creator', origin: 'https://tools.l3v.ai'});
+    assert.equal(calls, 1, 'repeat clicks still reuse one session');
+    assert.equal(result.id, 'cs_test_open');
+  } finally { globalThis.fetch = original; }
+});

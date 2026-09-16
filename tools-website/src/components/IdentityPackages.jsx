@@ -33,7 +33,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  const [activeDesignId,setActiveDesignId]=useState(()=>designs.find(item=>/^[a-f0-9]{32}$/.test(item?.id))?.id||'');
  const [jobs,setJobs]=useState({});
  const [isGenerating,setIsGenerating]=useState(false);
- const [generationError,setGenerationError]=useState('');
+ const [generationError,setGenerationError]=useState(''),[spent,setSpent]=useState(false);
  const [includedVisualizations,setIncludedVisualizations]=useState([]);
  const [previewsLoading,setPreviewsLoading]=useState(Boolean(request?.id));
  const [bundling,setBundling]=useState(false);
@@ -282,15 +282,20 @@ export default function IdentityPackages({request,name,designs=[]}){
 
  const startCheckout=async()=>{
   if(checkingOut)return;
-  setGenerationError('');setCheckingOut(true);
+  setGenerationError('');setSpent(false);setCheckingOut(true);
   try{
    // The redirect discards component state, so what was bought has to outlive it.
    try{sessionStorage.setItem(INTENT_KEY,JSON.stringify({packageId:selected,subjects:selectedSubjects,designId:activeDesignId}))}catch{}
    const data=await call('checkout',request,{packageId:selected});
    if(!data?.url)throw Error();
    location.assign(data.url);
-  }catch{
-   setGenerationError('Could not start checkout. Please try again.');
+  }catch(error){
+   setSpent(error?.status===409);
+   // 409 means this identity is spent: either paid already, or delivered to My
+   // assets. Sending the buyer to Stripe anyway lands them on a dead session.
+   setGenerationError(error?.status===409
+    ?'This identity has already been purchased. Start a new identity to order another set.'
+    :'Could not start checkout. Please try again.');
    setCheckingOut(false);
   }
  };
@@ -345,7 +350,7 @@ export default function IdentityPackages({request,name,designs=[]}){
    <div className="identity-subject-grid">{visibleSubjects.map(subject=>{const checked=selectedSubjects.includes(subject.id);const unavailable=!checked&&selectedSubjects.length>=chosen.count;const job=jobs[subject.id];const imageUrl=job?.imageUrl||applicationPreviewImage(subject);const preview=job?.imageUrl?{backgroundImage:`url(${job.imageUrl})`,backgroundPosition:'center',backgroundSize:'cover'}:applicationPreviewStyle(subject);const artwork=applicationArtwork(subject);return <button key={subject.id} type="button" className={`${checked?'selected':''}${job?' has-job':''}`} aria-pressed={checked} disabled={unavailable||isGenerating} onClick={()=>toggleSubject(subject.id)}><span className="identity-subject-preview" style={preview}><span className="identity-subject-view" role="button" tabIndex="0" onClick={event=>{event.stopPropagation();window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:imageUrl,alt:`${subject.name} with ${artwork.label}`}}))}} onKeyDown={event=>{if(!['Enter',' '].includes(event.key))return;event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:imageUrl,alt:`${subject.name} with ${artwork.label}`}}))}}>View</span></span><span className={`identity-subject-check${job?.status==='running'?' is-running':''}`}>{job?.status==='running'?'':job?.status==='succeeded'?'OK':job?.status==='failed'?'!':checked?'OK':'+'}</span><div><strong>{subject.name}</strong><small>{job?.status==='succeeded'?'Ready':job?.status==='failed'?'Failed':job?job.status:`${subject.group} · ${artwork.label}`}</small></div></button>})}</div>
    <div className="identity-subject-actions"><button type="button" onClick={()=>{setSelectedSubjects(recommendedApplications[selected]);setSelectionSaved(false)}}>Restore suggested mix</button><button type="button" onClick={()=>{setSelectedSubjects([]);setSelectionSaved(false)}}>Clear all</button></div>
   </section>}
-  {generationError&&<p className="identity-subject-error" role="alert">{generationError}</p>}
+  {generationError&&<p className="identity-subject-error" role="alert">{generationError}{spent&&<> <button type="button" className="identity-order-again" onClick={()=>window.dispatchEvent(new CustomEvent('identity:order-again'))}>Start a new identity</button></>}</p>}
   {bundleError&&<p className="identity-subject-error" role="alert">{bundleError}</p>}
   {!(purchaseStage||paidFor)&&(isGenerating||progressSettled>0&&progressSettled<progressTotal)&&progressTotal>0&&<div className="identity-generation-progress" role="status" aria-live="polite">
    <div className="identity-generation-bar"><i style={{width:`${Math.round(progressSettled/progressTotal*100)}%`}}/></div>

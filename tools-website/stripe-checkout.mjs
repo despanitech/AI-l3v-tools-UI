@@ -107,36 +107,51 @@ export async function createCheckoutSession(env, {requestId, packageId, origin})
   const configured = config.products[packageId];
   if (!configured) throw new Error(`Package is not configured for ${config.mode} mode`);
   const price = await resolvePrice(config.secretKey, configured);
+  const body = form({
+    mode: 'payment',
+    'line_items[0][price]': price,
+    'line_items[0][quantity]': 1,
+    client_reference_id: requestId,
+    'metadata[requestId]': requestId,
+    'metadata[packageId]': packageId,
+    'metadata[mode]': config.mode,
+    success_url: `${origin}/?purchase=complete#logo`,
+    cancel_url: `${origin}/?purchase=cancelled#logo`,
+  });
 
+  // A double click must not create two sessions, so the first attempt uses a
+  // key derived from the request. Stripe replays that response for 24 hours
+  // though, so once the session is spent or expired the same dead url comes
+  // back and the buyer lands on "You're all done here". A replayed session
+  // that is no longer open is therefore discarded and asked for again under a
+  // fresh key.
+  const stable = `identity-${config.mode}-${requestId}-${packageId}`;
+  let session = await postSession(config.secretKey, body, stable);
+  if (session.status && session.status !== 'open') {
+    session = await postSession(config.secretKey, body, `${stable}-${Date.now()}`);
+  }
+  if (!session.url) throw new Error('Stripe returned a session without a url');
+  return {url: session.url, id: session.id, status: session.status || ''};
+}
+
+async function postSession(secretKey, body, idempotencyKey) {
   const response = await fetch(`${API}/checkout/sessions`, {
     method: 'POST',
     headers: {
-      Authorization: 'Bearer ' + config.secretKey,
+      Authorization: 'Bearer ' + secretKey,
       'Content-Type': 'application/x-www-form-urlencoded',
-      // Repeated clicks reuse one session rather than creating a new one each time.
-      'Idempotency-Key': `identity-${config.mode}-${requestId}-${packageId}`,
+      'Idempotency-Key': idempotencyKey,
     },
-    body: form({
-      mode: 'payment',
-      'line_items[0][price]': price,
-      'line_items[0][quantity]': 1,
-      client_reference_id: requestId,
-      'metadata[requestId]': requestId,
-      'metadata[packageId]': packageId,
-      'metadata[mode]': config.mode,
-      success_url: `${origin}/?purchase=complete#logo`,
-      cancel_url: `${origin}/?purchase=cancelled#logo`,
-    }),
+    body,
     signal: AbortSignal.timeout(15000),
   });
-
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload?.url) {
     // Stripe's message can name internal configuration; keep it out of the client.
     const reason = payload?.error?.code || payload?.error?.type || response.status;
     throw new Error('Stripe rejected the checkout session: ' + reason);
   }
-  return {url: payload.url, id: payload.id};
+  return payload;
 }
 
 /**
