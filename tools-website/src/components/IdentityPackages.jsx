@@ -68,6 +68,19 @@ export default function IdentityPackages({request,name,designs=[]}){
  const availableDesigns=designs.filter(item=>/^[a-f0-9]{32}$/.test(item?.id));
  const visibleSubjects=activeGroup==='All'?selectionSubjects:selectionSubjects.filter(item=>item.group===activeGroup);
  const choosePackage=id=>{setSelected(id);setSelectedSubjects(recommendedApplications[id]||[]);setSelectionSaved(false)};
+ // A paid entitlement is the only thing this step can be about. Selection
+ // starts at "free" on every mount - a reload, another tab, or walking back
+ // to this step - so without this the bought package compared unequal to the
+ // selection, looked unpaid, and generation never started. The subjects come
+ // from the checkout intent when this tab still has it, and otherwise from
+ // the package's recommended set; the gateway fingerprints design+template,
+ // so nothing already made is paid for twice.
+ useEffect(()=>{
+  const paid=entitlement?.packageId;
+  if(!paid||selected===paid)return;
+  setSelected(paid);
+  setSelectedSubjects(purchaseIntent?.subjects?.length?purchaseIntent.subjects:(recommendedApplications[paid]||[]));
+ },[entitlement?.packageId]);
  const toggleSubject=id=>{setSelectionSaved(false);setSelectedSubjects(current=>current.includes(id)?current.filter(item=>item!==id):current.length<chosen.count?[...current,id]:current)};
  useEffect(()=>{if(!activeDesignId&&availableDesigns[0])setActiveDesignId(availableDesigns[0].id)},[activeDesignId,availableDesigns]);
  useEffect(()=>()=>{generationController.current?.abort();generatedUrls.current.forEach(URL.revokeObjectURL)},[]);
@@ -161,7 +174,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  const purchaseStarted=useRef(false);
  const deliveryStarted=useRef(false);
  const [delivered,setDelivered]=useState(false);
- const trackedSubjects=purchaseStage?(purchaseIntent?.subjects||[]):selectedSubjects;
+ const trackedSubjects=purchaseIntent?.subjects?.length?purchaseIntent.subjects:selectedSubjects;
  const progress=trackedSubjects.reduce((total,id)=>{
   const status=jobs[id]?.status;
   if(status==='succeeded')total.done++;
