@@ -310,6 +310,10 @@ export default function IdentityPackages({request,name,designs=[]}){
   })();
  },[paidFor,bundleReady,request?.access?.requestId,name]);
 
+ const packagesBusy=Boolean(isGenerating||confirmingPayment||bundling||(purchaseStage&&purchaseStage!=='ready'&&purchaseStage!=='unconfirmed'&&!delivered));
+ useEffect(()=>{window.dispatchEvent(new CustomEvent('identity:busy',{detail:{source:'packages',busy:packagesBusy}}))},[packagesBusy]);
+ useEffect(()=>()=>window.dispatchEvent(new CustomEvent('identity:busy',{detail:{source:'packages',busy:false}})),[]);
+
  const startCheckout=async()=>{
   if(checkingOut)return;
   setGenerationError('');setSpent(false);setCheckingOut(true);

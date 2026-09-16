@@ -295,3 +295,6 @@ html {
 .identity-step-actions.top{display:flex;justify-content:flex-end;margin-bottom:10px}
 .identity-generate-top{grid-area:auto;margin-bottom:14px}
 @media(max-width:767px){.identity-generate-top{display:none}}
+
+/* The step strip is locked while any step has work in flight. */
+.identity-stepper.is-locked .identity-step:disabled{cursor:not-allowed;opacity:.55}
