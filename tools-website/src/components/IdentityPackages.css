@@ -74,4 +74,4 @@
 
 
 .identity-subject-view{position:absolute;z-index:3;top:4px;right:4px;padding:2px 4px;border:1px solid #fff8;border-radius:999px;background:#17211de6;color:#fff;font:700 6px/1 inherit;opacity:0;transform:translateY(-2px);transition:opacity .15s ease,transform .15s ease;cursor:pointer}.identity-subject-grid>button:hover .identity-subject-view,.identity-subject-grid>button:focus-within .identity-subject-view{opacity:1;transform:none}@media(hover:none){.identity-subject-view{opacity:1;transform:none}}
-
+.identity-bundle-download:disabled{opacity:.55;cursor:not-allowed}

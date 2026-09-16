@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import {zip,safeEntryName} from '../lib/zip.mjs';
 import './IdentityPackages.css';
 import {call,headers} from '../lib/name-logo-request.mjs';
 import {applicationArtwork,applicationGroups,applicationPreviewImage,applicationPreviewStyle,applicationSubjects,recommendedApplications,selectionSubjects} from './identityApplicationSubjects';
@@ -26,9 +27,15 @@ export default function IdentityPackages({request,name,designs=[]}){
  const [generationError,setGenerationError]=useState('');
  const [includedVisualizations,setIncludedVisualizations]=useState([]);
  const [previewsLoading,setPreviewsLoading]=useState(Boolean(request?.id));
+ const [bundling,setBundling]=useState(false);
+ const [bundleError,setBundleError]=useState('');
+ const [entitlement,setEntitlement]=useState(null);
+ const [checkingOut,setCheckingOut]=useState(false);
  const generationController=useRef(null);
  const generatedUrls=useRef(new Set());
  const chosen=packages.find(item=>item.id===selected);
+ const paidFor=Boolean(entitlement&&entitlement.packageId===selected);
+ const checkoutEnabled=entitlement?.enabled===true;
  const generatedTattoo=includedVisualizations.find(item=>item.output?.template?.includes('tattoo'))?.imageUrl;
  const generatedCreator=includedVisualizations.find(item=>['perfume-bottle','product-box','candle-jar','mailing-box'].includes(item.output?.template))?.imageUrl||includedVisualizations.find(item=>item.imageUrl!==generatedTattoo)?.imageUrl;
  const generatedStudio=includedVisualizations.find(item=>['storefront-sign','building-facade','event-tent','stadium-screen','cafe-umbrella'].includes(item.output?.template))?.imageUrl||includedVisualizations.find(item=>item.imageUrl!==generatedTattoo&&item.imageUrl!==generatedCreator)?.imageUrl;
@@ -81,6 +88,47 @@ export default function IdentityPackages({request,name,designs=[]}){
   const imageUrl=URL.createObjectURL(await response.blob());generatedUrls.current.add(imageUrl);
   update(subjectId,{status:'succeeded',imageUrl});
  };
+ // Entitlement is read from the server. Returning from Stripe proves nothing
+ // on its own; the webhook is what grants access.
+ useEffect(()=>{
+  if(!request?.access)return;
+  let active=true;
+  call('entitlement',request,{}).then(data=>{if(active)setEntitlement(data)}).catch(()=>{});
+  return()=>{active=false};
+ },[request?.access?.requestId,selectionSaved]);
+
+ const startCheckout=async()=>{
+  if(checkingOut)return;
+  setGenerationError('');setCheckingOut(true);
+  try{
+   const data=await call('checkout',request,{packageId:selected});
+   if(!data?.url)throw Error();
+   location.assign(data.url);
+  }catch{
+   setGenerationError('Could not start checkout. Please try again.');
+   setCheckingOut(false);
+  }
+ };
+
+ const bundleAndDownload=async()=>{
+  if(bundling||!includedVisualizations.length)return;
+  setBundleError('');setBundling(true);
+  try{
+   const files=await Promise.all(includedVisualizations.map(async(item,index)=>{
+    const response=await fetch(item.imageUrl);
+    if(!response.ok)throw Error('unavailable');
+    return {name:safeEntryName(item.name,index),bytes:new Uint8Array(await response.arrayBuffer())};
+   }));
+   const stem=String(name||'identity').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'identity';
+   const url=URL.createObjectURL(zip(files));
+   const link=document.createElement('a');
+   link.href=url;link.download=`${stem}-previews.zip`;
+   document.body.append(link);link.click();link.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }catch{setBundleError('Could not prepare the download. Your previews are still available above.')}
+  finally{setBundling(false)}
+ };
+
  const generateSelection=async()=>{
   if(selectedSubjects.length!==chosen.count||isGenerating)return;
   const detail={packageId:chosen.id,price:chosen.price,subjects:selectedSubjects};
@@ -106,7 +154,8 @@ export default function IdentityPackages({request,name,designs=[]}){
    <div className="identity-subject-actions"><button type="button" onClick={()=>{setSelectedSubjects(recommendedApplications[selected]);setSelectionSaved(false)}}>Restore suggested mix</button><button type="button" onClick={()=>{setSelectedSubjects([]);setSelectionSaved(false)}}>Clear all</button></div>
   </section>}
   {generationError&&<p className="identity-subject-error" role="alert">{generationError}</p>}
-  <footer><div><span>YOUR SELECTION</span><strong>{chosen.price} · {chosen.headline}{selected!=='free'&&` · ${selectedSubjects.length}/${chosen.count} applications`}</strong></div>{selected==='free'?<span className="identity-included-confirmation">Already included with your identity</span>:<button type="button" disabled={selectedSubjects.length!==chosen.count||isGenerating} onClick={generateSelection}>{isGenerating?`${Object.values(jobs).filter(job=>job.status==='succeeded').length}/${chosen.count} generated`:selectionSaved&&Object.values(jobs).some(job=>job.status==='succeeded')?'Generation complete':`Generate ${chosen.count} images`}</button>}</footer>
+  {bundleError&&<p className="identity-subject-error" role="alert">{bundleError}</p>}
+  <footer><div><span>YOUR SELECTION</span><strong>{chosen.price} · {chosen.headline}{selected!=='free'&&` · ${selectedSubjects.length}/${chosen.count} applications`}</strong></div>{selected==='free'?<button type="button" className="identity-bundle-download" disabled={bundling||!includedVisualizations.length} onClick={bundleAndDownload}>{bundling?'Preparing download...':`Bundle and download${includedVisualizations.length?` (${includedVisualizations.length})`:''}`}</button>:paidFor?<button type="button" disabled={selectedSubjects.length!==chosen.count||isGenerating} onClick={generateSelection}>{isGenerating?`${Object.values(jobs).filter(job=>job.status==='succeeded').length}/${chosen.count} generated`:selectionSaved&&Object.values(jobs).some(job=>job.status==='succeeded')?'Generation complete':`Generate ${chosen.count} images`}</button>:checkoutEnabled?<button type="button" className="identity-checkout-start" disabled={checkingOut||selectedSubjects.length!==chosen.count} onClick={startCheckout}>{checkingOut?'Opening checkout...':`Continue to payment · ${chosen.price}${entitlement?.mode==='test'?' (test mode)':''}`}</button>:<button type="button" disabled>Payment setup in progress</button>}</footer>
   {example&&<ExampleModal item={example} onClose={()=>setExample(null)}/>} 
  </section>;
 }

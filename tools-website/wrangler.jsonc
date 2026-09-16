@@ -11,6 +11,13 @@
     {"name":"NAME_LOGO_LIMITER","namespace_id":"20333","simple":{"limit":8,"period":60}},
     {"name":"INVITATION_LIMITER","namespace_id":"20334","simple":{"limit":5,"period":60}}
   ],
+  "vars": {
+    "STRIPE_MODE": "test",
+    "STRIPE_PRICE_CREATOR_LIVE": "prod_VGkCE5W13sNS4G",
+    "STRIPE_PRICE_STUDIO_LIVE": "prod_VGkF4LVYuX77ch",
+    "STRIPE_PRICE_CREATOR_TEST": "prod_VGlCLdY36qCuNk",
+    "STRIPE_PRICE_STUDIO_TEST": "prod_VGlEbR2n1CQJ5v"
+  },
   "kv_namespaces": [{"binding":"INVITATIONS","id":"09db05366a124ef3a3d05e217179a944"}],
   "routes": [{"pattern": "tools.l3v.ai", "custom_domain": true}],
   "assets": {
