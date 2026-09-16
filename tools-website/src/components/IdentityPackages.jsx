@@ -77,11 +77,13 @@ export default function IdentityPackages({request,name,designs=[]}){
  // the package's recommended set; the gateway fingerprints design+template,
  // so nothing already made is paid for twice.
  useEffect(()=>{
-  const paid=entitlement?.packageId;
+  // A delivered package is shown as the bought one too; it does not entitle
+  // (packageId is null then), so nothing starts generating from this.
+  const paid=entitlement?.packageId||entitlement?.fulfilledPackageId;
   if(!paid||selected===paid)return;
   setSelected(paid);
   setSelectedSubjects(purchaseIntent?.subjects?.length?purchaseIntent.subjects:(recommendedApplications[paid]||[]));
- },[entitlement?.packageId]);
+ },[entitlement?.packageId,entitlement?.fulfilledPackageId]);
  const toggleSubject=id=>{setSelectionSaved(false);setSelectedSubjects(current=>current.includes(id)?current.filter(item=>item!==id):current.length<chosen.count?[...current,id]:current)};
  useEffect(()=>{if(!activeDesignId&&availableDesigns[0])setActiveDesignId(availableDesigns[0].id)},[activeDesignId,availableDesigns]);
  useEffect(()=>()=>{generationController.current?.abort();generatedUrls.current.forEach(URL.revokeObjectURL)},[]);
@@ -247,8 +249,10 @@ export default function IdentityPackages({request,name,designs=[]}){
    stage:purchaseStage==='confirming'?'confirming':purchaseStage==='unconfirmed'?'unconfirmed':delivered?'delivered':bundleReady?'ready':'preparing',
    packageName:paidPackageName||'',
    downloadedAt:entitlement?.downloadedAt||null,
-   ready:generatedItems.length,
-   total:progressTotal,
+   // After a reload nothing is held in memory, so a delivered identity would
+   // read "0 of 10 ready" under a banner saying the bundle is stored.
+   ready:delivered?0:generatedItems.length,
+   total:delivered?0:progressTotal,
   }:null;
   window.dispatchEvent(new CustomEvent('identity:purchase-state',{detail}));
  },[purchaseStage,paidFor,delivered,bundleReady,paidPackageName,generatedItems.length,progressTotal,entitlement?.downloadedAt]);
