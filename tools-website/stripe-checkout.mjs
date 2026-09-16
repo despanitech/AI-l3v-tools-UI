@@ -209,6 +209,18 @@ export async function markDownloaded(store, requestId, mode = 'test') {
   return updated;
 }
 
+/**
+ * Forget a purchase so the flow can be exercised again. Test mode only - in
+ * live mode a paid request must stay paid, so this refuses rather than
+ * deleting a record someone was charged for.
+ */
+export async function clearPurchase(store, requestId, mode) {
+  if (mode !== 'test') return false;
+  if (!/^[a-f0-9]{32}$/.test(requestId || '')) return false;
+  await store.delete(purchaseKey(requestId, 'test'));
+  return true;
+}
+
 /** What a request has paid for, or null. Never derived from anything the client sends. */
 export async function purchaseFor(store, requestId, mode = 'test') {
   if (!/^[a-f0-9]{32}$/.test(requestId || '')) return null;

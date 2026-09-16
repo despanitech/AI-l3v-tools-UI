@@ -99,3 +99,5 @@
 @media(prefers-reduced-motion:reduce){.identity-subject-check.is-running::after{animation-duration:2.4s}.identity-generation-bar i{transition:none}}
 .identity-refill-previews{margin-top:9px;padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--muted);font-size:.78rem}
 .identity-refill-previews:hover{border-color:var(--accent);color:var(--accent)}
+.identity-reset-purchase{justify-self:start;padding:7px 12px;border:1px dashed var(--border);border-radius:8px;background:none;color:var(--muted);font-size:.74rem}
+.identity-reset-purchase:hover{border-color:#a26015;color:#a26015}
