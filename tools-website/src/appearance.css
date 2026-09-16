@@ -282,3 +282,5 @@ html {
 @keyframes identity-purchase-spin{to{transform:rotate(360deg)}}
 @media(max-width:700px){.identity-purchase-banner{grid-template-columns:auto 1fr;width:calc(100% - 24px);padding:13px 15px;gap:12px}.identity-purchase-banner button{grid-column:1/-1;width:100%}}
 @media(prefers-reduced-motion:reduce){.identity-purchase-banner .identity-purchase-mark{animation-duration:2.6s}.identity-purchase-meter i{transition:none}}
+.identity-start-again{display:block;margin:10px auto 0;padding:9px 15px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--muted);font-size:.8rem}
+.identity-start-again:hover{border-color:var(--accent);color:var(--accent)}

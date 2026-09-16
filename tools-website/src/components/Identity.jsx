@@ -17,12 +17,13 @@ const PURCHASE_COPY={
  confirming:{title:'Confirming your payment',body:'Waiting for Stripe to confirm. This only takes a moment.'},
  preparing:{title:'Thanks for your payment',body:'Your bundle is being prepared. This page can be left open.'},
  ready:{title:'Thanks for your payment',body:'Your bundle is ready to download.'},
+ downloaded:{title:'Your bundle has been downloaded',body:'It stays available here. Download it again any time.'},
  unconfirmed:{title:'Payment not confirmed yet',body:'Nothing was prepared and you have not been charged twice. Reload in a moment, or contact support with your request reference.'},
 };
 
 function PurchaseBanner({state}){
  if(!state)return null;
- const copy=PURCHASE_COPY[state.stage]||PURCHASE_COPY.preparing;
+ const copy=PURCHASE_COPY[state.stage==='ready'&&state.downloadedAt?'downloaded':state.stage]||PURCHASE_COPY.preparing;
  const done=state.stage==='ready',waiting=state.stage==='confirming',failed=state.stage==='unconfirmed';
  const percent=state.total?Math.round(state.ready/state.total*100):0;
  return <aside className={`identity-purchase-banner ${state.stage}`} role="status" aria-live="polite">
@@ -33,7 +34,7 @@ function PurchaseBanner({state}){
    {!waiting&&!failed&&state.total>0&&<div className="identity-purchase-meter"><i style={{width:`${percent}%`}}/></div>}
    {!waiting&&!failed&&state.total>0&&<small>{state.ready} of {state.total} ready{state.packageName?` · ${state.packageName}`:''}</small>}
   </div>
-  {done&&<button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:download-bundle'))}>Download bundle</button>}
+  {done&&<button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:download-bundle'))}>{state.downloadedAt?'Download again':'Download bundle'}</button>}
  </aside>;
 }
 
