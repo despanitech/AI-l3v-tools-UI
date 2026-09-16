@@ -61,7 +61,11 @@ export default function Identity({tool}) {
  function reportStep(number){setActiveStep(number);setFurthestStep(current=>Math.max(current,number))}
  function clearActiveSet(number){setActiveStep(number);setFurthestStep(number)}
  function reachedStep(number){setFurthestStep(current=>Math.max(current,number))}
- function openBuildStep(number){if(tool==='demo'||number===activeStep||number>furthestStep)return;const next=`${location.pathname}?buildStep=${number}#logo`;history.pushState(null,'',next);setActiveStep(number);window.dispatchEvent(new CustomEvent('identity-step-navigation',{detail:number}));window.dispatchEvent(new HashChangeEvent('hashchange'))}
+ // A delivered identity is finished: the bundle is in My assets and the
+ // purchase no longer entitles. Walking back from it is the start of a new
+ // order, so the name and set are cleared rather than reopening a request
+ // that can only be refused at checkout.
+ function openBuildStep(number){if(tool==='demo'||number===activeStep||number>furthestStep)return;if(purchase?.stage==='delivered'&&number<4){window.dispatchEvent(new CustomEvent('identity:order-again'));return}const next=`${location.pathname}?buildStep=${number}#logo`;history.pushState(null,'',next);setActiveStep(number);window.dispatchEvent(new CustomEvent('identity-step-navigation',{detail:number}));window.dispatchEvent(new HashChangeEvent('hashchange'))}
  const stepper=<nav className="identity-stepper" aria-label={`Step ${activeStep} of 4`}><span className="identity-stepper-mobile">Step {activeStep} of 4 · {steps[activeStep-1]}</span>{steps.map((label,index)=>{const number=index+1,state=number<activeStep?'complete':number===activeStep?'active':'upcoming',content=<><b>{number<activeStep?'✓':String(number).padStart(2,'0')}</b><span>{label}</span></>;return number<=furthestStep&&number!==activeStep&&tool!=='demo'?<button type="button" className={`identity-step ${state}`} onClick={()=>openBuildStep(number)} key={label}>{content}</button>:<span className={`identity-step ${state}`} aria-current={number===activeStep?'step':undefined} key={label}>{content}</span>})}</nav>;
  if(['demo','generating'].includes(tool))return <section id="logo-panel" className="simple-name-entry identity-build-shell">{stepper}<IdentityResults generating={tool==='generating'} onBack={()=>openBuildStep(1)} />{imageLightbox}</section>;
  if(!['logo','initials','signature'].includes(tool))return null;
