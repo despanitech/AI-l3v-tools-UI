@@ -26,8 +26,10 @@ export const selectionSubjects=applicationGroups.flatMap(group=>applicationSubje
 
 const compactInitials=new Set(['upper-arm-tattoo','baseball-cap','beanie','leather-wallet','phone-case','keychain','luggage-tag','socks','sneakers','workwear-patch','fountain-pen','wax-seal','rubber-stamp','hotel-room-key','bicycle-delivery-box']);
 const personalSignature=new Set(['travel-luggage','business-card','letterhead','envelope','notebook','presentation-folder','desk-nameplate','perfume-bottle','wine-bottle','jewelry-box','book-cover','storefront-lettering']);
-export function applicationArtwork(subject){
- const category=compactInitials.has(subject.id)?'initials':personalSignature.has(subject.id)?'signature':'logo';
+// `mode` overrides the subject's natural artwork so the demo label follows the
+// artwork the buyer has chosen to apply.
+export function applicationArtwork(subject,mode){
+ const category=['logo','initials','signature'].includes(mode)?mode:compactInitials.has(subject.id)?'initials':personalSignature.has(subject.id)?'signature':'logo';
  const choices=exampleLibrary.filter(item=>item.category===category);
  const artwork=choices[stableNumber(`${subject.id}:${category}:john-smith-example`)%choices.length];
  return {mode:category,label:`${artwork.styleName} ${category==='logo'?'John name logo':category==='initials'?'JS initials':'John Smith signature'}`,src:artwork.src,styleId:artwork.styleId};

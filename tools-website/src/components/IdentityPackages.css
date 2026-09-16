@@ -104,3 +104,6 @@
 .identity-order-again{justify-self:start;padding:10px 17px;border:0;border-radius:8px;background:var(--foreground);color:var(--background)}
 
 .identity-package-picker>.identity-package-actions{margin-top:0;margin-bottom:18px}
+
+.identity-demo-note{margin:0 0 10px;padding:9px 12px;border-left:3px solid var(--package-gold);border-radius:6px;background:color-mix(in srgb,var(--package-gold) 8%,var(--panel));color:#48566a;font-size:12px;line-height:1.45}
+.identity-demo-note strong{color:#315b37}
