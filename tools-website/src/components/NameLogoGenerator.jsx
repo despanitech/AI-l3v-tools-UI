@@ -93,6 +93,9 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
  if(!visible)return null;
  const generatedDesigns=result?.designs||[];
  const generationComplete=generatedDesigns.length>0&&generatedDesigns.every(design=>design.status==='succeeded');
+ const previewsRunning=Object.values(visualizations).some(item=>['queued','running','waiting'].includes(item?.status));
+ useEffect(()=>{window.dispatchEvent(new CustomEvent('identity:busy',{detail:{source:'designs',busy:Boolean(busy||previewsRunning)}}))},[busy,previewsRunning]);
+ useEffect(()=>()=>window.dispatchEvent(new CustomEvent('identity:busy',{detail:{source:'designs',busy:false}})),[]);
  const currentStep=manualStep||(request?(generationComplete&&showPackages?4:3):step==='styles'?2:1);
  useEffect(()=>onStepChange?.(currentStep),[currentStep,onStepChange]);
  // A finished set has already passed the step 3 tollgate, so step 4 stays
