@@ -87,7 +87,12 @@ export default function IdentityAutoVisualizationPrimer({request,designs=[],asse
           urls.current.add(imageUrl);
           persist(key,{jobId,imageId,status:'succeeded',imageUrl});
         }catch(error){
-          if(error?.name!=='AbortError')persist(key,{status:'failed',error:error?.message||'Visualization generation failed.'});
+          if(error?.name==='AbortError')return;
+          // A saved preview whose job has aged out of the queue answers 404.
+          // That is expiry, not a generation failure, and it is recoverable by
+          // generating a fresh one rather than something to investigate.
+          if(error?.status===404)persist(key,{status:'expired',error:'This preview expired and is no longer stored.'});
+          else persist(key,{status:'failed',error:error?.message||'Visualization generation failed.'});
         }finally{running.current.delete(key)}
       })();
     });
