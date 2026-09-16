@@ -44,6 +44,15 @@ export default function IdentityGenerationStage({
   const previewProgress=Math.round((readyPreviews/previewTotal)*100);
   const previewBatchFailed=failedPreviews===previewTotal;
 
+  // The same advancement control is rendered above and below the content.
+  const nextBar=className=><div className={className}>
+    <div><small>{previewBatchFailed?'PREVIEWS NEED ATTENTION':'NEXT'}</small><strong>{previewBatchFailed?'The preview batch did not complete. Retry it without regenerating your identity.':'Select apparel and products to apply your identity to.'}</strong></div>
+    <button type="button" onClick={previewBatchFailed?()=>location.reload():onNext}>{previewBatchFailed?'Retry previews':'Next'}</button>
+  </div>;
+  const readyActions=className=><div className={className}>
+    <div><small>STEP 3 COMPLETE</small><strong>Your identity is ready. Continue to choose how you want to see it applied.</strong></div>
+    <button type="button" onClick={onNext}>Next: See It Live</button>
+  </div>;
   const downloadAll=()=>shown.forEach((design,index)=>{
     const href=assets[design?.id]?.png;
     if(!href)return;
@@ -98,6 +107,7 @@ export default function IdentityGenerationStage({
         </aside>
         <main className="identity-step3-applications">
           <header><div><p className="eyebrow">SEE IT TAKE SHAPE</p><h2>Adding your identity</h2><p>Applying your generated designs to apparel, products, and places.</p></div><strong>{readyPreviews} / {previewTotal} ready</strong></header>
+          {nextBar('identity-step3-next identity-step3-next-top')}
           <div className="identity-step3-preview-progress" aria-label={`${readyPreviews} of ${previewTotal} previews ready`}><i style={{width:`${Math.max(previews.length?4:0,previewProgress)}%`}}/><span>{readyPreviews?`${readyPreviews} complete · `:''}{failedPreviews?`${failedPreviews} need attention · `:''}{Math.max(0,previewTotal-readyPreviews-failedPreviews)} in progress</span></div>
           <div className="identity-step3-application-grid">
             {(previews.length?previews:Array.from({length:9},(_,index)=>({key:`waiting-${index}`,status:'waiting'}))).map(item=><figure key={item.key}>
@@ -105,10 +115,7 @@ export default function IdentityGenerationStage({
               <figcaption><strong>{item.id?previewTitle(item):'Selecting application'}</strong><small>{item.status==='succeeded'?'Ready':item.status==='failed'?'Not completed':'In progress'}</small></figcaption>
             </figure>)}
           </div>
-          <footer className="identity-step3-next">
-            <div><small>{previewBatchFailed?'PREVIEWS NEED ATTENTION':'NEXT'}</small><strong>{previewBatchFailed?'The preview batch did not complete. Retry it without regenerating your identity.':'Select apparel and products to apply your identity to.'}</strong></div>
-            <button type="button" onClick={previewBatchFailed?()=>location.reload():onNext}>{previewBatchFailed?'Retry previews':'Next'}</button>
-          </footer>
+          {nextBar('identity-step3-next')}
         </main>
       </div>
     </section>;
@@ -123,6 +130,7 @@ export default function IdentityGenerationStage({
       </div>
       <button type="button" onClick={onReset}>Start over</button>
     </header>
+    {complete&&readyActions('identity-step3-ready-actions top')}
 
     {!complete&&<div className="collection-progress">
       <div><strong>{busy?'Generating your identity':'Generation in progress'}</strong><span>{finished} of 3 ready</span></div>
@@ -152,10 +160,7 @@ export default function IdentityGenerationStage({
       </div>
     </div>
 
-    {complete&&<div className="identity-step3-ready-actions">
-      <div><small>STEP 3 COMPLETE</small><strong>Your identity is ready. Continue to choose how you want to see it applied.</strong></div>
-      <button type="button" onClick={onNext}>Next: See It Live</button>
-    </div>}
+    {complete&&readyActions('identity-step3-ready-actions')}
 
     {!complete&&message&&<p className="generation-status-message">{message}</p>}
     {!complete&&recovery&&<div className="generation-recovery"><strong>{recovery.title||'Generation needs attention'}</strong><p>{recovery.message||message}</p>{onPoll&&<button type="button" onClick={onPoll}>Check again</button>}</div>}
