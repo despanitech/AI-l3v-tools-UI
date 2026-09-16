@@ -75,7 +75,9 @@ export default function IdentityAutoVisualizationPrimer({request,designs=[],asse
           }
           while(!terminal.has(job?.status)){
             await wait(2200);
-            const response=await call('visualization-status',request,{id:jobId,jobId},controller.current.signal);
+            // The edge accepts exactly {id}. Sending a second field made every poll 400,
+            // so every automatic preview failed even though its job had succeeded.
+            const response=await call('visualization-status',request,{id:jobId},controller.current.signal);
             job=response?.job||response;
             persist(key,{jobId,status:job?.status||'running'});
           }
