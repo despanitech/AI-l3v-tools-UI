@@ -31,6 +31,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  const [bundleError,setBundleError]=useState('');
  const [entitlement,setEntitlement]=useState(null);
  const [checkingOut,setCheckingOut]=useState(false);
+ const [confirmingPayment,setConfirmingPayment]=useState(()=>new URLSearchParams(location.search).get('purchase')==='complete');
  const generationController=useRef(null);
  const generatedUrls=useRef(new Set());
  const chosen=packages.find(item=>item.id===selected);
@@ -90,10 +91,35 @@ export default function IdentityPackages({request,name,designs=[]}){
  };
  // Entitlement is read from the server. Returning from Stripe proves nothing
  // on its own; the webhook is what grants access.
+ // Stripe redirects back the moment payment succeeds, but the webhook arrives
+ // independently and usually a moment later. A single read on return would
+ // find nothing and the button would still ask for payment, so after a
+ // completed checkout the entitlement is polled until it appears.
  useEffect(()=>{
   if(!request?.access)return;
-  let active=true;
-  call('entitlement',request,{}).then(data=>{if(active)setEntitlement(data)}).catch(()=>{});
+  let active=true,attempts=0;
+  const returning=new URLSearchParams(location.search).get('purchase')==='complete';
+  const clearReturn=()=>{
+   const url=new URL(location.href);
+   if(!url.searchParams.has('purchase'))return;
+   url.searchParams.delete('purchase');
+   history.replaceState(null,'',url.pathname+url.search+url.hash);
+  };
+  const read=async()=>{
+   if(!active)return;
+   attempts++;
+   try{
+    const data=await call('entitlement',request,{});
+    if(!active)return;
+    setEntitlement(data);
+    if(data?.packageId){setConfirmingPayment(false);clearReturn();return}
+   }catch{}
+   if(!active)return;
+   // About a minute of polling, backing off so a lost webhook does not spin.
+   if(returning&&attempts<20){setTimeout(read,attempts<5?2000:4000);return}
+   if(returning){setConfirmingPayment(false);clearReturn();}
+  };
+  read();
   return()=>{active=false};
  },[request?.access?.requestId,selectionSaved]);
 
@@ -155,7 +181,7 @@ export default function IdentityPackages({request,name,designs=[]}){
   </section>}
   {generationError&&<p className="identity-subject-error" role="alert">{generationError}</p>}
   {bundleError&&<p className="identity-subject-error" role="alert">{bundleError}</p>}
-  <footer><div><span>YOUR SELECTION</span><strong>{chosen.price} · {chosen.headline}{selected!=='free'&&` · ${selectedSubjects.length}/${chosen.count} applications`}</strong></div>{selected==='free'?<button type="button" className="identity-bundle-download" disabled={bundling||!includedVisualizations.length} onClick={bundleAndDownload}>{bundling?'Preparing download...':`Bundle and download${includedVisualizations.length?` (${includedVisualizations.length})`:''}`}</button>:paidFor?<button type="button" disabled={selectedSubjects.length!==chosen.count||isGenerating} onClick={generateSelection}>{isGenerating?`${Object.values(jobs).filter(job=>job.status==='succeeded').length}/${chosen.count} generated`:selectionSaved&&Object.values(jobs).some(job=>job.status==='succeeded')?'Generation complete':`Generate ${chosen.count} images`}</button>:checkoutEnabled?<button type="button" className="identity-checkout-start" disabled={checkingOut||selectedSubjects.length!==chosen.count} onClick={startCheckout}>{checkingOut?'Opening checkout...':`Continue to payment · ${chosen.price}${entitlement?.mode==='test'?' (test mode)':''}`}</button>:<button type="button" disabled>Payment setup in progress</button>}</footer>
+  <footer><div><span>YOUR SELECTION</span><strong>{chosen.price} · {chosen.headline}{selected!=='free'&&` · ${selectedSubjects.length}/${chosen.count} applications`}</strong></div>{selected==='free'?<button type="button" className="identity-bundle-download" disabled={bundling||!includedVisualizations.length} onClick={bundleAndDownload}>{bundling?'Preparing download...':`Bundle and download${includedVisualizations.length?` (${includedVisualizations.length})`:''}`}</button>:paidFor?<button type="button" disabled={selectedSubjects.length!==chosen.count||isGenerating} onClick={generateSelection}>{isGenerating?`${Object.values(jobs).filter(job=>job.status==='succeeded').length}/${chosen.count} generated`:selectionSaved&&Object.values(jobs).some(job=>job.status==='succeeded')?'Generation complete':`Generate ${chosen.count} images`}</button>:confirmingPayment?<button type="button" disabled>Confirming payment...</button>:checkoutEnabled?<button type="button" className="identity-checkout-start" disabled={checkingOut||selectedSubjects.length!==chosen.count} onClick={startCheckout}>{checkingOut?'Opening checkout...':`Continue to payment · ${chosen.price}${entitlement?.mode==='test'?' (test mode)':''}`}</button>:<button type="button" disabled>Payment setup in progress</button>}</footer>
   {example&&<ExampleModal item={example} onClose={()=>setExample(null)}/>} 
  </section>;
 }

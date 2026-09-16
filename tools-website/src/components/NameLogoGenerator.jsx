@@ -22,6 +22,14 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
  useEffect(()=>setVisualizations({}),[request?.id]);
 
  useEffect(()=>{if(localSample&&!request&&buildStep===1)setStep('name');if(localSample&&!request&&buildStep===2)setStep('styles')},[localSample,request,buildStep]);
+ // Stripe returns to a fresh page load, where showPackages has reset to false
+ // and the app would otherwise land on Step 3. Both outcomes return to the
+ // package step: completed so the purchase can be confirmed, cancelled so the
+ // choice can be made again.
+ useEffect(()=>{
+  if(!new URLSearchParams(location.search).get('purchase'))return;
+  setShowPackages(true);setManualStep(4);
+ },[]);
  useEffect(()=>{const navigate=event=>{const target=Number(event.detail);setManualStep(target);if(target===1||target===2)setStep(target===2?'styles':'name');if(target===3)setShowPackages(false);if(target===4)setShowPackages(true)};window.addEventListener('identity-step-navigation',navigate);return()=>window.removeEventListener('identity-step-navigation',navigate)},[]);
 
  useEffect(()=>{const c=new AbortController();accessFetch('/api/name-logo/catalog',{signal:c.signal}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{setConfig(data);setSelected(['logo','initials','signature'].map(mode=>({mode,id:data.styles?.find(s=>s.mode===mode)?.id||({logo:'soft-angular',initials:'woven-serif',signature:'compact-autograph'})[mode]})))}).catch(e=>{if(e.name!=='AbortError'){setConfig({enabled:false,styles:[]});setMessage('Could not connect. Refresh to try again.')}});return()=>{c.abort();active.current?.abort();Object.values(cache.current).forEach(a=>{URL.revokeObjectURL(a.png);if(a.svg)URL.revokeObjectURL(a.svg)})}},[]);
