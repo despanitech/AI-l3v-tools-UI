@@ -13,6 +13,30 @@ function randomExamples(){
   return choices[index];
  });
 }
+const PURCHASE_COPY={
+ confirming:{title:'Confirming your payment',body:'Waiting for Stripe to confirm. This only takes a moment.'},
+ preparing:{title:'Thanks for your payment',body:'Your bundle is being prepared. This page can be left open.'},
+ ready:{title:'Thanks for your payment',body:'Your bundle is ready to download.'},
+ unconfirmed:{title:'Payment not confirmed yet',body:'Nothing was prepared and you have not been charged twice. Reload in a moment, or contact support with your request reference.'},
+};
+
+function PurchaseBanner({state}){
+ if(!state)return null;
+ const copy=PURCHASE_COPY[state.stage]||PURCHASE_COPY.preparing;
+ const done=state.stage==='ready',waiting=state.stage==='confirming',failed=state.stage==='unconfirmed';
+ const percent=state.total?Math.round(state.ready/state.total*100):0;
+ return <aside className={`identity-purchase-banner ${state.stage}`} role="status" aria-live="polite">
+  <span className="identity-purchase-mark" aria-hidden="true">{done?'✓':failed?'!':''}</span>
+  <div>
+   <strong>{copy.title}</strong>
+   <span>{copy.body}</span>
+   {!waiting&&!failed&&state.total>0&&<div className="identity-purchase-meter"><i style={{width:`${percent}%`}}/></div>}
+   {!waiting&&!failed&&state.total>0&&<small>{state.ready} of {state.total} ready{state.packageName?` · ${state.packageName}`:''}</small>}
+  </div>
+  {done&&<button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:download-bundle'))}>Download bundle</button>}
+ </aside>;
+}
+
 export default function Identity({tool}) {
  // Rehydrate from the saved request so returning to Step 1 with an active set
  // shows the name that set was generated from, rather than empty fields that
@@ -20,6 +44,7 @@ export default function Identity({tool}) {
  const [first,setFirst]=useState(()=>savedRequest()?.first||''),[last,setLast]=useState(()=>savedRequest()?.last||'');
  const [examples]=useState(randomExamples);
  const [lightbox,setLightbox]=useState(null);
+ const [purchase,setPurchase]=useState(null);
  const localBuild=['localhost','127.0.0.1'].includes(location.hostname);
  const requestedStep=Number(new URLSearchParams(location.search).get('buildStep'));
  const routeStep=tool==='generating'?(requestedStep===3?3:4):tool==='demo'?4:requestedStep===2?2:1;
@@ -29,6 +54,7 @@ export default function Identity({tool}) {
  useEffect(()=>{if(localBuild||tool==='demo'||tool==='generating')setActiveStep(routeStep)},[routeStep,localBuild,tool]);
  useEffect(()=>{if(!lightbox)return;const close=event=>{if(event.key==='Escape')setLightbox(null)};document.addEventListener('keydown',close);return()=>document.removeEventListener('keydown',close)},[lightbox]);
  useEffect(()=>{const open=event=>setLightbox(event.detail);window.addEventListener('identity:open-image',open);return()=>window.removeEventListener('identity:open-image',open)},[]);
+ useEffect(()=>{const update=event=>setPurchase(event.detail);window.addEventListener('identity:purchase-state',update);return()=>window.removeEventListener('identity:purchase-state',update)},[]);
  const imageLightbox=lightbox&&<div className="identity-image-lightbox" role="dialog" aria-modal="true" aria-label={lightbox.alt} onClick={()=>setLightbox(null)}><button type="button" aria-label="Close full-size image" onClick={()=>setLightbox(null)}>Close</button><img src={lightbox.src} alt={lightbox.alt} onClick={event=>event.stopPropagation()}/></div>;
  function reportStep(number){setActiveStep(number);setFurthestStep(current=>Math.max(current,number))}
  function clearActiveSet(number){setActiveStep(number);setFurthestStep(number)}
@@ -36,7 +62,7 @@ export default function Identity({tool}) {
  const stepper=<nav className="identity-stepper" aria-label={`Step ${activeStep} of 4`}><span className="identity-stepper-mobile">Step {activeStep} of 4 · {steps[activeStep-1]}</span>{steps.map((label,index)=>{const number=index+1,state=number<activeStep?'complete':number===activeStep?'active':'upcoming',content=<><b>{number<activeStep?'✓':String(number).padStart(2,'0')}</b><span>{label}</span></>;return number<=furthestStep&&number!==activeStep&&tool!=='demo'?<button type="button" className={`identity-step ${state}`} onClick={()=>openBuildStep(number)} key={label}>{content}</button>:<span className={`identity-step ${state}`} aria-current={number===activeStep?'step':undefined} key={label}>{content}</span>})}</nav>;
  if(['demo','generating'].includes(tool))return <section id="logo-panel" className="simple-name-entry identity-build-shell">{stepper}<IdentityResults generating={tool==='generating'} onBack={()=>openBuildStep(1)} />{imageLightbox}</section>;
  if(!['logo','initials','signature'].includes(tool))return null;
- return <section id="logo-panel" className="simple-name-entry identity-build-shell" aria-label="Magic Identity">{stepper}<div className="identity-entry-layout"><div className="identity-entry-main"><NameLogoGenerator buildStep={activeStep} intro={<> <div className="entry-samples" aria-label="Design examples">{examples.map((item,i)=>{const label=exampleLabels[item.category],w=item.category==='signature'?1774:1254,h=item.category==='signature'?887:1254;return <figure key={item.job}><svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${label} example in ${item.styleName} style`}><defs><filter id={`entry-ink-${i}`} colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -.2126 -.7152 -.0722 0 1" result="luminance"/><feComposite in="luminance" in2="SourceAlpha" operator="in" result="ink"/><feFlood floodColor="currentColor"/><feComposite operator="in" in2="ink"/></filter></defs><image href={item.src} width={w} height={h} preserveAspectRatio="xMidYMid meet" filter={`url(#entry-ink-${i})`}/></svg><figcaption>{label} · {item.styleName}</figcaption></figure>})}</div><h1>Create your name logo and initials</h1></>} first={first} last={last} visible={true} onFirst={setFirst} onLast={setLast} onStepChange={reportStep} onActiveSetCleared={clearActiveSet} /></div><RecentIdentityVisualizations/></div>{imageLightbox}</section>;
+ return <section id="logo-panel" className="simple-name-entry identity-build-shell" aria-label="Magic Identity">{stepper}<PurchaseBanner state={purchase}/><div className="identity-entry-layout"><div className="identity-entry-main"><NameLogoGenerator buildStep={activeStep} intro={<> <div className="entry-samples" aria-label="Design examples">{examples.map((item,i)=>{const label=exampleLabels[item.category],w=item.category==='signature'?1774:1254,h=item.category==='signature'?887:1254;return <figure key={item.job}><svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${label} example in ${item.styleName} style`}><defs><filter id={`entry-ink-${i}`} colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -.2126 -.7152 -.0722 0 1" result="luminance"/><feComposite in="luminance" in2="SourceAlpha" operator="in" result="ink"/><feFlood floodColor="currentColor"/><feComposite operator="in" in2="ink"/></filter></defs><image href={item.src} width={w} height={h} preserveAspectRatio="xMidYMid meet" filter={`url(#entry-ink-${i})`}/></svg><figcaption>{label} · {item.styleName}</figcaption></figure>})}</div><h1>Create your name logo and initials</h1></>} first={first} last={last} visible={true} onFirst={setFirst} onLast={setLast} onStepChange={reportStep} onActiveSetCleared={clearActiveSet} /></div><RecentIdentityVisualizations/></div>{imageLightbox}</section>;
 }
 
 

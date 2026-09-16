@@ -201,6 +201,24 @@ export default function IdentityPackages({request,name,designs=[]}){
   });
  },[paidFor,purchaseIntent,request?.access?.requestId]);
 
+ // The buyer should see this without scrolling, so the state is published for
+ // the shell to render under the step strip. Same pattern as the lightbox.
+ useEffect(()=>{
+  const detail=(purchaseStage||paidFor)?{
+   stage:purchaseStage==='confirming'?'confirming':purchaseStage==='unconfirmed'?'unconfirmed':bundleReady?'ready':'preparing',
+   packageName:paidPackageName||'',
+   ready:generatedItems.length,
+   total:progressTotal,
+  }:null;
+  window.dispatchEvent(new CustomEvent('identity:purchase-state',{detail}));
+ },[purchaseStage,paidFor,bundleReady,paidPackageName,generatedItems.length,progressTotal]);
+
+ useEffect(()=>{
+  const download=()=>{if(bundleReady)bundleAndDownload(generatedItems,'bundle')};
+  window.addEventListener('identity:download-bundle',download);
+  return()=>window.removeEventListener('identity:download-bundle',download);
+ },[bundleReady,generatedItems,bundling]);
+
  const startCheckout=async()=>{
   if(checkingOut)return;
   setGenerationError('');setCheckingOut(true);
