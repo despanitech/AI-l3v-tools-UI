@@ -2,6 +2,7 @@ import videoWorker from './video-worker.mjs';
 import {invitationAccount} from './invitation-worker.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
 import {invitationShare} from './invitation-share.mjs';
+import {createCheckoutSession,verifyWebhook,recordPurchase,purchaseFor,checkoutReady,PAID_PACKAGES} from './stripe-checkout.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
 async function signature(value, secret) {
@@ -19,6 +20,19 @@ export default {
     const url=new URL(request.url), prefix='/api/name-logo/';
     if(url.pathname.startsWith('/invite/'))return invitationShare(request,env);
     if(url.pathname==='/api/admin/invitations')return issueInvitation(request,env);
+    if(url.pathname==='/api/name-logo/stripe-webhook'){
+      if(request.method!=='POST')return json({error:'Invalid method'},405);
+      if(!env.STRIPE_WEBHOOK_SECRET||!env.INVITATIONS)return json({error:'Not found'},404);
+      const raw=new TextDecoder().decode(await bounded(request,65536));
+      const event=await verifyWebhook(raw,request.headers.get('Stripe-Signature'),env.STRIPE_WEBHOOK_SECRET);
+      if(!event){console.warn(JSON.stringify({event:'name-logo.stripe-webhook-rejected'}));return json({error:'Invalid signature'},400)}
+      if(event.type==='checkout.session.completed'){
+        const stored=await recordPurchase(env.INVITATIONS,event.data?.object||{});
+        console.log(JSON.stringify({event:'name-logo.purchase-recorded',packageId:stored?.packageId||'',recorded:Boolean(stored)}));
+      }
+      // Anything else is acknowledged so Stripe stops retrying an event we do not act on.
+      return json({received:true});
+    }
     const api=url.pathname.startsWith('/api/');
     const account=api?await invitationAccount(request,env):null;
     if(url.pathname==='/api/invitation/validate'){
@@ -47,10 +61,10 @@ export default {
     if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs','/api/capacity-status'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
-    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image'].includes(action)) return json({error:'Not found'},404);
+    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement'].includes(action)) return json({error:'Not found'},404);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
     if(!ready) return action==='catalog' ? json({enabled:false,styles:[]}) : json({error:'Name generation is not available yet'},503);
-    if(request.method !== (['catalog','health','image','visualization-image'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
+    if(request.method !== (['catalog','health','entitlement','image','visualization-image'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
     if(request.method==='POST' && request.headers.get('Origin')!==url.origin)return json({error:'Open the form on this website'},403);
     try {
       const access={requestId:request.headers.get('X-L3V-Request-Id'),receipt:request.headers.get('X-L3V-Request-Receipt')};
@@ -59,6 +73,23 @@ export default {
       if(request.method==='POST')body=JSON.parse(new TextDecoder().decode(await bounded(request,16384)));
       if(!body || typeof body!=='object' || Array.isArray(body))return json({error:'Invalid request'},400);
       const traceId=crypto.randomUUID().replaceAll('-','');
+      if(action==='entitlement'){
+        const purchase=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId):null;
+        return json({enabled:checkoutReady(env)&&Boolean(env.INVITATIONS),packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null});
+      }
+      if(action==='checkout'){
+        if(!checkoutReady(env)||!env.INVITATIONS)return json({error:'Payment is not available yet'},503);
+        if(Object.keys(body).join(',')!=='packageId'||!PAID_PACKAGES[body.packageId])return json({error:'Choose an available package'},400);
+        if(await purchaseFor(env.INVITATIONS,access.requestId))return json({error:'This request is already paid'},409);
+        try{
+          const session=await createCheckoutSession(env,{requestId:access.requestId,packageId:body.packageId,origin:url.origin});
+          console.log(JSON.stringify({event:'name-logo.checkout-created',traceId}));
+          return json({url:session.url},200,{'X-L3V-Trace-Id':traceId});
+        }catch{
+          console.warn(JSON.stringify({event:'name-logo.checkout-failed',traceId}));
+          return json({error:'Could not start checkout. Please try again.'},502);
+        }
+      }
       let payload=['catalog','health'].includes(action)?{}:{access};
       if(action==='generate') {
         if(Object.keys(body).some(key=>!['first','last','styleId','styles','requestKey','token'].includes(key)))return json({error:'Invalid fields'},400);
