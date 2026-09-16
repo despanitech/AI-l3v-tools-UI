@@ -90,7 +90,9 @@ export default {
     if(request.method==='POST' && request.headers.get('Origin')!==url.origin)return json({error:'Open the form on this website'},403);
     try {
       const access={requestId:request.headers.get('X-L3V-Request-Id'),receipt:request.headers.get('X-L3V-Request-Receipt')};
-      if(!['catalog','health'].includes(action) && (!/^[a-f0-9]{32}$/.test(access.requestId||'') || !/^[a-f0-9]{64}$/.test(access.receipt||''))) return json({error:'Request not found or expired'},404);
+      // bundle-list is scoped by the invitation account, not by one request, so it
+      // carries no request receipt and must not be held to that check.
+      if(!['catalog','health','bundle-list'].includes(action) && (!/^[a-f0-9]{32}$/.test(access.requestId||'') || !/^[a-f0-9]{64}$/.test(access.receipt||''))) return json({error:'Request not found or expired'},404);
       let body={};
       if(request.method==='POST')body=JSON.parse(new TextDecoder().decode(await bounded(request,16384)));
       if(!body || typeof body!=='object' || Array.isArray(body))return json({error:'Invalid request'},400);
