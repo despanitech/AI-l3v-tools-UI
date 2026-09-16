@@ -18,6 +18,7 @@
     "STRIPE_PRICE_CREATOR_TEST": "prod_VGlCLdY36qCuNk",
     "STRIPE_PRICE_STUDIO_TEST": "prod_VGlEbR2n1CQJ5v"
   },
+  "r2_buckets": [{"binding":"IDENTITY_BUNDLES","bucket_name":"l3v-identity-bundles"}],
   "kv_namespaces": [{"binding":"INVITATIONS","id":"09db05366a124ef3a3d05e217179a944"}],
   "routes": [{"pattern": "tools.l3v.ai", "custom_domain": true}],
   "assets": {

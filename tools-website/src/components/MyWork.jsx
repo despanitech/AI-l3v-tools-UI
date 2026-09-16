@@ -2,7 +2,6 @@ import {useEffect,useState} from 'react';
 import {accessFetch,requestReceipt} from '../lib/master-access.mjs';
 import {importAccountWork,savedReceipts} from '../lib/video-receipt.mjs';
 import {remember,savedRequest,headers as nameLogoHeaders} from '../lib/name-logo-request.mjs';
-import {zip,safeEntryName} from '../lib/zip.mjs';
 
 const DESIGN_LABELS={logo:'Name logo',initials:'Initials',signature:'Signature'};
 const label=row=>row.resource_kind==='name-logo-job'?(DESIGN_LABELS[row.mode]||'Identity design'):({'name-logo-visualization':'Real-world preview','analysis':'Analysis','first-frame':'First frame','video':'Video','name-logo-portfolio':'Identity collection','video-job':row.job_kind==='frame'?'First frame':row.job_kind==='video'?'Video':'Analysis'}[row.resource_kind]||row.resource_kind.replaceAll('-',' '));
@@ -51,7 +50,7 @@ function AssetPreviews({rows}){
 }
 
 export default function MyWork({hidden}){
- const [groups,setGroups]=useState([]),[message,setMessage]=useState(''),[bundling,setBundling]=useState('');
+ const [groups,setGroups]=useState([]),[message,setMessage]=useState(''),[bundling,setBundling]=useState(''),[stores,setStores]=useState({});
 
  useEffect(()=>{
   if(hidden)return;
@@ -68,6 +67,8 @@ export default function MyWork({hidden}){
     for(const row of work){const list=map.get(row.request_id)||[];list.push(row);map.set(row.request_id,list)}
     const ordered=[...map.values()].sort((left,right)=>String(right[0].created).localeCompare(String(left[0].created)));
     if(live){setGroups(ordered);setMessage(work.length?'':'No assets yet. Your generated work will appear here.')}
+    const kept=await accessFetch('/api/name-logo/bundle-list',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(r=>r.ok?r.json():null).catch(()=>null);
+    if(live&&kept)setStores(Object.fromEntries((kept.bundles||[]).map(item=>[item.requestId,item])));
    }catch{if(live)setMessage('Your asset library is temporarily unavailable.')}
   }
   load();
@@ -83,23 +84,24 @@ export default function MyWork({hidden}){
   location.hash='logo';location.reload();
  }
 
+ // Stored bundles are durable; the gateway's copies age out with the queue.
+ // Ask the Worker to store one if it has not already, then take it from R2.
  async function downloadBundle(rows){
   const root=rows[0];
   if(bundling)return;
   setBundling(root.request_id);
   try{
    const receipt=await requestReceipt(root.request_id),access={requestId:root.request_id,receipt};
-   const previews=rows.filter(isPreview);
-   const files=[];
-   for(const [index,row] of previews.entries()){
-    const response=await fetch(`/api/name-logo/visualization-image?id=${encodeURIComponent(row.resource_id)}`,{headers:nameLogoHeaders({access})});
-    if(!response.ok)continue;
-    files.push({name:safeEntryName(row.stage_key||'preview',index),bytes:new Uint8Array(await response.arrayBuffer())});
+   const stored=stores[root.request_id];
+   if(!stored){
+    const built=await accessFetch('/api/name-logo/bundle-build',{method:'POST',headers:{'Content-Type':'application/json',...nameLogoHeaders({access})},body:JSON.stringify({name:identityName(rows)})});
+    if(!built.ok&&built.status!==409){setMessage('That bundle could not be prepared.');return}
    }
-   if(!files.length){setMessage('That bundle is no longer available to download.');return}
-   const stem=(identityName(rows)||'identity').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'identity';
-   const url=URL.createObjectURL(zip(files));
+   const response=await accessFetch(`/api/name-logo/bundle?request=${encodeURIComponent(root.request_id)}`,{headers:nameLogoHeaders({access})});
+   if(!response.ok){setMessage('That bundle is no longer available to download.');return}
+   const url=URL.createObjectURL(await response.blob());
    const link=document.createElement('a');
+   const stem=(identityName(rows)||'identity').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'identity';
    link.href=url;link.download=`${stem}-bundle.zip`;
    document.body.append(link);link.click();link.remove();
    setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -110,7 +112,7 @@ export default function MyWork({hidden}){
  return <section className="my-work" hidden={hidden}>
   <p className="eyebrow">PRIVATE LIBRARY</p>
   <h1>My assets</h1>
-  <p>Everything generated under this invitation. Bundles stay downloadable until the retention date shown on each card.</p>
+  <p>Everything generated under this invitation. Designs and previews are kept until the date on each card; a downloaded bundle is stored and stays available after that.</p>
   {message&&<p role="status">{message}</p>}
   <div className="work-list">{groups.map(rows=>{
    const root=rows[0],previews=rows.filter(isPreview),designs=rows.filter(isDesign);
@@ -125,7 +127,7 @@ export default function MyWork({hidden}){
     <AssetPreviews rows={rows}/>
     <div className="asset-card-actions">
      <button type="button" onClick={()=>open(rows)}>Open</button>
-     {previews.length>0&&<button type="button" className="asset-bundle" disabled={bundling===root.request_id} onClick={()=>downloadBundle(rows)}>{bundling===root.request_id?'Preparing...':`Download bundle (${previews.length})`}</button>}
+     {(previews.length>0||stores[root.request_id])&&<button type="button" className="asset-bundle" disabled={bundling===root.request_id} onClick={()=>downloadBundle(rows)}>{bundling===root.request_id?'Preparing...':`Download bundle (${stores[root.request_id]?.count||previews.length})`}</button>}
     </div>
    </article>;
   })}</div>

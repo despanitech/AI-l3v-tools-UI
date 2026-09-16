@@ -2,6 +2,7 @@ import videoWorker from './video-worker.mjs';
 import {invitationAccount} from './invitation-worker.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
 import {invitationShare} from './invitation-share.mjs';
+import {buildBundle,listBundles,getBundle} from './bundle-store.mjs';
 import {createCheckoutSession,verifyWebhookForModes,recordPurchase,purchaseFor,markDownloaded,checkoutReady,stripeConfig,webhookSecrets,PAID_PACKAGES} from './stripe-checkout.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
@@ -15,6 +16,25 @@ async function bounded(response, limit) {
   while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>limit){await reader.cancel();throw new Error('Too large')}chunks.push(value)}
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length}return bytes;
 }
+// One call into the private gateway, so the bundle builder does not need to
+// know about tokens, tracing or transport.
+function gatewayCaller(env, traceId, requestId) {
+  return async (action, payload, binary = false) => {
+    const upstream = new URL(env.NAME_LOGO_URL);
+    if (upstream.protocol !== 'https:') throw new Error('Invalid gateway');
+    upstream.pathname = '/name-logo/' + action; upstream.search = '';
+    const response = await fetch(upstream, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', Authorization: 'Bearer ' + env.NAME_LOGO_TOKEN,
+        'X-L3V-Trace-Id': traceId, ...(requestId ? {'X-L3V-Request-Id': requestId} : {})},
+      body: JSON.stringify(payload), redirect: 'manual', signal: AbortSignal.timeout(30000),
+    });
+    if (!response.ok) return null;
+    const bytes = await bounded(response, binary ? 25 * 1024 * 1024 : 150000);
+    return binary ? bytes : JSON.parse(new TextDecoder().decode(bytes));
+  };
+}
+
 export default {
   async fetch(request, env) {
     const url=new URL(request.url), prefix='/api/name-logo/';
@@ -63,10 +83,10 @@ export default {
     if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs','/api/capacity-status'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
-    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded'].includes(action)) return json({error:'Not found'},404);
+    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded','bundle-build','bundle-list','bundle'].includes(action)) return json({error:'Not found'},404);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
     if(!ready) return action==='catalog' ? json({enabled:false,styles:[]}) : json({error:'Name generation is not available yet'},503);
-    if(request.method !== (['catalog','health','image','visualization-image'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
+    if(request.method !== (['catalog','health','image','visualization-image','bundle'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
     if(request.method==='POST' && request.headers.get('Origin')!==url.origin)return json({error:'Open the form on this website'},403);
     try {
       const access={requestId:request.headers.get('X-L3V-Request-Id'),receipt:request.headers.get('X-L3V-Request-Receipt')};
@@ -80,6 +100,24 @@ export default {
         const record=env.INVITATIONS?await markDownloaded(env.INVITATIONS,access.requestId,mode):null;
         console.log(JSON.stringify({event:'name-logo.bundle-downloaded',packageId:record?.packageId||'',mode,recorded:Boolean(record)}));
         return json({recorded:Boolean(record)});
+      }
+      if(['bundle-build','bundle-list','bundle'].includes(action)){
+        if(!env.IDENTITY_BUNDLES)return json({error:'Bundle storage is not configured'},503);
+        if(!account)return json({error:'Invitation required'},403);
+        if(action==='bundle-list')return json({bundles:await listBundles(env,account)});
+        if(action==='bundle'){
+          const wanted=url.searchParams.get('request')||access.requestId;
+          const object=await getBundle(env,account,wanted);
+          if(!object)return json({error:'Bundle not found'},404);
+          return new Response(object.body,{headers:{'Content-Type':'application/zip','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff',
+            'Content-Disposition':`attachment; filename="${(object.customMetadata?.name||'identity').replace(/[^a-zA-Z0-9-]/g,'-').slice(0,40)||'identity'}-bundle.zip"`}});
+        }
+        if(Object.keys(body).length&&Object.keys(body).join(',')!=='name')return json({error:'Invalid fields'},400);
+        const built=await buildBundle(env,{accountId:account,requestId:access.requestId,receipt:access.receipt,name:body.name,
+          gateway:gatewayCaller(env,traceId,access.requestId)});
+        console.log(JSON.stringify({event:'name-logo.bundle-stored',stored:Boolean(built),count:built?.count||0,traceId}));
+        if(!built)return json({error:'Nothing to bundle yet'},409);
+        return json({stored:true,count:built.count,bytes:built.bytes});
       }
       if(action==='entitlement'){
         const mode=stripeConfig(env).mode;
