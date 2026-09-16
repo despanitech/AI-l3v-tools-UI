@@ -36,6 +36,8 @@ jobs:
           mkdir -p staging/tools-website/src/lib
           cp tools-website/src/lib/facebook-reel.mjs staging/tools-website/src/lib/
           cp tools-website/src/lib/zip.mjs staging/tools-website/src/lib/
+          cp tools-website/src/lib/identity-example-library.json staging/tools-website/src/lib/
+          cp tools-website/src/lib/application-templates.mjs staging/tools-website/src/lib/
           cp analyzer/contract.mjs staging/analyzer/
           cp app/guide.json staging/app/
           printf '%s\n' "$revision" > staging/REVISION
