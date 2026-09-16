@@ -36,6 +36,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  const [generationError,setGenerationError]=useState('');
  const [includedVisualizations,setIncludedVisualizations]=useState([]);
  const [previewsLoading,setPreviewsLoading]=useState(Boolean(request?.id));
+ const [previewRefresh,setPreviewRefresh]=useState(0);
  const [bundling,setBundling]=useState(false);
  const [bundleError,setBundleError]=useState('');
  const [entitlement,setEntitlement]=useState(null);
@@ -71,10 +72,19 @@ export default function IdentityPackages({request,name,designs=[]}){
  const toggleSubject=id=>{setSelectionSaved(false);setSelectedSubjects(current=>current.includes(id)?current.filter(item=>item!==id):current.length<chosen.count?[...current,id]:current)};
  useEffect(()=>{if(!activeDesignId&&availableDesigns[0])setActiveDesignId(availableDesigns[0].id)},[activeDesignId,availableDesigns]);
  useEffect(()=>()=>{generationController.current?.abort();generatedUrls.current.forEach(URL.revokeObjectURL)},[]);
+ // The included previews are usually still generating when step 4 is reached,
+ // so a single fetch returns an empty list and the free package would stay
+ // empty until a full reload. Re-read while the set is incomplete.
+ useEffect(()=>{
+  if(!request?.id||includedVisualizations.length>=9||previewRefresh>=40)return;
+  const timer=setTimeout(()=>setPreviewRefresh(value=>value+1),5000);
+  return()=>clearTimeout(timer);
+ },[request?.id,includedVisualizations.length,previewRefresh]);
+
  useEffect(()=>{
   if(!request?.id){setPreviewsLoading(false);return}
   const controller=new AbortController();
-  setPreviewsLoading(true);
+  if(!includedVisualizations.length)setPreviewsLoading(true);
   (async()=>{try{
    const response=await call('visualization-list',request,{},controller.signal);
    const completed=(response?.visualizations||[]).filter(item=>item.status==='succeeded'&&item.output?.template).slice(-9).sort((left,right)=>String(left.output.template).localeCompare(String(right.output.template))||String(left.id).localeCompare(String(right.id)));
@@ -88,7 +98,7 @@ export default function IdentityPackages({request,name,designs=[]}){
    setIncludedVisualizations(loaded.filter(Boolean));
   }catch(error){if(error.name!=='AbortError')setGenerationError('Included previews could not be loaded.')}finally{if(!controller.signal.aborted)setPreviewsLoading(false)}})();
   return()=>controller.abort();
- },[request?.id]);
+ },[request?.id,previewRefresh]);
  const updateJob=(subjectId,change)=>setJobs(current=>({...current,[subjectId]:{...current[subjectId],...change}}));
  const waitForVisualization=async(subjectId,signal,designId=activeDesignId,update=updateJob)=>{
   let result=await call('visualization-generate',request,{designId,template:subjectId},signal);
