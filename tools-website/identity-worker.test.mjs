@@ -139,3 +139,12 @@ test('checkout requires a request receipt',async()=>{
   const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/checkout',{method:'POST',headers:{Origin:'https://tools.l3v.ai','Content-Type':'application/json'},body:JSON.stringify({packageId:'creator'})}),stripeEnv());
   assert.equal(response.status,404);
 });
+
+test('listing stored bundles needs the invitation, not a request receipt',async()=>{
+  // It is scoped by account. Requiring a per-request receipt made the library
+  // answer 404 for a client that correctly sent none.
+  const env={...stripeEnv(),INVITATION_ONLY:'true',IDENTITY_BUNDLES:{list:async()=>({objects:[]})}};
+  const invited=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/bundle-list',{method:'POST',headers:{Origin:'https://tools.l3v.ai','Content-Type':'application/json'},body:'{}'}),
+    {...env,INVITATIONS:{get:async()=>'d'.repeat(64),put:async()=>{}}});
+  assert.notEqual(invited.status,404,'a receipt must not be demanded');
+});
