@@ -18,7 +18,9 @@ export default function StyleCatalog({styles,selected,onChange,first,last,onEdit
  function artwork(style){return style?<InkPreview src={previews.find(p=>p.mode===style.mode&&p.id===style.id)?.src} color={ink} label={`${style.name} style example`}/>:null}
  function carousel(mode,compact=false){const label=modes.find(m=>m[0]===mode)?.[1],{current}=currentFor(mode);return <article className={compact?'identity-carousel compact':'identity-carousel'} key={mode}><div className="carousel-heading"><strong>{label}</strong><button type="button" onClick={()=>showGallery(mode)}>View all styles</button></div><div className="carousel-canvas"><button type="button" aria-label={`Previous ${label} style`} onClick={()=>cycle(mode,-1)}>←</button><div className="carousel-art">{artwork(current)}</div><button type="button" aria-label={`Next ${label} style`} onClick={()=>cycle(mode,1)}>→</button></div><small>{current?.name}</small></article>}
  const galleryMode=gallery,{shown,current}=currentFor(galleryMode);
- return <section className="identity-workspace" aria-label="Choose styles">
+ return <>
+ {footer&&<div className="identity-generate-footer identity-generate-top"><span>All 3 included</span>{footer}</div>}
+ <section className="identity-workspace" aria-label="Choose styles">
   <div ref={dock} className={`identity-control-dock${compact?' is-compact':''}`}>
   <aside className="identity-controls-panel">
    <div className="workspace-person"><div><small>Your name</small><strong>{first} {last}</strong></div><button type="button" onClick={onEdit}>Edit</button></div>
@@ -34,4 +36,5 @@ export default function StyleCatalog({styles,selected,onChange,first,last,onEdit
   </div>
   <dialog className="style-gallery-dialog" ref={dialog} onCancel={()=>setOpen(false)} onClose={()=>setOpen(false)}><div className="workspace-style-heading"><h2>Select {modes.find(m=>m[0]===galleryMode)?.[1].toLowerCase()} style</h2><button type="button" onClick={()=>setOpen(false)}>Close</button></div><p>{shown.length} styles</p>{open&&(galleryReady?<div className="style-gallery-items">{shown.map(s=><button key={s.id} type="button" aria-pressed={s.id===current?.id} onClick={()=>{choose(galleryMode,s.id);setOpen(false)}}>{artwork(s)}<strong>{s.name}</strong><small>{s.id===current?.id?'Current style':'Select style'}</small></button>)}</div>:<div className="style-gallery-loading" role="status"><span className="style-spinner" aria-hidden="true"/>Loading styles...</div>)}</dialog>
  </section>
+ </>
 }

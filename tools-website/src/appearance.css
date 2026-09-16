@@ -290,3 +290,8 @@ html {
 .asset-card-actions .asset-bundle:disabled{opacity:.55;cursor:not-allowed}
 .asset-counts{color:var(--muted);font-size:.72rem}
 @media(max-width:700px){.asset-card-actions{width:100%}.asset-card-actions button{flex:1}}
+
+/* Advancement controls are offered at the top of a step as well as the bottom. */
+.identity-step-actions.top{display:flex;justify-content:flex-end;margin-bottom:10px}
+.identity-generate-top{grid-area:auto;margin-bottom:14px}
+@media(max-width:767px){.identity-generate-top{display:none}}
