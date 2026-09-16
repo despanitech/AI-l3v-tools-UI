@@ -11,11 +11,6 @@
     {"name":"NAME_LOGO_LIMITER","namespace_id":"20333","simple":{"limit":8,"period":60}},
     {"name":"INVITATION_LIMITER","namespace_id":"20334","simple":{"limit":5,"period":60}}
   ],
-  // STRIPE_MODE selects which set below is in force. Anything other than
-  // "live" means test, so a missing or misspelled value cannot charge real
-  // cards. Product ids are public; the Worker resolves each to that product's
-  // default price. Secrets are set with `wrangler secret put` and never
-  // committed: STRIPE_SECRET_KEY_TEST/_LIVE and STRIPE_WEBHOOK_SECRET_TEST/_LIVE.
   "vars": {
     "STRIPE_MODE": "test",
     "STRIPE_PRICE_CREATOR_LIVE": "prod_VGkCE5W13sNS4G",
