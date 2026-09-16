@@ -230,7 +230,8 @@ export async function markFulfilled(store, requestId, mode = 'test') {
 
 /** Record that the buyer took delivery. Never gates access; it is a receipt. */
 export async function markDownloaded(store, requestId, mode = 'test') {
-  const record = await purchaseFor(store, requestId, mode);
+  // Delivery is when downloads happen, so the receipt must outlive fulfilment.
+  const record = await purchaseFor(store, requestId, mode, {includeFulfilled: true});
   if (!record) return null;
   const updated = {...record, downloadedAt: record.downloadedAt || new Date().toISOString(),
     downloadCount: (Number(record.downloadCount) || 0) + 1};
