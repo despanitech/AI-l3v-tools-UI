@@ -11,6 +11,13 @@
     {"name":"NAME_LOGO_LIMITER","namespace_id":"20333","simple":{"limit":8,"period":60}},
     {"name":"INVITATION_LIMITER","namespace_id":"20334","simple":{"limit":5,"period":60}}
   ],
+  // Public Stripe product identifiers. The Worker resolves each to that
+  // product's default price. Secrets (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)
+  // are set with `wrangler secret put` and are never committed.
+  "vars": {
+    "STRIPE_PRICE_CREATOR": "prod_VGkCE5W13sNS4G",
+    "STRIPE_PRICE_STUDIO": "prod_VGkF4LVYuX77ch"
+  },
   "kv_namespaces": [{"binding":"INVITATIONS","id":"09db05366a124ef3a3d05e217179a944"}],
   "routes": [{"pattern": "tools.l3v.ai", "custom_domain": true}],
   "assets": {
