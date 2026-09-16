@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createCheckoutSession, verifyWebhook, recordPurchase, purchaseFor, checkoutReady, resolvePrice} from './stripe-checkout.mjs';
+import {createCheckoutSession, verifyWebhook, verifyWebhookForModes, recordPurchase, purchaseFor, checkoutReady, resolvePrice, stripeConfig} from './stripe-checkout.mjs';
 
 const SECRET = 'whsec_test_secret';
 const REQUEST = 'a'.repeat(32);
 
 const env = extra => ({
-  STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: SECRET,
-  STRIPE_PRICE_CREATOR: 'price_creator', STRIPE_PRICE_STUDIO: 'price_studio', ...extra,
+  STRIPE_MODE: 'test',
+  STRIPE_SECRET_KEY_TEST: 'sk_test_x', STRIPE_WEBHOOK_SECRET_TEST: SECRET,
+  STRIPE_PRICE_CREATOR_TEST: 'price_creator', STRIPE_PRICE_STUDIO_TEST: 'price_studio', ...extra,
 });
 
 function store() {
@@ -71,42 +72,42 @@ test('a missing header or secret is refused rather than throwing', async () => {
 
 test('only a paid session is recorded', async () => {
   const kv = store();
-  assert.equal(await recordPurchase(kv, session({payment_status: 'unpaid'})), null);
+  assert.equal(await recordPurchase(kv, session({payment_status: 'unpaid'}), 'test'), null);
   assert.equal(kv.map.size, 0);
-  assert.ok(await recordPurchase(kv, session()));
+  assert.ok(await recordPurchase(kv, session(), 'test'));
   assert.equal(kv.map.size, 1);
 });
 
 test('a session naming an unknown package or malformed request is ignored', async () => {
   const kv = store();
-  assert.equal(await recordPurchase(kv, session({metadata: {requestId: REQUEST, packageId: 'free'}})), null);
-  assert.equal(await recordPurchase(kv, session({metadata: {requestId: 'nope', packageId: 'creator'}, client_reference_id: 'nope'})), null);
+  assert.equal(await recordPurchase(kv, session({metadata: {requestId: REQUEST, packageId: 'free'}}), 'test'), null);
+  assert.equal(await recordPurchase(kv, session({metadata: {requestId: 'nope', packageId: 'creator'}, client_reference_id: 'nope'}), 'test'), null);
   assert.equal(kv.map.size, 0);
 });
 
 test('a recorded purchase reads back for that request only', async () => {
   const kv = store();
-  await recordPurchase(kv, session());
-  const found = await purchaseFor(kv, REQUEST);
+  await recordPurchase(kv, session(), 'test');
+  const found = await purchaseFor(kv, REQUEST, 'test');
   assert.equal(found.packageId, 'creator');
   assert.equal(found.amountTotal, 599);
-  assert.equal(await purchaseFor(kv, 'b'.repeat(32)), null, 'another request is not entitled');
-  assert.equal(await purchaseFor(kv, 'not-an-id'), null);
+  assert.equal(await purchaseFor(kv, 'b'.repeat(32), 'test'), null, 'another request is not entitled');
+  assert.equal(await purchaseFor(kv, 'not-an-id', 'test'), null);
 });
 
 test('corrupt stored data does not grant entitlement', async () => {
   const kv = store();
   await kv.put('purchase:' + REQUEST, '{not json');
-  assert.equal(await purchaseFor(kv, REQUEST), null);
+  assert.equal(await purchaseFor(kv, REQUEST, 'test'), null);
   await kv.put('purchase:' + REQUEST, JSON.stringify({packageId: 'free'}));
-  assert.equal(await purchaseFor(kv, REQUEST), null);
+  assert.equal(await purchaseFor(kv, REQUEST, 'test'), null);
 });
 
 test('checkout is not offered until every Stripe value is configured', () => {
   assert.equal(checkoutReady(env()), true);
-  assert.equal(checkoutReady(env({STRIPE_SECRET_KEY: ''})), false);
-  assert.equal(checkoutReady(env({STRIPE_WEBHOOK_SECRET: ''})), false);
-  assert.equal(checkoutReady(env({STRIPE_PRICE_STUDIO: ''})), false);
+  assert.equal(checkoutReady(env({STRIPE_SECRET_KEY_TEST: ''})), false);
+  assert.equal(checkoutReady(env({STRIPE_WEBHOOK_SECRET_TEST: ''})), false);
+  assert.equal(checkoutReady(env({STRIPE_PRICE_STUDIO_TEST: ''})), false);
 });
 
 test('the session carries the request id so the webhook can tie payment to it', async () => {
@@ -150,7 +151,7 @@ test('an unknown package never reaches Stripe', async () => {
 test('a price id is used as given, without calling Stripe', async () => {
   const original = globalThis.fetch;
   globalThis.fetch = async () => { throw new Error('must not be called'); };
-  try { assert.equal(await resolvePrice(env(), 'price_abc123'), 'price_abc123'); }
+  try { assert.equal(await resolvePrice('sk_test_x', 'price_abc123'), 'price_abc123'); }
   finally { globalThis.fetch = original; }
 });
 
@@ -164,8 +165,8 @@ test('a product id resolves to its default price and is cached', async () => {
     return new Response(JSON.stringify({id: 'prod_VGkF4LVYuX77ch', default_price: 'price_from_product'}), {status: 200});
   };
   try {
-    assert.equal(await resolvePrice(env(), 'prod_VGkF4LVYuX77ch'), 'price_from_product');
-    assert.equal(await resolvePrice(env(), 'prod_VGkF4LVYuX77ch'), 'price_from_product');
+    assert.equal(await resolvePrice('sk_test_x', 'prod_VGkF4LVYuX77ch'), 'price_from_product');
+    assert.equal(await resolvePrice('sk_test_x', 'prod_VGkF4LVYuX77ch'), 'price_from_product');
     assert.equal(calls, 1, 'second lookup is served from cache');
   } finally { globalThis.fetch = original; }
 });
@@ -173,7 +174,7 @@ test('a product id resolves to its default price and is cached', async () => {
 test('an expanded default price object is accepted', async () => {
   const original = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({default_price: {id: 'price_expanded'}}), {status: 200});
-  try { assert.equal(await resolvePrice(env(), 'prod_VGkCE5W13sNS4G'), 'price_expanded'); }
+  try { assert.equal(await resolvePrice('sk_test_x', 'prod_VGkCE5W13sNS4G'), 'price_expanded'); }
   finally { globalThis.fetch = original; }
 });
 
@@ -187,4 +188,60 @@ test('a product with no default price fails loudly', async () => {
 test('a configured value that is neither price nor product is refused', async () => {
   await assert.rejects(() => resolvePrice(env(), 'cus_wrong_kind'), /neither a price nor a product/);
   await assert.rejects(() => resolvePrice(env(), 'price_bad id'), /neither a price nor a product/);
+});
+
+test('mode defaults to test unless live is named exactly', () => {
+  assert.equal(stripeConfig({}).mode, 'test');
+  assert.equal(stripeConfig({STRIPE_MODE: 'LIVE'}).mode, 'test', 'case must match');
+  assert.equal(stripeConfig({STRIPE_MODE: 'production'}).mode, 'test');
+  assert.equal(stripeConfig({STRIPE_MODE: 'live'}).mode, 'live');
+});
+
+test('each mode reads its own keys and products', () => {
+  const both = {
+    STRIPE_SECRET_KEY_TEST: 'sk_test_x', STRIPE_SECRET_KEY_LIVE: 'sk_live_x',
+    STRIPE_PRICE_CREATOR_TEST: 'prod_TestCreator01', STRIPE_PRICE_CREATOR_LIVE: 'prod_VGkCE5W13sNS4G',
+  };
+  assert.equal(stripeConfig({...both, STRIPE_MODE: 'test'}).secretKey, 'sk_test_x');
+  assert.equal(stripeConfig({...both, STRIPE_MODE: 'live'}).secretKey, 'sk_live_x');
+  assert.equal(stripeConfig({...both, STRIPE_MODE: 'live'}).products.creator, 'prod_VGkCE5W13sNS4G');
+});
+
+test('a test purchase does not unlock live generation', async () => {
+  // The whole point of the toggle: a 4242 card must never buy real output.
+  const kv = store();
+  await recordPurchase(kv, session(), 'test');
+  assert.ok(await purchaseFor(kv, REQUEST, 'test'));
+  assert.equal(await purchaseFor(kv, REQUEST, 'live'), null);
+});
+
+test('a live purchase is not honoured while running in test mode', async () => {
+  const kv = store();
+  await recordPurchase(kv, session(), 'live');
+  assert.equal(await purchaseFor(kv, REQUEST, 'test'), null);
+});
+
+test('an event is attributed to whichever mode signed it', async () => {
+  const payload = JSON.stringify({type: 'checkout.session.completed'});
+  const now = Date.now(), t = Math.floor(now / 1000);
+  const secrets = {test: 'whsec_test_one', live: 'whsec_live_two'};
+  const fromLive = `t=${t},v1=${await sign(payload, t, secrets.live)}`;
+  assert.equal((await verifyWebhookForModes(payload, fromLive, secrets, now)).mode, 'live');
+  const fromTest = `t=${t},v1=${await sign(payload, t, secrets.test)}`;
+  assert.equal((await verifyWebhookForModes(payload, fromTest, secrets, now)).mode, 'test');
+});
+
+test('an event signed by neither secret is rejected', async () => {
+  const payload = JSON.stringify({type: 'checkout.session.completed'});
+  const now = Date.now(), t = Math.floor(now / 1000);
+  const header = `t=${t},v1=${await sign(payload, t, 'whsec_unrelated')}`;
+  assert.equal(await verifyWebhookForModes(payload, header, {test: 'whsec_a', live: 'whsec_b'}, now), null);
+});
+
+test('only the configured mode is tried when the other has no secret', async () => {
+  const payload = JSON.stringify({type: 'checkout.session.completed'});
+  const now = Date.now(), t = Math.floor(now / 1000);
+  const header = `t=${t},v1=${await sign(payload, t, 'whsec_only_live')}`;
+  const found = await verifyWebhookForModes(payload, header, {test: '', live: 'whsec_only_live'}, now);
+  assert.equal(found.mode, 'live');
 });

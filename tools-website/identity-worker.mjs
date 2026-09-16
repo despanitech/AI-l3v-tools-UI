@@ -2,7 +2,7 @@ import videoWorker from './video-worker.mjs';
 import {invitationAccount} from './invitation-worker.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
 import {invitationShare} from './invitation-share.mjs';
-import {createCheckoutSession,verifyWebhook,recordPurchase,purchaseFor,checkoutReady,PAID_PACKAGES} from './stripe-checkout.mjs';
+import {createCheckoutSession,verifyWebhookForModes,recordPurchase,purchaseFor,checkoutReady,stripeConfig,webhookSecrets,PAID_PACKAGES} from './stripe-checkout.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
 async function signature(value, secret) {
@@ -22,13 +22,15 @@ export default {
     if(url.pathname==='/api/admin/invitations')return issueInvitation(request,env);
     if(url.pathname==='/api/name-logo/stripe-webhook'){
       if(request.method!=='POST')return json({error:'Invalid method'},405);
-      if(!env.STRIPE_WEBHOOK_SECRET||!env.INVITATIONS)return json({error:'Not found'},404);
+      const secrets=webhookSecrets(env);
+      if((!secrets.test&&!secrets.live)||!env.INVITATIONS)return json({error:'Not found'},404);
       const raw=new TextDecoder().decode(await bounded(request,65536));
-      const event=await verifyWebhook(raw,request.headers.get('Stripe-Signature'),env.STRIPE_WEBHOOK_SECRET);
-      if(!event){console.warn(JSON.stringify({event:'name-logo.stripe-webhook-rejected'}));return json({error:'Invalid signature'},400)}
-      if(event.type==='checkout.session.completed'){
-        const stored=await recordPurchase(env.INVITATIONS,event.data?.object||{});
-        console.log(JSON.stringify({event:'name-logo.purchase-recorded',packageId:stored?.packageId||'',recorded:Boolean(stored)}));
+      // Both Stripe endpoints post here; the signature says which mode sent it.
+      const verified=await verifyWebhookForModes(raw,request.headers.get('Stripe-Signature'),secrets);
+      if(!verified){console.warn(JSON.stringify({event:'name-logo.stripe-webhook-rejected'}));return json({error:'Invalid signature'},400)}
+      if(verified.event.type==='checkout.session.completed'){
+        const stored=await recordPurchase(env.INVITATIONS,verified.event.data?.object||{},verified.mode);
+        console.log(JSON.stringify({event:'name-logo.purchase-recorded',packageId:stored?.packageId||'',mode:verified.mode,recorded:Boolean(stored)}));
       }
       // Anything else is acknowledged so Stripe stops retrying an event we do not act on.
       return json({received:true});
@@ -74,13 +76,14 @@ export default {
       if(!body || typeof body!=='object' || Array.isArray(body))return json({error:'Invalid request'},400);
       const traceId=crypto.randomUUID().replaceAll('-','');
       if(action==='entitlement'){
-        const purchase=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId):null;
-        return json({enabled:checkoutReady(env)&&Boolean(env.INVITATIONS),packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null});
+        const mode=stripeConfig(env).mode;
+        const purchase=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,mode):null;
+        return json({enabled:checkoutReady(env)&&Boolean(env.INVITATIONS),mode,packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null});
       }
       if(action==='checkout'){
         if(!checkoutReady(env)||!env.INVITATIONS)return json({error:'Payment is not available yet'},503);
         if(Object.keys(body).join(',')!=='packageId'||!PAID_PACKAGES[body.packageId])return json({error:'Choose an available package'},400);
-        if(await purchaseFor(env.INVITATIONS,access.requestId))return json({error:'This request is already paid'},409);
+        if(await purchaseFor(env.INVITATIONS,access.requestId,stripeConfig(env).mode))return json({error:'This request is already paid'},409);
         try{
           const session=await createCheckoutSession(env,{requestId:access.requestId,packageId:body.packageId,origin:url.origin});
           console.log(JSON.stringify({event:'name-logo.checkout-created',traceId}));

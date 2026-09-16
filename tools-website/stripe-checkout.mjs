@@ -10,9 +10,41 @@ const PURCHASE_PREFIX = 'purchase:';
 
 /** Paid packages, keyed as the UI knows them. Prices live in configuration. */
 export const PAID_PACKAGES = {
-  creator: {priceVariable: 'STRIPE_PRICE_CREATOR', name: 'Creator set', images: 10},
-  studio: {priceVariable: 'STRIPE_PRICE_STUDIO', name: 'Signature studio', images: 25},
+  creator: {name: 'Creator set', images: 10},
+  studio: {name: 'Signature studio', images: 25},
 };
+
+export const MODES = ['test', 'live'];
+
+/**
+ * Test and live Stripe accounts are entirely separate: different keys,
+ * different products, different webhook secrets. Each mode is configured
+ * independently and STRIPE_MODE selects which one is in force.
+ *
+ * Anything other than an explicit "live" means test, so a missing or
+ * misspelled value cannot start charging real cards.
+ */
+export function stripeConfig(env) {
+  const mode = env.STRIPE_MODE === 'live' ? 'live' : 'test';
+  const suffix = mode === 'live' ? '_LIVE' : '_TEST';
+  return {
+    mode,
+    secretKey: env['STRIPE_SECRET_KEY' + suffix] || '',
+    webhookSecret: env['STRIPE_WEBHOOK_SECRET' + suffix] || '',
+    products: {
+      creator: env['STRIPE_PRICE_CREATOR' + suffix] || '',
+      studio: env['STRIPE_PRICE_STUDIO' + suffix] || '',
+    },
+  };
+}
+
+/** Webhook secrets for every configured mode, so an event can be attributed. */
+export function webhookSecrets(env) {
+  return {
+    test: env.STRIPE_WEBHOOK_SECRET_TEST || '',
+    live: env.STRIPE_WEBHOOK_SECRET_LIVE || '',
+  };
+}
 
 const form = params => {
   const body = new URLSearchParams();
@@ -41,13 +73,13 @@ async function hmac(value, secret) {
 // product lookup does not happen on every checkout.
 const resolvedPrices = new Map();
 
-export async function resolvePrice(env, configured) {
+export async function resolvePrice(secretKey, configured) {
   if (/^price_[A-Za-z0-9]+$/.test(configured)) return configured;
   if (!/^prod_[A-Za-z0-9]+$/.test(configured)) throw new Error('Configured value is neither a price nor a product id');
   const cached = resolvedPrices.get(configured);
   if (cached) return cached;
   const response = await fetch(`${API}/products/${encodeURIComponent(configured)}`, {
-    headers: {Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY},
+    headers: {Authorization: 'Bearer ' + secretKey},
     signal: AbortSignal.timeout(10000),
   });
   const payload = await response.json().catch(() => ({}));
@@ -59,8 +91,9 @@ export async function resolvePrice(env, configured) {
 }
 
 export function checkoutReady(env) {
-  return Boolean(env.STRIPE_SECRET_KEY && env.STRIPE_WEBHOOK_SECRET
-    && env.STRIPE_PRICE_CREATOR && env.STRIPE_PRICE_STUDIO);
+  const config = stripeConfig(env);
+  return Boolean(config.secretKey && config.webhookSecret
+    && config.products.creator && config.products.studio);
 }
 
 /**
@@ -69,19 +102,19 @@ export function checkoutReady(env) {
  * tie the payment back to the identity request that should unlock.
  */
 export async function createCheckoutSession(env, {requestId, packageId, origin}) {
-  const chosen = PAID_PACKAGES[packageId];
-  if (!chosen) throw new Error('Unknown package');
-  const configured = env[chosen.priceVariable];
-  if (!configured) throw new Error('Package price is not configured');
-  const price = await resolvePrice(env, configured);
+  if (!PAID_PACKAGES[packageId]) throw new Error('Unknown package');
+  const config = stripeConfig(env);
+  const configured = config.products[packageId];
+  if (!configured) throw new Error(`Package is not configured for ${config.mode} mode`);
+  const price = await resolvePrice(config.secretKey, configured);
 
   const response = await fetch(`${API}/checkout/sessions`, {
     method: 'POST',
     headers: {
-      Authorization: 'Bearer ' + env.STRIPE_SECRET_KEY,
+      Authorization: 'Bearer ' + config.secretKey,
       'Content-Type': 'application/x-www-form-urlencoded',
       // Repeated clicks reuse one session rather than creating a new one each time.
-      'Idempotency-Key': `identity-${requestId}-${packageId}`,
+      'Idempotency-Key': `identity-${config.mode}-${requestId}-${packageId}`,
     },
     body: form({
       mode: 'payment',
@@ -90,6 +123,7 @@ export async function createCheckoutSession(env, {requestId, packageId, origin})
       client_reference_id: requestId,
       'metadata[requestId]': requestId,
       'metadata[packageId]': packageId,
+      'metadata[mode]': config.mode,
       success_url: `${origin}/?purchase=complete#logo`,
       cancel_url: `${origin}/?purchase=cancelled#logo`,
     }),
@@ -128,16 +162,32 @@ export async function verifyWebhook(payload, header, secret, now = Date.now()) {
   try { return JSON.parse(payload); } catch { return null; }
 }
 
+/**
+ * Try every configured mode's secret and report which one signed the event.
+ * Both endpoints post to the same URL, so attribution has to come from the
+ * signature rather than from anything in the payload.
+ */
+export async function verifyWebhookForModes(payload, header, secrets, now = Date.now()) {
+  for (const mode of MODES) {
+    const secret = secrets?.[mode];
+    if (!secret) continue;
+    const event = await verifyWebhook(payload, header, secret, now);
+    if (event) return {event, mode};
+  }
+  return null;
+}
+
 const purchaseKey = requestId => PURCHASE_PREFIX + requestId;
 
 /** Record a completed purchase. Called only after the signature verifies. */
-export async function recordPurchase(store, session) {
+export async function recordPurchase(store, session, mode = 'test') {
   const requestId = session?.metadata?.requestId || session?.client_reference_id || '';
   const packageId = session?.metadata?.packageId || '';
   if (!/^[a-f0-9]{32}$/.test(requestId) || !PAID_PACKAGES[packageId]) return null;
   if (session.payment_status !== 'paid') return null;
   const record = {
     packageId,
+    mode: MODES.includes(mode) ? mode : 'test',
     sessionId: typeof session.id === 'string' ? session.id : '',
     amountTotal: Number.isFinite(session.amount_total) ? session.amount_total : null,
     currency: typeof session.currency === 'string' ? session.currency : '',
@@ -148,12 +198,14 @@ export async function recordPurchase(store, session) {
 }
 
 /** What a request has paid for, or null. Never derived from anything the client sends. */
-export async function purchaseFor(store, requestId) {
+export async function purchaseFor(store, requestId, mode = 'test') {
   if (!/^[a-f0-9]{32}$/.test(requestId || '')) return null;
   const raw = await store.get(purchaseKey(requestId));
   if (!raw) return null;
   try {
     const record = JSON.parse(raw);
-    return PAID_PACKAGES[record?.packageId] ? record : null;
+    if (!PAID_PACKAGES[record?.packageId]) return null;
+    // A purchase made with a test card must never unlock real generation.
+    return record.mode === mode ? record : null;
   } catch { return null; }
 }
