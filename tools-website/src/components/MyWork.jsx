@@ -1,7 +1,7 @@
 import {useEffect,useState} from 'react';
 import {accessFetch,requestReceipt} from '../lib/master-access.mjs';
 import {importAccountWork,savedReceipts} from '../lib/video-receipt.mjs';
-import {remember,savedRequest,headers as nameLogoHeaders} from '../lib/name-logo-request.mjs';
+import {savedRequest,headers as nameLogoHeaders} from '../lib/name-logo-request.mjs';
 
 const DESIGN_LABELS={logo:'Name logo',initials:'Initials',signature:'Signature'};
 const label=row=>row.resource_kind==='name-logo-job'?(DESIGN_LABELS[row.mode]||'Identity design'):({'name-logo-visualization':'Real-world preview','analysis':'Analysis','first-frame':'First frame','video':'Video','name-logo-portfolio':'Identity collection','video-job':row.job_kind==='frame'?'First frame':row.job_kind==='video'?'Video':'Analysis'}[row.resource_kind]||row.resource_kind.replaceAll('-',' '));
@@ -12,21 +12,26 @@ const isDesign=row=>row.resource_kind==='name-logo-job';
 // offered whenever any real-world preview was ever produced for the request.
 const isPreview=row=>row.resource_kind==='name-logo-visualization'&&row.job_status==='succeeded';
 const identityName=rows=>{const named=rows.find(row=>row.first);return named?`${named.first} ${named.last||''}`.trim():''};
+const previewTitle=row=>{const template=row.template||row.output?.template||'';return template?template.replace(/-/g,' ').replace(/^\w/,c=>c.toUpperCase()):'Real-world preview'};
 
-function AssetPreviews({rows}){
+// The card strip shows a few images; the gallery shows every one, each
+// opening full size. Both read straight from the gateway with the request's
+// receipt, so nothing is cached in this browser beyond the object URLs.
+function AssetPreviews({rows,all=false,onOpen}){
  const [items,setItems]=useState([]);
  useEffect(()=>{let live=true;const objects=[],controller=new AbortController();
   async function load(){
    try{
     const root=rows[0],receipt=await requestReceipt(root.request_id),access={requestId:root.request_id,receipt};
     if(root.scope==='name-logo'){
-     const wanted=[...rows.filter(isDesign).slice(0,3),...rows.filter(isPreview).slice(0,5)];
+     const designs=rows.filter(isDesign),previews=rows.filter(isPreview);
+     const wanted=all?[...designs,...previews]:[...designs.slice(0,3),...previews.slice(0,5)];
      const loaded=(await Promise.all(wanted.map(async row=>{
       const path=isDesign(row)?'image':'visualization-image';
       const response=await fetch(`/api/name-logo/${path}?id=${encodeURIComponent(row.resource_id)}`,{headers:nameLogoHeaders({access}),signal:controller.signal});
       if(!response.ok)return null;
       const src=URL.createObjectURL(await response.blob());objects.push(src);
-      return {kind:'image',src,label:isDesign(row)?stageLabel(row):'Real-world preview'};
+      return {kind:'image',src,label:isDesign(row)?stageLabel(row):previewTitle(row)};
      }))).filter(Boolean);
      if(live)setItems(loaded);
      return;
@@ -44,13 +49,21 @@ function AssetPreviews({rows}){
   }
   load();
   return()=>{live=false;controller.abort();objects.forEach(URL.revokeObjectURL)};
- },[rows]);
- if(!items.length)return null;
- return <div className="asset-preview-strip" aria-label="Saved work previews">{items.map((item,index)=><figure key={item.src+index}>{item.kind==='video'?<video src={item.src} muted playsInline preload="metadata" controls aria-label={item.label}/>:<img src={item.src} alt={item.label}/>}<figcaption>{item.label}</figcaption></figure>)}</div>;
+ },[rows,all]);
+ if(!items.length)return all?<p className="asset-gallery-empty" role="status">Loading images...</p>:null;
+ return <div className={all?'asset-gallery':'asset-preview-strip'} aria-label={all?'All saved images':'Saved work previews'}>{items.map((item,index)=><figure key={item.src+index}>
+  {item.kind==='video'
+   ?<video src={item.src} muted playsInline preload="metadata" controls aria-label={item.label}/>
+   :<button type="button" onClick={()=>onOpen?.(item)} aria-label={`View ${item.label} full size`}><img src={item.src} alt={item.label}/></button>}
+  <figcaption>{item.label}</figcaption>
+ </figure>)}</div>;
 }
 
 export default function MyWork({hidden}){
  const [groups,setGroups]=useState([]),[message,setMessage]=useState(''),[bundling,setBundling]=useState(''),[stores,setStores]=useState({});
+ // Opening an identity shows every image right here, not the generator.
+ const [expanded,setExpanded]=useState(''),[lightbox,setLightbox]=useState(null);
+ useEffect(()=>{if(!lightbox)return;const close=event=>{if(event.key==='Escape')setLightbox(null)};document.addEventListener('keydown',close);return()=>document.removeEventListener('keydown',close)},[lightbox]);
 
  useEffect(()=>{
   if(hidden)return;
@@ -75,13 +88,8 @@ export default function MyWork({hidden}){
   return()=>{live=false};
  },[hidden]);
 
- async function open(rows){
-  const root=rows[0];
-  if(root.scope==='video'){await importAccountWork(rows);location.hash='video';location.reload();return}
-  const portfolio=rows.find(row=>row.resource_kind==='name-logo-portfolio');
-  if(!portfolio)return;
-  remember({access:{requestId:root.request_id,receipt:await requestReceipt(root.request_id)},requestKey:root.request_id,id:portfolio.resource_id,first:portfolio.first||'',last:portfolio.last||''});
-  location.hash='logo';location.reload();
+ async function openVideo(rows){
+  await importAccountWork(rows);location.hash='video';location.reload();
  }
 
  // Stored bundles are durable; the gateway's copies age out with the queue.
@@ -116,20 +124,26 @@ export default function MyWork({hidden}){
   {message&&<p role="status">{message}</p>}
   <div className="work-list">{groups.map(rows=>{
    const root=rows[0],previews=rows.filter(isPreview),designs=rows.filter(isDesign);
-   const person=identityName(rows);
-   return <article key={root.request_id}>
+   const person=identityName(rows),isOpen=expanded===root.request_id;
+   return <article key={root.request_id} className={isOpen?'is-open':''}>
     <div className="asset-card-copy">
      <strong>{root.scope==='video'?'Video project':person?`Identity designs for ${person}`:'Identity designs'}</strong>
      <small>{new Date(root.created).toLocaleString()}{root.expires?` · kept until ${new Date(root.expires).toLocaleDateString()}`:''}</small>
      <div className="asset-types">{[...new Set(rows.map(label))].map(type=><span key={type}>{type}</span>)}</div>
      {root.scope==='name-logo'&&<small className="asset-counts">{designs.length} design{designs.length===1?'':'s'}{previews.length?` · ${previews.length} real-world preview${previews.length===1?'':'s'}`:''}</small>}
     </div>
-    <AssetPreviews rows={rows}/>
     <div className="asset-card-actions">
-     <button type="button" onClick={()=>open(rows)}>Open</button>
+     {root.scope==='video'
+      ?<button type="button" onClick={()=>openVideo(rows)}>Open</button>
+      :<button type="button" aria-expanded={isOpen} onClick={()=>setExpanded(isOpen?'':root.request_id)}>{isOpen?'Close':'Open'}</button>}
      {(previews.length>0||stores[root.request_id])&&<button type="button" className="asset-bundle" disabled={bundling===root.request_id} onClick={()=>downloadBundle(rows)}>{bundling===root.request_id?'Preparing...':`Download bundle (${stores[root.request_id]?.count||previews.length})`}</button>}
     </div>
+    <AssetPreviews rows={rows} all={isOpen} onOpen={setLightbox}/>
    </article>;
   })}</div>
+  {lightbox&&<div className="asset-lightbox" role="dialog" aria-modal="true" aria-label={lightbox.label} onClick={()=>setLightbox(null)}>
+   <button type="button" aria-label="Close full-size image" onClick={()=>setLightbox(null)}>Close</button>
+   <figure onClick={event=>event.stopPropagation()}><img src={lightbox.src} alt={lightbox.label}/><figcaption>{lightbox.label}</figcaption></figure>
+  </div>}
  </section>;
 }
