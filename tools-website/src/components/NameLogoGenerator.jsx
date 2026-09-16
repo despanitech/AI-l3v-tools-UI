@@ -69,6 +69,21 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
   return()=>window.removeEventListener('identity:refill-previews',refill);
  },[request?.id]);
 
+ // A delivered purchase is finished work. Ordering again starts from nothing:
+ // the set is cleared and the name with it, so the next order is entered
+ // rather than inherited. The bundle itself is safe in My assets by then.
+ useEffect(()=>{
+  const again=()=>{
+   try{sessionStorage.removeItem('l3v.identity.purchase-intent')}catch{}
+   window.dispatchEvent(new CustomEvent('identity:purchase-state',{detail:null}));
+   invalidateActiveSet(1);
+   onFirst('');onLast('');
+   setStep('name');
+  };
+  window.addEventListener('identity:order-again',again);
+  return()=>window.removeEventListener('identity:order-again',again);
+ },[onFirst,onLast]);
+
  function requestChange(target,apply){if(!request){apply();return}setRegenerationWarning({target,apply})}
  function confirmChange(){if(!regenerationWarning)return;const {target,apply}=regenerationWarning;invalidateActiveSet(target);apply();setRegenerationWarning(null)}
  function changeFirst(value){requestChange(1,()=>onFirst(value))}

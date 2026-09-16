@@ -199,6 +199,20 @@ export async function recordPurchase(store, session, mode = 'test') {
   return {requestId, ...record};
 }
 
+/**
+ * Mark a purchase delivered once its bundle is stored durably. The record is
+ * kept rather than deleted, so the payment stays auditable, but it no longer
+ * unlocks generation: one purchase buys one package, not an open allowance.
+ */
+export async function markFulfilled(store, requestId, mode = 'test') {
+  const record = await purchaseFor(store, requestId, mode, {includeFulfilled: true});
+  if (!record) return null;
+  if (record.fulfilledAt) return record;
+  const updated = {...record, fulfilledAt: new Date().toISOString()};
+  await store.put(purchaseKey(requestId, mode), JSON.stringify(updated));
+  return updated;
+}
+
 /** Record that the buyer took delivery. Never gates access; it is a receipt. */
 export async function markDownloaded(store, requestId, mode = 'test') {
   const record = await purchaseFor(store, requestId, mode);
@@ -222,7 +236,7 @@ export async function clearPurchase(store, requestId, mode) {
 }
 
 /** What a request has paid for, or null. Never derived from anything the client sends. */
-export async function purchaseFor(store, requestId, mode = 'test') {
+export async function purchaseFor(store, requestId, mode = 'test', {includeFulfilled = false} = {}) {
   if (!/^[a-f0-9]{32}$/.test(requestId || '')) return null;
   const raw = await store.get(purchaseKey(requestId, mode));
   if (!raw) return null;
@@ -231,6 +245,9 @@ export async function purchaseFor(store, requestId, mode = 'test') {
     if (!PAID_PACKAGES[record?.packageId]) return null;
     // Checked again even though the key is scoped: a purchase made with a
     // test card must never unlock real generation.
-    return record.mode === mode ? record : null;
+    if (record.mode !== mode) return null;
+    // A delivered purchase is still a receipt, but it no longer entitles.
+    if (record.fulfilledAt && !includeFulfilled) return null;
+    return record;
   } catch { return null; }
 }

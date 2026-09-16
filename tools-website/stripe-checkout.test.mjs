@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createCheckoutSession, verifyWebhook, verifyWebhookForModes, recordPurchase, purchaseFor, checkoutReady, resolvePrice, stripeConfig, clearPurchase} from './stripe-checkout.mjs';
+import {createCheckoutSession, verifyWebhook, verifyWebhookForModes, recordPurchase, purchaseFor, checkoutReady, resolvePrice, stripeConfig, clearPurchase, markFulfilled} from './stripe-checkout.mjs';
 
 const SECRET = 'whsec_test_secret';
 const REQUEST = 'a'.repeat(32);
@@ -281,4 +281,30 @@ test('clearing refuses a malformed request id', async () => {
   kv.delete = async () => { deletes++; };
   assert.equal(await clearPurchase(kv, 'not-an-id', 'test'), false);
   assert.equal(deletes, 0);
+});
+
+test('a delivered purchase stops entitling but is kept as a receipt', async () => {
+  // One purchase buys one package. Without this the entitlement persisted and
+  // the same payment could unlock generation again and again.
+  const kv = store();
+  await recordPurchase(kv, session(), 'test');
+  assert.ok(await purchaseFor(kv, REQUEST, 'test'), 'entitles before delivery');
+  const marked = await markFulfilled(kv, REQUEST, 'test');
+  assert.ok(marked.fulfilledAt, 'delivery is recorded');
+  assert.equal(await purchaseFor(kv, REQUEST, 'test'), null, 'no longer entitles');
+  assert.ok(await purchaseFor(kv, REQUEST, 'test', {includeFulfilled: true}), 'record survives as a receipt');
+});
+
+test('marking delivery twice keeps the first timestamp', async () => {
+  const kv = store();
+  await recordPurchase(kv, session(), 'test');
+  const first = await markFulfilled(kv, REQUEST, 'test');
+  const second = await markFulfilled(kv, REQUEST, 'test');
+  assert.equal(second.fulfilledAt, first.fulfilledAt);
+});
+
+test('delivery cannot be marked for a purchase that does not exist', async () => {
+  const kv = store();
+  assert.equal(await markFulfilled(kv, REQUEST, 'test'), null);
+  assert.equal(kv.map.size, 0);
 });

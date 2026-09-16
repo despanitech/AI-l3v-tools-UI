@@ -159,6 +159,8 @@ export default function IdentityPackages({request,name,designs=[]}){
  },[request?.access?.requestId,selectionSaved]);
 
  const purchaseStarted=useRef(false);
+ const deliveryStarted=useRef(false);
+ const [delivered,setDelivered]=useState(false);
  const trackedSubjects=purchaseStage?(purchaseIntent?.subjects||[]):selectedSubjects;
  const progress=trackedSubjects.reduce((total,id)=>{
   const status=jobs[id]?.status;
@@ -254,6 +256,27 @@ export default function IdentityPackages({request,name,designs=[]}){
   }catch{setGenerationError('The test purchase could not be cleared.')}
  };
 
+ // Delivery: once the images exist, store the bundle durably and mark the
+ // purchase fulfilled. Storing first matters - the purchase stops entitling
+ // once fulfilled, so doing it the other way round could leave a buyer with
+ // neither an entitlement nor a bundle.
+ useEffect(()=>{
+  if(!paidFor||!bundleReady||!request?.access||deliveryStarted.current)return;
+  deliveryStarted.current=true;
+  (async()=>{
+   try{
+    await call('bundle-build',request,{name:name||''});
+    await call('fulfil',request,{});
+    setDelivered(true);
+    window.dispatchEvent(new CustomEvent('identity:purchase-delivered'));
+   }catch{
+    // Leave the entitlement intact so delivery can be retried on reload.
+    deliveryStarted.current=false;
+    setGenerationError('Your images are ready but could not be saved to My assets yet.');
+   }
+  })();
+ },[paidFor,bundleReady,request?.access?.requestId,name]);
+
  const startCheckout=async()=>{
   if(checkingOut)return;
   setGenerationError('');setCheckingOut(true);
@@ -295,9 +318,10 @@ export default function IdentityPackages({request,name,designs=[]}){
   <div className="identity-package-grid" role="radiogroup" aria-label="Visualization packages">{packages.map(item=>{const generatedImage=generatedPackageImages[item.id],collage=packageCollage(item.id),select=()=>choosePackage(item.id);return <article key={item.id} className={`identity-package-card${selected===item.id?' selected':''}`} role="radio" aria-checked={selected===item.id} tabIndex={0} onClick={event=>{if(!event.target.closest('button'))select()}} onKeyDown={event=>{if(event.target!==event.currentTarget||!['Enter',' '].includes(event.key))return;event.preventDefault();select()}}><div className="identity-package-kicker"><span>{item.kicker}</span>{item.recommended&&<b>RECOMMENDED</b>}<button type="button" onClick={()=>setExample({...item,image:generatedImage||item.image,position:generatedImage?'center':item.position})}>See example</button></div>{previewsLoading||(request?.id&&!collage.length)?<div className="identity-package-collage identity-package-collage-loading" aria-label="Loading generated image collage">{Array.from({length:6},(_,index)=><i key={index}/>)}</div>:collage.length?<div className="identity-package-collage" aria-label={`${item.name} generated image collage`}>{collage.map(preview=><div className="identity-package-collage-tile" key={preview.id}><img src={preview.imageUrl} alt={`${preview.name} visualization`}/><button type="button" onClick={event=>{event.stopPropagation();window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:preview.imageUrl,alt:`${preview.name} visualization`}}))}}>View</button></div>) }<span>{item.id.toUpperCase()} EXAMPLES</span><strong>{item.headline}</strong></div>:<button className="identity-package-image" type="button" aria-label={`See ${item.headline} example`} onClick={()=>setExample({...item,image:item.image,position:item.position})} style={{backgroundImage:`url(${item.image})`,backgroundPosition:item.position}}><span>{item.id.toUpperCase()} EXAMPLE</span><strong>{item.example}</strong></button>}<div className="identity-package-copy">{item.oldPrice&&<span className="identity-founder-badge">FOUNDER'S EDITION</span>}<p>{item.oldPrice&&<del>{item.oldPrice}</del>} {item.price}</p><h3>{item.name}</h3><span>{item.description}</span><ul>{item.features.map(feature=><li key={feature}>{feature}</li>)}</ul></div><button className="identity-package-select" type="button" aria-pressed={selected===item.id} onClick={()=>choosePackage(item.id)}>{selected===item.id?'Selected':`Choose ${item.name.replace(' set','').replace('Signature studio','Studio')}`}</button></article>})}</div>
   {(purchaseStage||paidFor)&&<section className="identity-purchase-flow" aria-live="polite">
    <header>
-    <h3>{purchaseStage==='confirming'?'Confirming your payment':purchaseStage==='unconfirmed'?'Payment not confirmed yet':'Thanks for your payment'}</h3>
+    <h3>{purchaseStage==='confirming'?'Confirming your payment':purchaseStage==='unconfirmed'?'Payment not confirmed yet':delivered?'Saved to My assets':'Thanks for your payment'}</h3>
     <span>{purchaseStage==='confirming'?'Waiting for Stripe to confirm before your bundle is prepared.'
       :purchaseStage==='unconfirmed'?'The confirmation has not arrived. Nothing was prepared and you have not been charged twice. Reload this page in a moment, or contact support with your request reference.'
+      :delivered?'Your bundle is stored in My assets and stays available there. Download it here or any time from the library.'
       :bundleReady?`Your ${paidPackageName||'package'} bundle is ready.`
       :'Your bundle is being prepared. This page can be left open.'}</span>
    </header>
@@ -307,7 +331,8 @@ export default function IdentityPackages({request,name,designs=[]}){
     {purchaseStage!=='ready'&&<small>Each image is generated by a provider and takes a little while. This page can be left open.</small>}
    </div>}
    {purchasedReady.length>0&&<div className="identity-purchase-grid">{purchasedReady.map(item=><figure className="identity-viewable-image" key={item.id}><img src={item.imageUrl} alt={`${item.name} visualization`}/><button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${item.name} visualization`}}))}>View</button><figcaption><strong>{item.name}</strong></figcaption></figure>)}</div>}
-   {entitlement?.mode==='test'&&<button type="button" className="identity-reset-purchase" onClick={resetPurchase}>Clear this test purchase</button>}
+   {delivered&&<button type="button" className="identity-order-again" onClick={()=>window.dispatchEvent(new CustomEvent('identity:order-again'))}>Start a new identity</button>}
+   {entitlement?.mode==='test'&&!delivered&&<button type="button" className="identity-reset-purchase" onClick={resetPurchase}>Clear this test purchase</button>}
    {bundleReady&&<button type="button" className="identity-bundle-download" disabled={bundling} onClick={()=>bundleAndDownload(generatedItems,'bundle')}>{bundling?'Preparing download...':'Download bundle'}</button>}
   </section>}
   {selected==='free'?<section className="identity-included-previews" aria-labelledby="identity-included-title"><header><div><p>INCLUDED WITH FREE</p><h3 id="identity-included-title">Your generated applications</h3><span>{includedVisualizations.length>=9?'These random previews were created while your identity was being prepared.':includedVisualizations.length?'Some of this set’s previews have expired and are no longer stored. The ones below are still available to download.':'This set’s previews have expired and are no longer stored.'}</span>{includedVisualizations.length<9&&!previewsLoading&&<button type="button" className="identity-refill-previews" onClick={()=>window.dispatchEvent(new CustomEvent('identity:refill-previews'))}>Generate a fresh set</button>}</div><strong>{includedVisualizations.length===9?'9 ready':`${includedVisualizations.length} available`}</strong></header><div>{includedVisualizations.map(item=><figure className="identity-viewable-image" key={item.id}><img src={item.imageUrl} alt={`${item.name} visualization`}/><button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${item.name} visualization`}}))}>View</button><figcaption><strong>{item.name}</strong><span>Included</span></figcaption></figure>)}</div></section>:<section className="identity-subject-picker" aria-labelledby="identity-subject-title">
