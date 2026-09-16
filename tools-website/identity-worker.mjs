@@ -3,7 +3,7 @@ import {invitationAccount} from './invitation-worker.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
 import {invitationShare} from './invitation-share.mjs';
 import {buildBundle,listBundles,getBundle} from './bundle-store.mjs';
-import {appMode,simulated as isSimulated,paymentSimulated} from './app-mode.mjs';
+import {resolveAppMode,storeAppMode,MODES,simulated as isSimulated,paymentSimulated} from './app-mode.mjs';
 import {simulatedCaller,simulatedResponse} from './simulated-gateway.mjs';
 import {createCheckoutSession,verifyWebhookForModes,recordPurchase,purchaseFor,markDownloaded,markFulfilled,clearPurchase,checkoutReady,stripeConfig,webhookSecrets,PAID_PACKAGES} from './stripe-checkout.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
@@ -11,6 +11,12 @@ const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padSt
 async function signature(value, secret) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
   return hex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(value)));
+}
+async function ownerAuthorized(request, secret) {
+  const supplied = request.headers.get('Authorization') || '';
+  if (!secret || !supplied.startsWith('Bearer ')) return false;
+  const digest = async value => hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
+  return await digest(supplied.slice(7)) === await digest(secret);
 }
 async function bounded(response, limit) {
   if (!response.body) throw new Error('Missing body');
@@ -59,8 +65,19 @@ export default {
     }
     // The lane the whole site is on. Public: the watermark needs it before
     // an invitation is entered, and the value itself reveals nothing.
-    const mode=appMode(env);
-    if(url.pathname==='/api/mode')return json({mode});
+    const mode=await resolveAppMode(env);const lane=mode;
+    if(url.pathname==='/api/mode'){
+      if(request.method==='GET')return json({mode,switchable:Boolean(env.INVITATIONS&&env.INVITATION_ISSUER_SECRET)});
+      if(request.method!=='POST')return json({error:'Invalid method'},405);
+      // Switching lanes is the owner's call: the same key that issues
+      // invitations. A wrong key gets the same answer as a missing route.
+      if(!env.INVITATIONS||!env.INVITATION_ISSUER_SECRET||!await ownerAuthorized(request,env.INVITATION_ISSUER_SECRET))return json({error:'Not found'},404);
+      let wanted;try{wanted=JSON.parse(new TextDecoder().decode(await bounded(request,1024)))?.mode}catch{}
+      if(!MODES.includes(wanted))return json({error:'Choose dev, uat or production'},400);
+      const stored=await storeAppMode(env,wanted);
+      console.log(JSON.stringify({event:'app-mode.switched',from:mode,to:stored}));
+      return json({mode:stored});
+    }
     const api=url.pathname.startsWith('/api/');
     const account=api?await invitationAccount(request,env):null;
     if(url.pathname==='/api/invitation/validate'){
@@ -148,7 +165,7 @@ export default {
         const record=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,mode,{includeFulfilled:true}):null;
         const purchase=record&&!record.fulfilledAt?record:null;
         // `mode` here is the Stripe mode; the lane is read again by name.
-        return json({enabled:Boolean(env.INVITATIONS)&&(paymentSimulated(appMode(env))||checkoutReady(env)),mode,appMode:appMode(env),packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null,downloadedAt:record?.downloadedAt||null,downloadCount:record?.downloadCount||0,fulfilledAt:record?.fulfilledAt||null,fulfilledPackageId:record?.fulfilledAt?record.packageId:null});
+        return json({enabled:Boolean(env.INVITATIONS)&&(paymentSimulated(lane)||checkoutReady(env)),mode,appMode:lane,packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null,downloadedAt:record?.downloadedAt||null,downloadCount:record?.downloadCount||0,fulfilledAt:record?.fulfilledAt||null,fulfilledPackageId:record?.fulfilledAt?record.packageId:null});
       }
       if(action==='checkout'){
         if(!env.INVITATIONS||(!paymentSimulated(mode)&&!checkoutReady(env)))return json({error:'Payment is not available yet'},503);

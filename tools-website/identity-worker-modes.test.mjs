@@ -24,9 +24,10 @@ const post=(action,body,lane)=>worker.fetch(new Request('https://tools.l3v.ai/ap
 const noNetwork=async url=>{throw new Error('network call in a simulated lane: '+url)};
 
 test('the mode is public and defaults to production',async()=>{
-  assert.deepEqual(await (await worker.fetch(new Request('https://tools.l3v.ai/api/mode'),{...base,INVITATION_ONLY:'true'})).json(),{mode:'production'});
-  assert.deepEqual(await (await worker.fetch(new Request('https://tools.l3v.ai/api/mode'),{...base,APP_MODE:'dev'})).json(),{mode:'dev'});
-  assert.deepEqual(await (await worker.fetch(new Request('https://tools.l3v.ai/api/mode'),{...base,APP_MODE:'uat'})).json(),{mode:'uat'});
+  const read=async extra=>(await (await worker.fetch(new Request('https://tools.l3v.ai/api/mode'),{...base,...extra})).json()).mode;
+  assert.equal(await read({INVITATION_ONLY:'true'}),'production','public even when invitations are required');
+  assert.equal(await read({APP_MODE:'dev'}),'dev');
+  assert.equal(await read({APP_MODE:'uat'}),'uat');
 });
 
 test('dev generates without Turnstile or the gateway, and designs land over time',async()=>{
@@ -100,5 +101,44 @@ test('production still verifies Turnstile and calls the gateway',async()=>{
     assert.equal(response.status,200);
     assert.ok(calls.some(url=>/turnstile/.test(url)),'Turnstile verified');
     assert.ok(calls.some(url=>/gateway\.example/.test(url)),'gateway called');
+  }finally{globalThis.fetch=original}
+});
+
+test('the switch: GET reads the stored mode over the deploy default, POST needs the owner key',async()=>{
+  const kv=new Map();
+  const lane={...base,APP_MODE:'production',INVITATION_ISSUER_SECRET:'owner-secret',INVITATIONS:{get:async key=>kv.get(key)??null,put:async(key,value)=>{kv.set(key,value)}}};
+  const read=async()=>(await worker.fetch(new Request('https://tools.l3v.ai/api/mode'),lane)).json();
+  assert.deepEqual(await read(),{mode:'production',switchable:true});
+  const noKey=await worker.fetch(new Request('https://tools.l3v.ai/api/mode',{method:'POST',body:JSON.stringify({mode:'dev'})}),lane);
+  assert.equal(noKey.status,404,'no key looks like no route');
+  const wrongKey=await worker.fetch(new Request('https://tools.l3v.ai/api/mode',{method:'POST',headers:{Authorization:'Bearer nope'},body:JSON.stringify({mode:'dev'})}),lane);
+  assert.equal(wrongKey.status,404);
+  assert.equal((await read()).mode,'production','nothing changed');
+  const bad=await worker.fetch(new Request('https://tools.l3v.ai/api/mode',{method:'POST',headers:{Authorization:'Bearer owner-secret'},body:JSON.stringify({mode:'staging'})}),lane);
+  assert.equal(bad.status,400);
+  const ok=await worker.fetch(new Request('https://tools.l3v.ai/api/mode',{method:'POST',headers:{Authorization:'Bearer owner-secret'},body:JSON.stringify({mode:'dev'})}),lane);
+  assert.equal(ok.status,200);
+  assert.deepEqual(await ok.json(),{mode:'dev'});
+  assert.equal((await read()).mode,'dev','the stored mode wins over the deploy default');
+  assert.equal(kv.get('app-mode'),'dev');
+  const back=await worker.fetch(new Request('https://tools.l3v.ai/api/mode',{method:'POST',headers:{Authorization:'Bearer owner-secret'},body:JSON.stringify({mode:'production'})}),lane);
+  assert.equal((await back.json()).mode,'production');
+});
+
+test('without an owner key configured the switch is not offered and the mode cannot be changed',async()=>{
+  const kv=new Map();
+  const lane={...base,APP_MODE:'uat',INVITATIONS:{get:async key=>kv.get(key)??null,put:async(key,value)=>{kv.set(key,value)}}};
+  assert.deepEqual(await (await worker.fetch(new Request('https://tools.l3v.ai/api/mode'),lane)).json(),{mode:'uat',switchable:false});
+  const attempt=await worker.fetch(new Request('https://tools.l3v.ai/api/mode',{method:'POST',headers:{Authorization:'Bearer anything'},body:JSON.stringify({mode:'dev'})}),lane);
+  assert.equal(attempt.status,404);
+});
+
+test('the stored mode drives the lane, not the deploy default',async()=>{
+  const kv=new Map([['app-mode','dev']]);
+  const original=globalThis.fetch;globalThis.fetch=noNetwork;
+  try{
+    const lane=laneEnv('production',{INVITATIONS:{get:async key=>kv.get(key)??null,put:async(key,value)=>{kv.set(key,value)},delete:async key=>{kv.delete(key)}}});
+    const response=await post('generate',{first:'John',last:'Smith',requestKey:'k',token:'x',styleId:'soft-angular'},lane);
+    assert.equal(response.status,200,'simulated although the deploy default is production');
   }finally{globalThis.fetch=original}
 });

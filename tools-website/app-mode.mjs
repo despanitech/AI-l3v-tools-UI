@@ -10,9 +10,32 @@
 
 export const MODES = ['dev', 'uat', 'production'];
 
+export function normalize(value) {
+  const mode = String(value || '').trim().toLowerCase();
+  return mode === 'dev' || mode === 'uat' ? mode : 'production';
+}
+
+/** The deploy-time default from wrangler.jsonc. */
 export function appMode(env) {
-  const value = String(env?.APP_MODE || '').trim().toLowerCase();
-  return value === 'dev' || value === 'uat' ? value : 'production';
+  return normalize(env?.APP_MODE);
+}
+
+// The switch in the UI writes the mode here; the deploy-time value is only
+// the default when nothing has been set. One KV read per request.
+export const MODE_KEY = 'app-mode';
+
+export async function resolveAppMode(env) {
+  if (!env?.INVITATIONS) return appMode(env);
+  try {
+    const stored = await env.INVITATIONS.get(MODE_KEY);
+    return stored ? normalize(stored) : appMode(env);
+  } catch { return appMode(env); }
+}
+
+export async function storeAppMode(env, value) {
+  const mode = normalize(value);
+  await env.INVITATIONS.put(MODE_KEY, mode);
+  return mode;
 }
 
 /** Whether generation is simulated in this mode. */
