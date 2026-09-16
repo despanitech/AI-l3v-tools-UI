@@ -58,7 +58,11 @@ export async function buildBundle(env, {accountId, requestId, receipt, name, gat
 /** Every bundle for one account, newest first. */
 export async function listBundles(env, accountId) {
   if (!valid(accountId)) return [];
-  const listed = await env.IDENTITY_BUNDLES.list({prefix: `${KEY_PREFIX}${accountId}/`, limit: 200});
+  // R2 omits customMetadata from a listing unless it is asked for, so without
+  // include the name and image count come back empty on every row.
+  const listed = await env.IDENTITY_BUNDLES.list({
+    prefix: `${KEY_PREFIX}${accountId}/`, limit: 200, include: ['customMetadata'],
+  });
   return (listed.objects || [])
     .map(object => ({
       requestId: object.customMetadata?.requestId || object.key.split('/').pop().replace(/\.zip$/, ''),
