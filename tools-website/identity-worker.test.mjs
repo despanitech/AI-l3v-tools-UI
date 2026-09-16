@@ -148,3 +148,23 @@ test('listing stored bundles needs the invitation, not a request receipt',async(
     {...env,INVITATIONS:{get:async()=>'d'.repeat(64),put:async()=>{}}});
   assert.notEqual(invited.status,404,'a receipt must not be demanded');
 });
+
+test('the bundle listing asks R2 for custom metadata',async()=>{
+  // Without include:['customMetadata'] R2 returns the objects but no metadata,
+  // so every stored bundle reported a count of 0 and an empty name.
+  const token='d'.repeat(43),account='e'.repeat(64);
+  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token));
+  const hash=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+  let options;
+  const env={...stripeEnv(),
+    INVITATIONS:{get:async key=>key===`token:${hash}`?account:null,put:async()=>{}},
+    IDENTITY_BUNDLES:{list:async o=>{options=o;return {objects:[{key:`bundles/${account}/b.zip`,size:12,uploaded:'2026-01-01T00:00:00Z',
+      customMetadata:{requestId:'b'.repeat(32),name:'Someone',count:'10',createdAt:'2026-01-01T00:00:00Z'}}]}}}};
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/bundle-list',
+    {method:'POST',headers:{Origin:'https://tools.l3v.ai','Content-Type':'application/json','X-L3V-Invitation':token},body:'{}'}),env);
+  assert.equal(response.status,200);
+  assert.ok(options?.include?.includes('customMetadata'),'must request customMetadata');
+  const {bundles}=await response.json();
+  assert.equal(bundles[0].count,10);
+  assert.equal(bundles[0].name,'Someone');
+});
