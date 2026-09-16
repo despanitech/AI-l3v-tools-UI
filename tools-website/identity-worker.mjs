@@ -260,8 +260,11 @@ export default {
         return new Response(svg,{headers:{'Content-Type':'image/svg+xml','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':'attachment; filename="design.svg"','Content-Security-Policy':"default-src 'none'; sandbox"}});
       }
       if(isImage) {
-        if(![137,80,78,71,13,10,26,10].every((b,i)=>bytes[i]===b))throw new Error('Invalid image');
-        return new Response(bytes,{headers:{'Content-Type':'image/png','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':`${url.searchParams.get('download')==='1'?'attachment':'inline'}; filename="${action==='visualization-image'?'visualization':'name-logo'}.png"`}});
+        // The gateway always returns PNG; the simulated lanes serve the JPEG demo set.
+        const png=[137,80,78,71,13,10,26,10].every((b,i)=>bytes[i]===b),jpeg=bytes[0]===0xFF&&bytes[1]===0xD8&&bytes[2]===0xFF;
+        if(!png&&!jpeg)throw new Error('Invalid image');
+        const ext=png?'png':'jpg';
+        return new Response(bytes,{headers:{'Content-Type':png?'image/png':'image/jpeg','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':`${url.searchParams.get('download')==='1'?'attachment':'inline'}; filename="${action==='visualization-image'?'visualization':'name-logo'}.${ext}"`}});
       }
       const data=JSON.parse(new TextDecoder().decode(bytes));
       if(action==='catalog')data.sitekey=env.TURNSTILE_SITEKEY;

@@ -118,3 +118,16 @@ test('every template and design mode has a sample to serve', () => {
   for (const mode of ['logo', 'initials', 'signature']) assert.ok(sampleForDesign(mode, 'unknown-style'), `${mode} falls back to a sample`);
   assert.equal(sampleForDesign('logo', 'soft-angular').styleId, 'soft-angular');
 });
+
+test('a preview made from a design serves the demo of that artwork type', async () => {
+  const store = bucket();
+  const created = await simulate(store, assets, {action: 'generate', now: 0, payload: {access, styles: [{mode: 'logo', id: 'soft-angular'}, {mode: 'initials', id: 'woven-serif'}, {mode: 'signature', id: 'compact-autograph'}]}});
+  const status = await simulate(store, assets, {action: 'status', now: 20000, payload: {access, id: created.json.id}});
+  const initials = status.json.designs.find(d => d.mode === 'initials');
+  const job = await simulate(store, assets, {action: 'visualization-generate', now: 0, payload: {access, designId: initials.id, template: 'candle-jar'}});
+  const image = await simulate(store, assets, {action: 'visualization-image', now: 30000, payload: {access, id: job.json.id}});
+  assert.equal(image.status, 200);
+  assert.equal(new TextDecoder().decode(image.bytes), 'png:/assets/identity-subjects/demo/initials/candle-jar.jpg');
+  assert.equal(sampleForTemplate('candle-jar', 'logo'), '/assets/identity-subjects/demo/logo/candle-jar.jpg');
+  assert.match(sampleForTemplate('candle-jar'), /branded\/packaging-john-smith-\d\.png$/, 'no artwork type falls back to the category crop');
+});
