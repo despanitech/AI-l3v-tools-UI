@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {zip,safeEntryName} from '../lib/zip.mjs';
 import './IdentityPackages.css';
 import {call,headers} from '../lib/name-logo-request.mjs';
+import {accessFetch} from '../lib/master-access.mjs';
 import {applicationArtwork,applicationGroups,applicationPreviewImage,applicationPreviewStyle,applicationSubjects,recommendedApplications,selectionSubjects} from './identityApplicationSubjects';
 
 const packages=[
@@ -50,7 +51,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  // A package already bought shows what it bought, but the other paid package
  // must remain purchasable, and the state must be legible rather than the
  // payment control simply vanishing.
- const paidPackageName=entitlement?.packageId?packages.find(item=>item.id===entitlement.packageId)?.name:'';
+ const paidPackageName=packages.find(item=>item.id===(entitlement?.packageId||entitlement?.fulfilledPackageId))?.name||'';
  const checkoutEnabled=entitlement?.enabled===true;
  const generatedTattoo=includedVisualizations.find(item=>item.output?.template?.includes('tattoo'))?.imageUrl;
  const generatedCreator=includedVisualizations.find(item=>['perfume-bottle','product-box','candle-jar','mailing-box'].includes(item.output?.template))?.imageUrl||includedVisualizations.find(item=>item.imageUrl!==generatedTattoo)?.imageUrl;
@@ -173,7 +174,10 @@ export default function IdentityPackages({request,name,designs=[]}){
 
  const purchaseStarted=useRef(false);
  const deliveryStarted=useRef(false);
- const [delivered,setDelivered]=useState(false);
+ const [deliveredHere,setDelivered]=useState(false);
+ // Delivery is a fact on the server, so a reload or another tab shows the
+ // identity as finished instead of offering the package for sale again.
+ const delivered=deliveredHere||Boolean(entitlement?.fulfilledAt);
  const trackedSubjects=purchaseIntent?.subjects?.length?purchaseIntent.subjects:selectedSubjects;
  const progress=trackedSubjects.reduce((total,id)=>{
   const status=jobs[id]?.status;
@@ -239,7 +243,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  // The buyer should see this without scrolling, so the state is published for
  // the shell to render under the step strip. Same pattern as the lightbox.
  useEffect(()=>{
-  const detail=(purchaseStage||paidFor)?{
+  const detail=(purchaseStage||paidFor||delivered)?{
    stage:purchaseStage==='confirming'?'confirming':purchaseStage==='unconfirmed'?'unconfirmed':delivered?'delivered':bundleReady?'ready':'preparing',
    packageName:paidPackageName||'',
    downloadedAt:entitlement?.downloadedAt||null,
@@ -250,7 +254,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  },[purchaseStage,paidFor,delivered,bundleReady,paidPackageName,generatedItems.length,progressTotal,entitlement?.downloadedAt]);
 
  useEffect(()=>{
-  const download=()=>{if(bundleReady)bundleAndDownload(generatedItems,'bundle')};
+  const download=()=>{if(delivered)downloadStoredBundle();else if(bundleReady)bundleAndDownload(generatedItems,'bundle')};
   window.addEventListener('identity:download-bundle',download);
   return()=>window.removeEventListener('identity:download-bundle',download);
  },[bundleReady,generatedItems,bundling]);
@@ -313,6 +317,25 @@ export default function IdentityPackages({request,name,designs=[]}){
   }
  };
 
+ // A delivered bundle is served from storage, the same copy My assets uses,
+ // so it downloads after a reload when nothing is held in memory.
+ const downloadStoredBundle=async()=>{
+  if(bundling||!request?.access?.requestId)return;
+  setBundleError('');setBundling(true);
+  try{
+   const response=await accessFetch(`/api/name-logo/bundle?request=${encodeURIComponent(request.access.requestId)}`,{headers:headers(request)});
+   if(!response.ok)throw Error('unavailable');
+   const url=URL.createObjectURL(await response.blob());
+   const stem=String(name||'identity').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'identity';
+   const link=document.createElement('a');
+   link.href=url;link.download=`${stem}-bundle.zip`;
+   document.body.append(link);link.click();link.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),1000);
+   call('downloaded',request,{}).then(()=>setEntitlement(current=>current?{...current,downloadedAt:current.downloadedAt||new Date().toISOString(),downloadCount:(current.downloadCount||0)+1}:current)).catch(()=>{});
+  }catch{setBundleError('Your bundle could not be downloaded right now. It is still available in My assets.')}
+  finally{setBundling(false)}
+ };
+
  const bundleAndDownload=async(items=includedVisualizations,label='previews')=>{
   if(bundling||!items.length)return;
   setBundleError('');setBundling(true);
@@ -370,7 +393,7 @@ export default function IdentityPackages({request,name,designs=[]}){
    <p><strong>{progress.done}</strong> of {progressTotal} ready{progressParts.length?` - ${progressParts.join(', ')}`:''}</p>
    <small>Each image is generated by a provider and takes a little while. This page can be left open.</small>
   </div>}
-  <footer><div><span>{paidPackageName?`PAID - ${paidPackageName.toUpperCase()}`:'YOUR SELECTION'}</span><strong>{chosen.price} · {chosen.headline}{selected!=='free'&&` · ${selectedSubjects.length}/${chosen.count} applications`}</strong></div>{selected==='free'?<button type="button" className="identity-bundle-download" disabled={bundling||!includedVisualizations.length} onClick={bundleAndDownload}>{bundling?'Preparing download...':'Download'}</button>:delivered?<button type="button" className="identity-bundle-download" disabled={bundling||!generatedItems.length} onClick={()=>bundleAndDownload(generatedItems,'bundle')}>{bundling?'Preparing download...':'Download'}</button>:paidFor?generatedItems.length&&progressSettled===progressTotal?<button type="button" className="identity-bundle-download" disabled={bundling} onClick={()=>bundleAndDownload(generatedItems,'collection')}>{bundling?'Preparing download...':'Download'}</button>:<button type="button" disabled>{progress.done?`${progress.done}/${progressTotal||chosen.count} ready`:progress.running?`Creating your images (${progress.running} in progress)`:'Starting your images...'}</button>:confirmingPayment?<button type="button" disabled>Confirming payment...</button>:checkoutEnabled?<button type="button" className="identity-checkout-start" disabled={checkingOut||selectedSubjects.length!==chosen.count} onClick={startCheckout}>{checkingOut?'Opening payment...':selectionShort?`Choose ${selectionShort} more application${selectionShort>1?'s':''}`:`Pay · ${chosen.price}${entitlement?.mode==='test'?' (test mode)':''}`}</button>:<button type="button" disabled>Payment setup in progress</button>}</footer>
+  <footer><div><span>{paidPackageName?`PAID - ${paidPackageName.toUpperCase()}`:'YOUR SELECTION'}</span><strong>{chosen.price} · {chosen.headline}{selected!=='free'&&` · ${selectedSubjects.length}/${chosen.count} applications`}</strong></div>{selected==='free'?<button type="button" className="identity-bundle-download" disabled={bundling||!includedVisualizations.length} onClick={bundleAndDownload}>{bundling?'Preparing download...':'Download'}</button>:delivered?<button type="button" className="identity-bundle-download" disabled={bundling} onClick={downloadStoredBundle}>{bundling?'Preparing download...':'Download'}</button>:paidFor?generatedItems.length&&progressSettled===progressTotal?<button type="button" className="identity-bundle-download" disabled={bundling} onClick={()=>bundleAndDownload(generatedItems,'collection')}>{bundling?'Preparing download...':'Download'}</button>:<button type="button" disabled>{progress.done?`${progress.done}/${progressTotal||chosen.count} ready`:progress.running?`Creating your images (${progress.running} in progress)`:'Starting your images...'}</button>:confirmingPayment?<button type="button" disabled>Confirming payment...</button>:checkoutEnabled?<button type="button" className="identity-checkout-start" disabled={checkingOut||selectedSubjects.length!==chosen.count} onClick={startCheckout}>{checkingOut?'Opening payment...':selectionShort?`Choose ${selectionShort} more application${selectionShort>1?'s':''}`:`Pay · ${chosen.price}${entitlement?.mode==='test'?' (test mode)':''}`}</button>:<button type="button" disabled>Payment setup in progress</button>}</footer>
   {example&&<ExampleModal item={example} onClose={()=>setExample(null)}/>} 
  </section>;
 }

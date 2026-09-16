@@ -136,8 +136,11 @@ export default {
       }
       if(action==='entitlement'){
         const mode=stripeConfig(env).mode;
-        const purchase=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,mode):null;
-        return json({enabled:checkoutReady(env)&&Boolean(env.INVITATIONS),mode,packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null,downloadedAt:purchase?.downloadedAt||null,downloadCount:purchase?.downloadCount||0,fulfilledAt:purchase?.fulfilledAt||null});
+        // The record is read whole so a delivered purchase is still visible as
+        // delivered after a reload; only an undelivered one entitles.
+        const record=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,mode,{includeFulfilled:true}):null;
+        const purchase=record&&!record.fulfilledAt?record:null;
+        return json({enabled:checkoutReady(env)&&Boolean(env.INVITATIONS),mode,packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null,downloadedAt:record?.downloadedAt||null,downloadCount:record?.downloadCount||0,fulfilledAt:record?.fulfilledAt||null,fulfilledPackageId:record?.fulfilledAt?record.packageId:null});
       }
       if(action==='checkout'){
         if(!checkoutReady(env)||!env.INVITATIONS)return json({error:'Payment is not available yet'},503);

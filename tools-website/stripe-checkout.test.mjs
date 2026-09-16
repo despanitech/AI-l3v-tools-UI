@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createCheckoutSession, verifyWebhook, verifyWebhookForModes, recordPurchase, purchaseFor, checkoutReady, resolvePrice, stripeConfig, clearPurchase, markFulfilled} from './stripe-checkout.mjs';
+import {createCheckoutSession, verifyWebhook, verifyWebhookForModes, recordPurchase, purchaseFor, checkoutReady, resolvePrice, stripeConfig, clearPurchase, markFulfilled, markDownloaded} from './stripe-checkout.mjs';
 
 const SECRET = 'whsec_test_secret';
 const REQUEST = 'a'.repeat(32);
@@ -345,4 +345,19 @@ test('an open session is used as is, without a second create', async () => {
     assert.equal(calls, 1, 'repeat clicks still reuse one session');
     assert.equal(result.id, 'cs_test_open');
   } finally { globalThis.fetch = original; }
+});
+
+test('a download after delivery is still receipted', async () => {
+  // Downloads happen after delivery by definition. Reading the record through
+  // the entitling view returned null once fulfilled, so downloadCount stayed 0
+  // for every real download.
+  const kv = store();
+  await recordPurchase(kv, session(), 'test');
+  await markFulfilled(kv, REQUEST, 'test');
+  const receipted = await markDownloaded(kv, REQUEST, 'test');
+  assert.ok(receipted?.downloadedAt, 'download is recorded after delivery');
+  assert.equal(receipted.downloadCount, 1);
+  const again = await markDownloaded(kv, REQUEST, 'test');
+  assert.equal(again.downloadCount, 2);
+  assert.equal(again.downloadedAt, receipted.downloadedAt, 'first download time is kept');
 });

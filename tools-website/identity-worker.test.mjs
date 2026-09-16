@@ -179,3 +179,26 @@ test('visualization status accepts only the id field',async()=>{
   assert.equal(response.status,400);
   assert.deepEqual(await response.json(),{error:'Invalid visualization'});
 });
+
+test('entitlement shows a delivered purchase as delivered, not as unpaid',async()=>{
+  // After delivery the purchase must not entitle, but a reload has to know the
+  // identity is finished. Hiding the record entirely made the page offer the
+  // bought package for sale again and lose the Download button.
+  const record={packageId:'creator',mode:'test',paidAt:'2026-09-16T19:59:27.402Z',fulfilledAt:'2026-09-16T20:30:00.000Z',downloadedAt:null,downloadCount:0};
+  const kv={get:async key=>key==='purchase:test:'+'a'.repeat(32)?JSON.stringify(record):null,put:async()=>{}};
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/entitlement',{method:'POST',headers:access,body:'{}'}),stripeEnv({INVITATIONS:kv}));
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.packageId,null,'a delivered purchase does not entitle');
+  assert.equal(body.fulfilledAt,record.fulfilledAt);
+  assert.equal(body.fulfilledPackageId,'creator');
+});
+
+test('entitlement still entitles an undelivered purchase',async()=>{
+  const record={packageId:'studio',mode:'test',paidAt:'2026-09-16T19:59:27.402Z'};
+  const kv={get:async key=>key==='purchase:test:'+'a'.repeat(32)?JSON.stringify(record):null,put:async()=>{}};
+  const body=await (await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/entitlement',{method:'POST',headers:access,body:'{}'}),stripeEnv({INVITATIONS:kv}))).json();
+  assert.equal(body.packageId,'studio');
+  assert.equal(body.fulfilledAt,null);
+  assert.equal(body.fulfilledPackageId,null);
+});
