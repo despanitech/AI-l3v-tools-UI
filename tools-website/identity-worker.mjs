@@ -66,7 +66,7 @@ export default {
     if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement'].includes(action)) return json({error:'Not found'},404);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
     if(!ready) return action==='catalog' ? json({enabled:false,styles:[]}) : json({error:'Name generation is not available yet'},503);
-    if(request.method !== (['catalog','health','entitlement','image','visualization-image'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
+    if(request.method !== (['catalog','health','image','visualization-image'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
     if(request.method==='POST' && request.headers.get('Origin')!==url.origin)return json({error:'Open the form on this website'},403);
     try {
       const access={requestId:request.headers.get('X-L3V-Request-Id'),receipt:request.headers.get('X-L3V-Request-Receipt')};

@@ -102,3 +102,40 @@ test('visualization image is private and returned as PNG',async()=>{
   const response=await worker.fetch(request,env);assert.equal(response.status,200);assert.equal(response.headers.get('Content-Type'),'image/png');assert.match(response.headers.get('Content-Disposition'),/visualization\.png/);
  }finally{globalThis.fetch=original}
 });
+
+const access={'X-L3V-Request-Id':'a'.repeat(32),'X-L3V-Request-Receipt':'b'.repeat(64),Origin:'https://tools.l3v.ai','Content-Type':'application/json'};
+const stripeEnv=extra=>({...env,INVITATIONS:{get:async()=>null,put:async()=>{}},STRIPE_MODE:'test',STRIPE_SECRET_KEY_TEST:'sk_test_x',STRIPE_WEBHOOK_SECRET_TEST:'whsec_x',STRIPE_PRICE_CREATOR_TEST:'prod_VGlCLdY36qCuNk',STRIPE_PRICE_STUDIO_TEST:'prod_VGlEbR2n1CQJ5v',...extra});
+
+test('entitlement answers the POST the client actually sends',async()=>{
+  // The shared call() helper always POSTs. Declaring this action GET made it
+  // answer 405, the UI swallowed the error, and paid packages rendered as
+  // "Payment setup in progress" despite Stripe being fully configured.
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/entitlement',{method:'POST',headers:access,body:'{}'}),stripeEnv());
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.enabled,true);
+  assert.equal(body.mode,'test');
+  assert.equal(body.packageId,null);
+});
+
+test('entitlement reports checkout disabled while a Stripe value is missing',async()=>{
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/entitlement',{method:'POST',headers:access,body:'{}'}),stripeEnv({STRIPE_WEBHOOK_SECRET_TEST:''}));
+  assert.equal((await response.json()).enabled,false);
+});
+
+test('entitlement reports the live mode when the toggle is flipped',async()=>{
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/entitlement',{method:'POST',headers:access,body:'{}'}),stripeEnv({STRIPE_MODE:'live',STRIPE_SECRET_KEY_LIVE:'sk_live_x',STRIPE_WEBHOOK_SECRET_LIVE:'whsec_y',STRIPE_PRICE_CREATOR_LIVE:'prod_VGkCE5W13sNS4G',STRIPE_PRICE_STUDIO_LIVE:'prod_VGkF4LVYuX77ch'}));
+  const body=await response.json();
+  assert.equal(body.mode,'live');
+  assert.equal(body.enabled,true);
+});
+
+test('checkout refuses a package that is not paid for',async()=>{
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/checkout',{method:'POST',headers:access,body:JSON.stringify({packageId:'free'})}),stripeEnv());
+  assert.equal(response.status,400);
+});
+
+test('checkout requires a request receipt',async()=>{
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/checkout',{method:'POST',headers:{Origin:'https://tools.l3v.ai','Content-Type':'application/json'},body:JSON.stringify({packageId:'creator'})}),stripeEnv());
+  assert.equal(response.status,404);
+});
