@@ -9,7 +9,7 @@ import {useEffect,useState} from 'react';
 // on one lane cannot continue on another. My assets is not touched: that is
 // account work and stored bundles on the server, and it stays.
 const KEY='l3v-owner-key';
-const MODES=['dev','uat','production'];
+const MODES=['dev','test','uat','production'];
 
 export function wipeWorkingContext(){
  try{for(const key of Object.keys(localStorage))if(/^l3v-name-logo|^l3v-identity|^l3v\.identity/.test(key))localStorage.removeItem(key)}catch{}
