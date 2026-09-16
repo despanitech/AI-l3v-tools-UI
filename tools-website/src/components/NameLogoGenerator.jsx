@@ -41,6 +41,16 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
  async function generate(){if(busy||request?.id||!token)return;let current;try{current=request||await createRequest(first,last,selected);remember(current)}catch{setMessage('This browser blocked safe request recovery. Open this invitation in Safari or Chrome, then try again.');return}setRequest(current);setAutoVisualizations(true);setBusy(true);const c=new AbortController();active.current=c;try{const selection=current.styles?{styles:current.styles}:{styleId:current.styleId};const data=await call('generate',current,{first:current.first,last:current.last,...selection,requestKey:current.requestKey,token},c.signal);if(!/^[a-f0-9]{64}$/.test(data.id))throw Error();const accepted={...current,id:data.id};remember(accepted);setRequest(accepted);await poll(accepted)}catch(e){if(e.name!=='AbortError')setMessage('Submission could not be confirmed. Recover the saved request; do not create another.')}finally{setBusy(false);setToken('')}}
  function changeName(){setShowPackages(false);active.current?.abort();remember(null);setRequest(null);setResult(null);setEditing(null);setMockup(null);setMessage('');setBusy(false);setStep('name');Object.values(cache.current).forEach(a=>{URL.revokeObjectURL(a.png);if(a.svg)URL.revokeObjectURL(a.svg)});cache.current={};setAssets({})}
  function invalidateActiveSet(target){active.current?.abort();remember(null);setRequest(null);setResult(null);setShowPackages(false);setManualStep(target);setAutoVisualizations(false);setVisualizations({});Object.values(cache.current).forEach(a=>{URL.revokeObjectURL(a.png);if(a.svg)URL.revokeObjectURL(a.svg)});cache.current={};setAssets({});onActiveSetCleared?.(target)}
+ // Returning to step 1 with a finished set offers no way to begin again,
+ // because retyping an identical name is not a change and nothing else clears
+ // the active set. This does, keeping the name so it can be reused as is.
+ function startAgain(){
+  try{sessionStorage.removeItem('l3v.identity.purchase-intent')}catch{}
+  window.dispatchEvent(new CustomEvent('identity:purchase-state',{detail:null}));
+  invalidateActiveSet(1);
+  setStep('name');
+ }
+
  function requestChange(target,apply){if(!request){apply();return}setRegenerationWarning({target,apply})}
  function confirmChange(){if(!regenerationWarning)return;const {target,apply}=regenerationWarning;invalidateActiveSet(target);apply();setRegenerationWarning(null)}
  function changeFirst(value){requestChange(1,()=>onFirst(value))}
@@ -61,7 +71,7 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
   <section className="live-logo-generator" aria-label="Create your designs">
    {regenerationWarning&&<div className="identity-regeneration-warning" role="status"><div><strong>This change needs a new generation</strong><span>Your current generated set will remain saved unless you continue.</span></div><button type="button" onClick={()=>setRegenerationWarning(null)}>Keep current set</button><button type="button" className="confirm" onClick={confirmChange}>Change and regenerate</button></div>}
    {(!request||viewingPast)&&step==='name'&&intro}
-   {(!request||viewingPast)&&<>{step==='name'?<><div className="shared-name"><label>Enter your first name<input id="first-name" value={first} maxLength={80} onChange={e=>changeFirst(e.target.value)}/></label><label>Enter your last name<input id="last-name" value={last} maxLength={80} onChange={e=>changeLast(e.target.value)}/></label></div><button className="identity-try-button" disabled={!first.trim()||!last.trim()} onClick={()=>{setStep('styles');if(request)setManualStep(2)}}>Continue →</button></>:config&&<StyleCatalog first={first} last={last} styles={config.styles||[]} selected={selected} onChange={changeStyles} onEdit={()=>{setStep('name');if(request)setManualStep(1)}} security={generationSecurity} footer={generationFooter}/>}</>}
+   {(!request||viewingPast)&&<>{step==='name'?<><div className="shared-name"><label>Enter your first name<input id="first-name" value={first} maxLength={80} onChange={e=>changeFirst(e.target.value)}/></label><label>Enter your last name<input id="last-name" value={last} maxLength={80} onChange={e=>changeLast(e.target.value)}/></label></div><button className="identity-try-button" disabled={!first.trim()||!last.trim()} onClick={()=>{setStep('styles');if(request)setManualStep(2)}}>Continue →</button>{request&&<button type="button" className="identity-start-again" onClick={startAgain}>Start a new identity with this name</button>}</>:config&&<StyleCatalog first={first} last={last} styles={config.styles||[]} selected={selected} onChange={changeStyles} onEdit={()=>{setStep('name');if(request)setManualStep(1)}} security={generationSecurity} footer={generationFooter}/>}</>}
    {!config?.enabled&&<p role="status">{config?'Generation is not available yet.':'Checking availability...'}</p>}
    {!request&&<p role="status">{message}</p>}
    {request&&<IdentityAutoVisualizationPrimer request={request} designs={generatedDesigns} assets={assets} enabled={autoVisualizations} onUpdate={updateVisualization}/>} 

@@ -36,6 +36,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  const [generationError,setGenerationError]=useState('');
  const [includedVisualizations,setIncludedVisualizations]=useState([]);
  const [previewsLoading,setPreviewsLoading]=useState(Boolean(request?.id));
+ const [previewRefresh,setPreviewRefresh]=useState(0);
  const [bundling,setBundling]=useState(false);
  const [bundleError,setBundleError]=useState('');
  const [entitlement,setEntitlement]=useState(null);
@@ -71,10 +72,19 @@ export default function IdentityPackages({request,name,designs=[]}){
  const toggleSubject=id=>{setSelectionSaved(false);setSelectedSubjects(current=>current.includes(id)?current.filter(item=>item!==id):current.length<chosen.count?[...current,id]:current)};
  useEffect(()=>{if(!activeDesignId&&availableDesigns[0])setActiveDesignId(availableDesigns[0].id)},[activeDesignId,availableDesigns]);
  useEffect(()=>()=>{generationController.current?.abort();generatedUrls.current.forEach(URL.revokeObjectURL)},[]);
+ // The included previews are usually still generating when step 4 is reached,
+ // so a single fetch returns an empty list and the free package would stay
+ // empty until a full reload. Re-read while the set is incomplete.
+ useEffect(()=>{
+  if(!request?.id||includedVisualizations.length>=9||previewRefresh>=40)return;
+  const timer=setTimeout(()=>setPreviewRefresh(value=>value+1),5000);
+  return()=>clearTimeout(timer);
+ },[request?.id,includedVisualizations.length,previewRefresh]);
+
  useEffect(()=>{
   if(!request?.id){setPreviewsLoading(false);return}
   const controller=new AbortController();
-  setPreviewsLoading(true);
+  if(!includedVisualizations.length)setPreviewsLoading(true);
   (async()=>{try{
    const response=await call('visualization-list',request,{},controller.signal);
    const completed=(response?.visualizations||[]).filter(item=>item.status==='succeeded'&&item.output?.template).slice(-9).sort((left,right)=>String(left.output.template).localeCompare(String(right.output.template))||String(left.id).localeCompare(String(right.id)));
@@ -88,7 +98,7 @@ export default function IdentityPackages({request,name,designs=[]}){
    setIncludedVisualizations(loaded.filter(Boolean));
   }catch(error){if(error.name!=='AbortError')setGenerationError('Included previews could not be loaded.')}finally{if(!controller.signal.aborted)setPreviewsLoading(false)}})();
   return()=>controller.abort();
- },[request?.id]);
+ },[request?.id,previewRefresh]);
  const updateJob=(subjectId,change)=>setJobs(current=>({...current,[subjectId]:{...current[subjectId],...change}}));
  const waitForVisualization=async(subjectId,signal,designId=activeDesignId,update=updateJob)=>{
   let result=await call('visualization-generate',request,{designId,template:subjectId},signal);
@@ -201,6 +211,25 @@ export default function IdentityPackages({request,name,designs=[]}){
   });
  },[paidFor,purchaseIntent,request?.access?.requestId]);
 
+ // The buyer should see this without scrolling, so the state is published for
+ // the shell to render under the step strip. Same pattern as the lightbox.
+ useEffect(()=>{
+  const detail=(purchaseStage||paidFor)?{
+   stage:purchaseStage==='confirming'?'confirming':purchaseStage==='unconfirmed'?'unconfirmed':bundleReady?'ready':'preparing',
+   packageName:paidPackageName||'',
+   downloadedAt:entitlement?.downloadedAt||null,
+   ready:generatedItems.length,
+   total:progressTotal,
+  }:null;
+  window.dispatchEvent(new CustomEvent('identity:purchase-state',{detail}));
+ },[purchaseStage,paidFor,bundleReady,paidPackageName,generatedItems.length,progressTotal,entitlement?.downloadedAt]);
+
+ useEffect(()=>{
+  const download=()=>{if(bundleReady)bundleAndDownload(generatedItems,'bundle')};
+  window.addEventListener('identity:download-bundle',download);
+  return()=>window.removeEventListener('identity:download-bundle',download);
+ },[bundleReady,generatedItems,bundling]);
+
  const startCheckout=async()=>{
   if(checkingOut)return;
   setGenerationError('');setCheckingOut(true);
@@ -231,14 +260,16 @@ export default function IdentityPackages({request,name,designs=[]}){
    link.href=url;link.download=`${stem}-${label}.zip`;
    document.body.append(link);link.click();link.remove();
    setTimeout(()=>URL.revokeObjectURL(url),1000);
+   // A receipt, not a gate: taking delivery is recorded but never limits access.
+   if(paidFor)call('downloaded',request,{}).then(()=>setEntitlement(current=>current?{...current,downloadedAt:current.downloadedAt||new Date().toISOString(),downloadCount:(current.downloadCount||0)+1}:current)).catch(()=>{});
   }catch{setBundleError('Could not prepare the download. Your previews are still available above.')}
   finally{setBundling(false)}
  };
 
  return <section className="identity-package-picker" aria-labelledby="identity-package-title">
   <header><p>NEXT STEP</p><h2 id="identity-package-title">Use {name||'your identity'} in the real world</h2><span>Three clear package options, with one corresponding example shown inside each choice.</span></header>
-  <div className="identity-package-grid" role="radiogroup" aria-label="Visualization packages">{packages.map(item=>{const generatedImage=generatedPackageImages[item.id],collage=packageCollage(item.id),select=()=>choosePackage(item.id);return <article key={item.id} className={`identity-package-card${selected===item.id?' selected':''}`} role="radio" aria-checked={selected===item.id} tabIndex={0} onClick={event=>{if(!event.target.closest('button'))select()}} onKeyDown={event=>{if(event.target!==event.currentTarget||!['Enter',' '].includes(event.key))return;event.preventDefault();select()}}><div className="identity-package-kicker"><span>{item.kicker}</span>{item.recommended&&<b>RECOMMENDED</b>}<button type="button" onClick={()=>setExample({...item,image:generatedImage||item.image,position:generatedImage?'center':item.position})}>See example</button></div>{previewsLoading?<div className="identity-package-collage identity-package-collage-loading" aria-label="Loading generated image collage">{Array.from({length:6},(_,index)=><i key={index}/>)}</div>:collage.length?<div className="identity-package-collage" aria-label={`${item.name} generated image collage`}>{collage.map(preview=><div className="identity-package-collage-tile" key={preview.id}><img src={preview.imageUrl} alt={`${preview.name} visualization`}/><button type="button" onClick={event=>{event.stopPropagation();window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:preview.imageUrl,alt:`${preview.name} visualization`}}))}}>View</button></div>) }<span>{item.id.toUpperCase()} EXAMPLES</span><strong>{item.headline}</strong></div>:<button className="identity-package-image" type="button" aria-label={`See ${item.headline} example`} onClick={()=>setExample({...item,image:item.image,position:item.position})} style={{backgroundImage:`url(${item.image})`,backgroundPosition:item.position}}><span>{item.id.toUpperCase()} EXAMPLE</span><strong>{item.example}</strong></button>}<div className="identity-package-copy">{item.oldPrice&&<span className="identity-founder-badge">FOUNDER'S EDITION</span>}<p>{item.oldPrice&&<del>{item.oldPrice}</del>} {item.price}</p><h3>{item.name}</h3><span>{item.description}</span><ul>{item.features.map(feature=><li key={feature}>{feature}</li>)}</ul></div><button className="identity-package-select" type="button" aria-pressed={selected===item.id} onClick={()=>choosePackage(item.id)}>{selected===item.id?'Selected':`Choose ${item.name.replace(' set','').replace('Signature studio','Studio')}`}</button></article>})}</div>
-  {(purchaseStage||paidFor)?<section className="identity-purchase-flow" aria-live="polite">
+  <div className="identity-package-grid" role="radiogroup" aria-label="Visualization packages">{packages.map(item=>{const generatedImage=generatedPackageImages[item.id],collage=packageCollage(item.id),select=()=>choosePackage(item.id);return <article key={item.id} className={`identity-package-card${selected===item.id?' selected':''}`} role="radio" aria-checked={selected===item.id} tabIndex={0} onClick={event=>{if(!event.target.closest('button'))select()}} onKeyDown={event=>{if(event.target!==event.currentTarget||!['Enter',' '].includes(event.key))return;event.preventDefault();select()}}><div className="identity-package-kicker"><span>{item.kicker}</span>{item.recommended&&<b>RECOMMENDED</b>}<button type="button" onClick={()=>setExample({...item,image:generatedImage||item.image,position:generatedImage?'center':item.position})}>See example</button></div>{previewsLoading||(request?.id&&!collage.length)?<div className="identity-package-collage identity-package-collage-loading" aria-label="Loading generated image collage">{Array.from({length:6},(_,index)=><i key={index}/>)}</div>:collage.length?<div className="identity-package-collage" aria-label={`${item.name} generated image collage`}>{collage.map(preview=><div className="identity-package-collage-tile" key={preview.id}><img src={preview.imageUrl} alt={`${preview.name} visualization`}/><button type="button" onClick={event=>{event.stopPropagation();window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:preview.imageUrl,alt:`${preview.name} visualization`}}))}}>View</button></div>) }<span>{item.id.toUpperCase()} EXAMPLES</span><strong>{item.headline}</strong></div>:<button className="identity-package-image" type="button" aria-label={`See ${item.headline} example`} onClick={()=>setExample({...item,image:item.image,position:item.position})} style={{backgroundImage:`url(${item.image})`,backgroundPosition:item.position}}><span>{item.id.toUpperCase()} EXAMPLE</span><strong>{item.example}</strong></button>}<div className="identity-package-copy">{item.oldPrice&&<span className="identity-founder-badge">FOUNDER'S EDITION</span>}<p>{item.oldPrice&&<del>{item.oldPrice}</del>} {item.price}</p><h3>{item.name}</h3><span>{item.description}</span><ul>{item.features.map(feature=><li key={feature}>{feature}</li>)}</ul></div><button className="identity-package-select" type="button" aria-pressed={selected===item.id} onClick={()=>choosePackage(item.id)}>{selected===item.id?'Selected':`Choose ${item.name.replace(' set','').replace('Signature studio','Studio')}`}</button></article>})}</div>
+  {(purchaseStage||paidFor)&&<section className="identity-purchase-flow" aria-live="polite">
    <header>
     <h3>{purchaseStage==='confirming'?'Confirming your payment':purchaseStage==='unconfirmed'?'Payment not confirmed yet':'Thanks for your payment'}</h3>
     <span>{purchaseStage==='confirming'?'Waiting for Stripe to confirm before your bundle is prepared.'
@@ -253,7 +284,8 @@ export default function IdentityPackages({request,name,designs=[]}){
    </div>}
    {purchasedReady.length>0&&<div className="identity-purchase-grid">{purchasedReady.map(item=><figure className="identity-viewable-image" key={item.id}><img src={item.imageUrl} alt={`${item.name} visualization`}/><button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${item.name} visualization`}}))}>View</button><figcaption><strong>{item.name}</strong></figcaption></figure>)}</div>}
    {bundleReady&&<button type="button" className="identity-bundle-download" disabled={bundling} onClick={()=>bundleAndDownload(generatedItems,'bundle')}>{bundling?'Preparing download...':'Download bundle'}</button>}
-  </section>:selected==='free'?<section className="identity-included-previews" aria-labelledby="identity-included-title"><header><div><p>INCLUDED WITH FREE</p><h3 id="identity-included-title">Your generated applications</h3><span>These random previews were created while your identity was being prepared.</span></div><strong>{includedVisualizations.length} / 9 ready</strong></header><div>{includedVisualizations.map(item=><figure className="identity-viewable-image" key={item.id}><img src={item.imageUrl} alt={`${item.name} visualization`}/><button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${item.name} visualization`}}))}>View</button><figcaption><strong>{item.name}</strong><span>Included</span></figcaption></figure>)}</div></section>:<section className="identity-subject-picker" aria-labelledby="identity-subject-title">
+  </section>}
+  {selected==='free'?<section className="identity-included-previews" aria-labelledby="identity-included-title"><header><div><p>INCLUDED WITH FREE</p><h3 id="identity-included-title">Your generated applications</h3><span>These random previews were created while your identity was being prepared.</span></div><strong>{includedVisualizations.length} / 9 ready</strong></header><div>{includedVisualizations.map(item=><figure className="identity-viewable-image" key={item.id}><img src={item.imageUrl} alt={`${item.name} visualization`}/><button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${item.name} visualization`}}))}>View</button><figcaption><strong>{item.name}</strong><span>Included</span></figcaption></figure>)}</div></section>:<section className="identity-subject-picker" aria-labelledby="identity-subject-title">
    <header><div><p>MAKE IT YOURS</p><h3 id="identity-subject-title">Choose where your identity appears</h3><span>Pick {chosen.count} distinct, real-world applications. We started you with a balanced mix.</span></div><strong className={selectedSubjects.length===chosen.count?'complete':''}>{selectedSubjects.length} / {chosen.count} selected</strong></header>
    <nav aria-label="Application categories">{['All',...applicationGroups].map(group=><button key={group} type="button" className={activeGroup===group?'active':''} onClick={()=>setActiveGroup(group)}>{group}</button>)}</nav>
    {availableDesigns.length>1&&<div className="identity-artwork-choice"><span>ARTWORK TO APPLY</span>{availableDesigns.map((design,index)=><button key={design.id} type="button" className={activeDesignId===design.id?'active':''} onClick={()=>setActiveDesignId(design.id)}>{design.mode||['Name logo','Initials','Signature'][index]||`Design ${index+1}`}</button>)}</div>}
@@ -262,7 +294,7 @@ export default function IdentityPackages({request,name,designs=[]}){
   </section>}
   {generationError&&<p className="identity-subject-error" role="alert">{generationError}</p>}
   {bundleError&&<p className="identity-subject-error" role="alert">{bundleError}</p>}
-  {(isGenerating||progressSettled>0&&progressSettled<progressTotal)&&progressTotal>0&&<div className="identity-generation-progress" role="status" aria-live="polite">
+  {!(purchaseStage||paidFor)&&(isGenerating||progressSettled>0&&progressSettled<progressTotal)&&progressTotal>0&&<div className="identity-generation-progress" role="status" aria-live="polite">
    <div className="identity-generation-bar"><i style={{width:`${Math.round(progressSettled/progressTotal*100)}%`}}/></div>
    <p><strong>{progress.done}</strong> of {progressTotal} ready{progressParts.length?` - ${progressParts.join(', ')}`:''}</p>
    <small>Each image is generated by a provider and takes a little while. This page can be left open.</small>

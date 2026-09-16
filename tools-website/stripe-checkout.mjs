@@ -199,6 +199,16 @@ export async function recordPurchase(store, session, mode = 'test') {
   return {requestId, ...record};
 }
 
+/** Record that the buyer took delivery. Never gates access; it is a receipt. */
+export async function markDownloaded(store, requestId, mode = 'test') {
+  const record = await purchaseFor(store, requestId, mode);
+  if (!record) return null;
+  const updated = {...record, downloadedAt: record.downloadedAt || new Date().toISOString(),
+    downloadCount: (Number(record.downloadCount) || 0) + 1};
+  await store.put(purchaseKey(requestId, mode), JSON.stringify(updated));
+  return updated;
+}
+
 /** What a request has paid for, or null. Never derived from anything the client sends. */
 export async function purchaseFor(store, requestId, mode = 'test') {
   if (!/^[a-f0-9]{32}$/.test(requestId || '')) return null;
