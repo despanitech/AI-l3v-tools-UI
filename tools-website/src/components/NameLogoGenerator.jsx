@@ -46,8 +46,8 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
  useEffect(()=>onStepChange?.(currentStep),[currentStep,onStepChange]);
  const viewingPast=Boolean(request&&(manualStep===1||manualStep===2));
  const generationFooter=step==='styles'?(request?<button className="identity-try-button" onClick={()=>setManualStep(3)}>Continue to generated designs →</button>:<button className="identity-try-button" disabled={!config?.enabled||selected.length!==3||selected.some(s=>!s.id)||!first.trim()||!last.trim()||!token||busy} onClick={generate}>Generate collection</button>):null;
- const generationSecurity=!request&&step==='styles'&&config?.enabled?<SecurityCheck config={config} action="name_logo" onToken={setToken} onError={setMessage}/>:null;
- const recovery=request&&!request.id&&!busy&&config?.enabled?<div className="generation-recovery"><SecurityCheck config={config} action="name_logo" onToken={setToken} onError={setMessage}/><button disabled={!token} onClick={generate}>Recover saved request</button></div>:null;
+ const generationSecurity=!request&&step==='styles'&&config?.enabled?<SecurityCheck config={config} action="name_logo" size="compact" onToken={setToken} onError={setMessage}/>:null;
+ const recovery=request&&!request.id&&!busy&&config?.enabled?<div className="generation-recovery"><SecurityCheck config={config} action="name_logo" size="compact" onToken={setToken} onError={setMessage}/><button disabled={!token} onClick={generate}>Recover saved request</button></div>:null;
 
  return <>
   <section className="live-logo-generator" aria-label="Create your designs">
