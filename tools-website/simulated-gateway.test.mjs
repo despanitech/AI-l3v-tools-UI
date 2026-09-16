@@ -22,10 +22,13 @@ test('anything but an explicit dev or uat is production', () => {
   assert.equal(appMode({APP_MODE: 'prod'}), 'production');
   assert.equal(appMode({APP_MODE: 'DEV'}), 'dev');
   assert.equal(appMode({APP_MODE: ' uat '}), 'uat');
+  assert.equal(appMode({APP_MODE: 'test'}), 'test');
   assert.equal(simulated('dev'), true);
-  assert.equal(simulated('uat'), true);
+  assert.equal(simulated('test'), true);
+  assert.equal(simulated('uat'), false, 'uat generates for real');
   assert.equal(simulated('production'), false);
   assert.equal(paymentSimulated('dev'), true, 'dev has no Stripe');
+  assert.equal(paymentSimulated('test'), false, 'test pays through Stripe test mode');
   assert.equal(paymentSimulated('uat'), false, 'uat pays through Stripe test mode');
 });
 

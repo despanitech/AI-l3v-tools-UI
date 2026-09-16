@@ -1,18 +1,20 @@
 // The one switch that selects a lane for the whole site.
 //
 //   production  everything real: the gateway generates, Stripe charges.
-//   uat         generation is simulated, Stripe runs in test mode for real.
+//   uat         real generation; Stripe runs in test mode.
+//   test        generation is simulated; Stripe runs in test mode for real.
 //   dev         generation is simulated and there is no Stripe at all: Pay
 //               records the purchase and comes straight back as paid.
 //
-// Anything other than an explicit "dev" or "uat" is production, so a missing
-// or misspelled value can never switch real traffic onto the simulator.
+// Anything other than an explicit dev, test or uat is production, so a
+// missing or misspelled value can never switch real traffic onto the
+// simulator.
 
-export const MODES = ['dev', 'uat', 'production'];
+export const MODES = ['dev', 'test', 'uat', 'production'];
 
 export function normalize(value) {
   const mode = String(value || '').trim().toLowerCase();
-  return mode === 'dev' || mode === 'uat' ? mode : 'production';
+  return mode === 'dev' || mode === 'test' || mode === 'uat' ? mode : 'production';
 }
 
 /** The deploy-time default from wrangler.jsonc. */
@@ -39,7 +41,7 @@ export async function storeAppMode(env, value) {
 }
 
 /** Whether generation is simulated in this mode. */
-export const simulated = mode => mode === 'dev' || mode === 'uat';
+export const simulated = mode => mode === 'dev' || mode === 'test';
 
 /** Whether checkout skips Stripe entirely in this mode. */
 export const paymentSimulated = mode => mode === 'dev';
