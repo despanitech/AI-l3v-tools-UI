@@ -3,6 +3,8 @@ import {invitationAccount} from './invitation-worker.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
 import {invitationShare} from './invitation-share.mjs';
 import {buildBundle,listBundles,getBundle} from './bundle-store.mjs';
+import {appMode,simulated as isSimulated,paymentSimulated} from './app-mode.mjs';
+import {simulatedCaller,simulatedResponse} from './simulated-gateway.mjs';
 import {createCheckoutSession,verifyWebhookForModes,recordPurchase,purchaseFor,markDownloaded,markFulfilled,clearPurchase,checkoutReady,stripeConfig,webhookSecrets,PAID_PACKAGES} from './stripe-checkout.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
@@ -55,6 +57,10 @@ export default {
       // Anything else is acknowledged so Stripe stops retrying an event we do not act on.
       return json({received:true});
     }
+    // The lane the whole site is on. Public: the watermark needs it before
+    // an invitation is entered, and the value itself reveals nothing.
+    const mode=appMode(env);
+    if(url.pathname==='/api/mode')return json({mode});
     const api=url.pathname.startsWith('/api/');
     const account=api?await invitationAccount(request,env):null;
     if(url.pathname==='/api/invitation/validate'){
@@ -84,6 +90,7 @@ export default {
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
     if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded','fulfil','purchase-reset','bundle-build','bundle-list','bundle'].includes(action)) return json({error:'Not found'},404);
+    if(isSimulated(mode)&&!env.IDENTITY_BUNDLES)return json({error:'Simulation storage is not configured'},503);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
     if(!ready) return action==='catalog' ? json({enabled:false,styles:[]}) : json({error:'Name generation is not available yet'},503);
     if(request.method !== (['catalog','health','image','visualization-image','bundle'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
@@ -129,7 +136,7 @@ export default {
         }
         if(Object.keys(body).length&&Object.keys(body).join(',')!=='name')return json({error:'Invalid fields'},400);
         const built=await buildBundle(env,{accountId:account,requestId:access.requestId,receipt:access.receipt,name:body.name,
-          gateway:gatewayCaller(env,traceId,access.requestId)});
+          gateway:isSimulated(mode)?simulatedCaller(env,url.origin):gatewayCaller(env,traceId,access.requestId)});
         console.log(JSON.stringify({event:'name-logo.bundle-stored',stored:Boolean(built),count:built?.count||0,traceId}));
         if(!built)return json({error:'Nothing to bundle yet'},409);
         return json({stored:true,count:built.count,bytes:built.bytes});
@@ -140,10 +147,11 @@ export default {
         // delivered after a reload; only an undelivered one entitles.
         const record=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,mode,{includeFulfilled:true}):null;
         const purchase=record&&!record.fulfilledAt?record:null;
-        return json({enabled:checkoutReady(env)&&Boolean(env.INVITATIONS),mode,packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null,downloadedAt:record?.downloadedAt||null,downloadCount:record?.downloadCount||0,fulfilledAt:record?.fulfilledAt||null,fulfilledPackageId:record?.fulfilledAt?record.packageId:null});
+        // `mode` here is the Stripe mode; the lane is read again by name.
+        return json({enabled:Boolean(env.INVITATIONS)&&(paymentSimulated(appMode(env))||checkoutReady(env)),mode,appMode:appMode(env),packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null,downloadedAt:record?.downloadedAt||null,downloadCount:record?.downloadCount||0,fulfilledAt:record?.fulfilledAt||null,fulfilledPackageId:record?.fulfilledAt?record.packageId:null});
       }
       if(action==='checkout'){
-        if(!checkoutReady(env)||!env.INVITATIONS)return json({error:'Payment is not available yet'},503);
+        if(!env.INVITATIONS||(!paymentSimulated(mode)&&!checkoutReady(env)))return json({error:'Payment is not available yet'},503);
         if(Object.keys(body).join(',')!=='packageId'||!PAID_PACKAGES[body.packageId])return json({error:'Choose an available package'},400);
         const checkoutMode=stripeConfig(env).mode;
         const existing=await purchaseFor(env.INVITATIONS,access.requestId,checkoutMode,{includeFulfilled:true});
@@ -152,6 +160,17 @@ export default {
         // to My assets and a second order has to start from a new name, so
         // checkout is refused here rather than handing back a spent session.
         if(existing)return json({error:'This identity has already been purchased.',spent:true},409);
+        // dev has no Stripe: Pay records the purchase and returns as paid. The
+        // record is a test-mode record; a live record without a charge must
+        // never exist, so neither dev nor uat will run against live keys.
+        if(checkoutMode!=='test'&&mode!=='production')return json({error:`${mode} mode cannot run with live Stripe keys`},503);
+        if(paymentSimulated(mode)){
+          const cents={creator:599,studio:999}[body.packageId]||0;
+          const stored=await recordPurchase(env.INVITATIONS,{id:'sim_'+traceId,payment_status:'paid',amount_total:cents,currency:'usd',metadata:{requestId:access.requestId,packageId:body.packageId,mode:'test'}},'test');
+          console.log(JSON.stringify({event:'name-logo.purchase-simulated',packageId:body.packageId,recorded:Boolean(stored),traceId}));
+          if(!stored)return json({error:'Could not record the purchase'},503);
+          return json({url:`${url.origin}/?purchase=complete#logo`,simulated:true},200,{'X-L3V-Trace-Id':traceId});
+        }
         try{
           const session=await createCheckoutSession(env,{requestId:access.requestId,packageId:body.packageId,origin:url.origin});
           console.log(JSON.stringify({event:'name-logo.checkout-created',traceId}));
@@ -172,11 +191,13 @@ export default {
         if(styles!==undefined && body.styleId!==undefined)return json({error:'Invalid selection'},400);
         const ip=request.headers.get('CF-Connecting-IP');if(!ip)return json({error:'Cannot verify request'},403);
         const limit=await env.NAME_LOGO_LIMITER.limit({key:ip});if(!limit.success)return json({error:'Please wait before creating another design'},429);
-        const verification=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',body:new URLSearchParams({secret:env.TURNSTILE_SECRET,response:body.token,remoteip:ip}),signal:AbortSignal.timeout(10000)});
-        const checked=await verification.json();
-        if(!checked.success || checked.hostname!==url.hostname || checked.action!=='name_logo'){
-          console.warn('name-logo security rejected',JSON.stringify({success:checked.success===true,hostnameMatches:checked.hostname===url.hostname,action:checked.action||'',errors:Array.isArray(checked['error-codes'])?checked['error-codes']:[]}));
-          return json({error:'Security check expired'},403);
+        if(!isSimulated(mode)){
+          const verification=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',body:new URLSearchParams({secret:env.TURNSTILE_SECRET,response:body.token,remoteip:ip}),signal:AbortSignal.timeout(10000)});
+          const checked=await verification.json();
+          if(!checked.success || checked.hostname!==url.hostname || checked.action!=='name_logo'){
+            console.warn('name-logo security rejected',JSON.stringify({success:checked.success===true,hostnameMatches:checked.hostname===url.hostname,action:checked.action||'',errors:Array.isArray(checked['error-codes'])?checked['error-codes']:[]}));
+            return json({error:'Security check expired'},403);
+          }
         }
         payload={...payload,...account&&{accountId:account},...(styles?{styles}:{styleId:body.styleId}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
       }
@@ -200,9 +221,16 @@ export default {
         payload.id=id;
         if(action==='image' && url.searchParams.get('format')==='svg')payload.format='svg';
       }
-      const upstream=new URL(env.NAME_LOGO_URL);if(upstream.protocol!=='https:')throw new Error('Invalid gateway');upstream.pathname='/name-logo/'+action;upstream.search='';
       const started=Date.now();
-      const response=await fetch(upstream,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.NAME_LOGO_TOKEN,'X-L3V-Trace-Id':traceId,...(access.requestId?{'X-L3V-Request-Id':access.requestId}:{})},body:JSON.stringify(payload),redirect:'manual',signal:AbortSignal.timeout(30000)});
+      let response;
+      if(isSimulated(mode)&&action!=='health'){
+        // dev and uat never reach the gateway. The simulator answers with the
+        // same shapes on its own clock, from the site's sample images.
+        response=await simulatedResponse(env,url.origin,action,payload);
+      }else{
+        const upstream=new URL(env.NAME_LOGO_URL);if(upstream.protocol!=='https:')throw new Error('Invalid gateway');upstream.pathname='/name-logo/'+action;upstream.search='';
+        response=await fetch(upstream,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.NAME_LOGO_TOKEN,'X-L3V-Trace-Id':traceId,...(access.requestId?{'X-L3V-Request-Id':access.requestId}:{})},body:JSON.stringify(payload),redirect:'manual',signal:AbortSignal.timeout(30000)});
+      }
       console.log(JSON.stringify({event:'name-logo.edge-request',action,status:response.status,durationMs:Date.now()-started,traceId}));
       if(!response.ok)console.warn('name-logo upstream rejected',JSON.stringify({action,status:response.status,traceId}));
       if(response.status>=300 && response.status<400)return json({error:'The design service could not complete this request'},503);
@@ -220,6 +248,7 @@ export default {
       }
       const data=JSON.parse(new TextDecoder().decode(bytes));
       if(action==='catalog')data.sitekey=env.TURNSTILE_SITEKEY;
+      if(action==='health')data.appMode=mode;
       const result=json(data,response.status);result.headers.set('X-L3V-Trace-Id',traceId);return result;
     } catch {return json({error:'The name service is temporarily unavailable. Keep your request reference.'},503)}
   }
