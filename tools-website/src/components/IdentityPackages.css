@@ -83,3 +83,13 @@
 .identity-purchase-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
 .identity-purchase-flow .identity-bundle-download{justify-self:start;padding:11px 18px;border:0;border-radius:6px;background:var(--foreground);color:var(--background)}
 @media(max-width:700px){.identity-purchase-flow{padding:14px}.identity-purchase-flow .identity-bundle-download{justify-self:stretch;width:100%}}
+.identity-generation-progress{display:grid;gap:7px;margin:14px 0 0;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--panel)}
+.identity-generation-progress p{margin:0;font-size:.84rem}
+.identity-generation-progress strong{font-size:1.05rem}
+.identity-generation-progress small{color:var(--muted);font-size:.72rem}
+.identity-generation-bar{overflow:hidden;height:6px;border-radius:999px;background:color-mix(in srgb,var(--foreground) 12%,transparent)}
+.identity-generation-bar i{display:block;height:100%;border-radius:999px;background:var(--accent);transition:width .4s ease}
+.identity-subject-check.is-running{position:relative;color:transparent}
+.identity-subject-check.is-running::after{content:'';position:absolute;inset:50% auto auto 50%;width:11px;height:11px;margin:-6px 0 0 -6px;border:2px solid color-mix(in srgb,var(--accent) 35%,transparent);border-top-color:var(--accent);border-radius:50%;animation:identity-subject-spin .7s linear infinite}
+@keyframes identity-subject-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.identity-subject-check.is-running::after{animation-duration:2.4s}.identity-generation-bar i{transition:none}}
