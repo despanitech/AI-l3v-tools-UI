@@ -12,20 +12,20 @@ function loadTurnstile() {
   });
   return loading;
 }
-export default function SecurityCheck({config, action, onToken, onError}) {
+export default function SecurityCheck({config, action, onToken, onError, size}) {
   const element = useRef(null), callbacks = useRef({onToken, onError});
   callbacks.current = {onToken, onError};
   useEffect(() => {
     let active = true, widget;
     loadTurnstile().then(api => {
       if (!active) return;
-      widget = api.render(element.current, {sitekey: config.sitekey, action, theme: document.documentElement.dataset.mode || 'light',
+      widget = api.render(element.current, {sitekey: config.sitekey, action, theme: document.documentElement.dataset.mode || 'light', ...(size ? {size} : {}),
         callback: token => { if (active) callbacks.current.onToken(token); },
         'expired-callback': () => { if (active) callbacks.current.onToken(''); },
         'error-callback': () => { if (active) callbacks.current.onToken(''); },
       });
     }).catch(error => { if (active) callbacks.current.onError(error.message); });
     return () => { active = false; if (widget !== undefined) window.turnstile?.remove(widget); };
-  }, [config.sitekey, action]);
+  }, [config.sitekey, action, size]);
   return <div ref={element} />;
 }
