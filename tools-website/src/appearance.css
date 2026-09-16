@@ -284,3 +284,9 @@ html {
 @media(prefers-reduced-motion:reduce){.identity-purchase-banner .identity-purchase-mark{animation-duration:2.6s}.identity-purchase-meter i{transition:none}}
 .identity-start-again{display:block;margin:10px auto 0;padding:9px 15px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--muted);font-size:.8rem}
 .identity-start-again:hover{border-color:var(--accent);color:var(--accent)}
+.asset-card-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.asset-card-actions .asset-bundle{border:1px solid var(--border);background:none;color:var(--foreground)}
+.asset-card-actions .asset-bundle:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.asset-card-actions .asset-bundle:disabled{opacity:.55;cursor:not-allowed}
+.asset-counts{color:var(--muted);font-size:.72rem}
+@media(max-width:700px){.asset-card-actions{width:100%}.asset-card-actions button{flex:1}}
