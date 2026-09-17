@@ -227,12 +227,16 @@ export default function IdentityPackages({request,name,designs=[]}){
   .filter(item=>item.job?.status==='succeeded'&&item.job.imageUrl)
   .map(item=>({id:item.id,name:item.subject?.name||item.id,imageUrl:item.job.imageUrl}));
  const selectionShort=Math.max(0,chosen.count-selectedSubjects.length);
- const bundleReady=generatedItems.length>0&&progressSettled===progressTotal;
+ const imagesReady=generatedItems.length>0&&progressSettled===progressTotal;
  const videosTotal=paidFor?Math.min(chosen.videos||0,generatedItems.length):0;
  const videoList=Object.values(videos);
  const videosReady=videoList.filter(item=>item.status==='succeeded'&&item.video).length;
  const videosRunning=videoList.some(item=>!['succeeded','failed'].includes(item.status));
  const videosSettled=videosTotal===0||(videoList.length>=videosTotal&&!videosRunning);
+ // Nothing says "ready" - not the bar, not the banner, not Download - until
+ // the clips are in as well. A set with clips still rendering is not done.
+ const bundleReady=imagesReady&&videosSettled;
+ const stepsTotal=progressTotal+videosTotal,stepsDone=progressSettled+videoList.filter(item=>['succeeded','failed'].includes(item.status)).length;
  const generationFinished=progressTotal>0&&progressSettled===progressTotal&&generatedItems.length>0;
  const purchasedSubjects=purchaseIntent?.subjects||[];
  const purchasedReady=purchasedSubjects.map(id=>({id,job:jobs[id],subject:applicationSubjects.find(item=>item.id===id)}))
@@ -279,8 +283,8 @@ export default function IdentityPackages({request,name,designs=[]}){
    downloadedAt:entitlement?.downloadedAt||null,
    // After a reload nothing is held in memory, so a delivered identity would
    // read "0 of 10 ready" under a banner saying the bundle is stored.
-   ready:delivered?0:generatedItems.length,
-   total:delivered?0:progressTotal,
+   ready:delivered?0:stepsDone,
+   total:delivered?0:stepsTotal,
    videosReady:delivered?0:videosReady,
    videosTotal:delivered?0:videosTotal,
   }:null;
@@ -337,7 +341,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  },[paidFor,bundleReady,videosSettled,request?.access?.requestId,name]);
 
  useEffect(()=>{
-  if(!paidFor||!bundleReady||!videosTotal||videosStarted.current||!request?.access)return;
+  if(!paidFor||!imagesReady||!videosTotal||videosStarted.current||!request?.access)return;
   videosStarted.current=true;
   const controller=new AbortController();
   const picks=pickVideoSubjects(generatedItems,videosTotal).map(item=>({subject:item.id,visualization:jobs[item.id]?.id})).filter(item=>item.visualization);
@@ -362,7 +366,7 @@ export default function IdentityPackages({request,name,designs=[]}){
    }
   })();
   return()=>controller.abort();
- },[paidFor,bundleReady,videosTotal,request?.access?.requestId]);
+ },[paidFor,imagesReady,videosTotal,request?.access?.requestId]);
  const videosRef=useRef(videos);videosRef.current=videos;
 
  const packagesBusy=Boolean(isGenerating||videosRunning||confirmingPayment||bundling||(purchaseStage&&purchaseStage!=='ready'&&purchaseStage!=='unconfirmed'&&!delivered));
@@ -431,7 +435,7 @@ export default function IdentityPackages({request,name,designs=[]}){
 
  // The same selection and pay/download control sits above the packages and
  // below the applications, so neither end of the step has to be scrolled to.
- const packageActions=<><div><span>{paidPackageName?`PAID - ${paidPackageName.toUpperCase()}`:'YOUR SELECTION'}</span><strong>{chosen.price} · {chosen.headline}{selected!=='free'&&` · ${selectedSubjects.length}/${chosen.count} applications`}</strong></div>{selected==='free'?<button type="button" className="identity-bundle-download" disabled={bundling||!includedVisualizations.length} onClick={()=>bundleAndDownload(includedVisualizations,'previews')}>{bundling?'Preparing download...':'Download'}</button>:delivered?<button type="button" className="identity-bundle-download" disabled={bundling} onClick={downloadStoredBundle}>{bundling?'Preparing download...':'Download'}</button>:paidFor?generatedItems.length&&progressSettled===progressTotal?<button type="button" className="identity-bundle-download" disabled={bundling} onClick={()=>bundleAndDownload(generatedItems,'collection')}>{bundling?'Preparing download...':'Download'}</button>:<button type="button" disabled>{progress.done?`${progress.done}/${progressTotal||chosen.count} ready`:progress.running?`Creating your images (${progress.running} in progress)`:'Starting your images...'}</button>:confirmingPayment?<button type="button" disabled>Confirming payment...</button>:checkoutEnabled?<button type="button" className="identity-checkout-start" disabled={checkingOut||selectedSubjects.length!==chosen.count} onClick={startCheckout}>{checkingOut?'Opening payment...':selectionShort?`Choose ${selectionShort} more application${selectionShort>1?'s':''}`:`Pay · ${chosen.price}${entitlement?.mode==='test'?' (test mode)':''}`}</button>:<button type="button" disabled>Payment setup in progress</button>}</>;
+ const packageActions=<><div><span>{paidPackageName?`PAID - ${paidPackageName.toUpperCase()}`:'YOUR SELECTION'}</span><strong>{chosen.price} · {chosen.headline}{selected!=='free'&&` · ${selectedSubjects.length}/${chosen.count} applications`}</strong></div>{selected==='free'?<button type="button" className="identity-bundle-download" disabled={bundling||!includedVisualizations.length} onClick={()=>bundleAndDownload(includedVisualizations,'previews')}>{bundling?'Preparing download...':'Download'}</button>:delivered?<button type="button" className="identity-bundle-download" disabled={bundling} onClick={downloadStoredBundle}>{bundling?'Preparing download...':'Download'}</button>:paidFor?bundleReady?<button type="button" className="identity-bundle-download" disabled={bundling} onClick={()=>bundleAndDownload(generatedItems,'collection')}>{bundling?'Preparing download...':'Download'}</button>:imagesReady&&videosTotal?<button type="button" disabled>{`Creating your videos (${videosReady}/${videosTotal} ready)`}</button>:<button type="button" disabled>{progress.done?`${progress.done}/${progressTotal||chosen.count} ready`:progress.running?`Creating your images (${progress.running} in progress)`:'Starting your images...'}</button>:confirmingPayment?<button type="button" disabled>Confirming payment...</button>:checkoutEnabled?<button type="button" className="identity-checkout-start" disabled={checkingOut||selectedSubjects.length!==chosen.count} onClick={startCheckout}>{checkingOut?'Opening payment...':selectionShort?`Choose ${selectionShort} more application${selectionShort>1?'s':''}`:`Pay · ${chosen.price}${entitlement?.mode==='test'?' (test mode)':''}`}</button>:<button type="button" disabled>Payment setup in progress</button>}</>;
  return <section className="identity-package-picker" aria-labelledby="identity-package-title">
   <header><p>NEXT STEP</p><h2 id="identity-package-title">Use {name||'your identity'} in the real world</h2><span>Three clear package options, with one corresponding example shown inside each choice.</span></header>
   <div className="identity-package-actions">{packageActions}</div>
@@ -446,8 +450,8 @@ export default function IdentityPackages({request,name,designs=[]}){
       :'Your bundle is being prepared. This page can be left open.'}</span>
    </header>
    {purchaseStage!=='confirming'&&purchaseStage!=='unconfirmed'&&<div className="identity-generation-progress">
-    <div className="identity-generation-bar"><i style={{width:`${progressTotal?Math.round(progressSettled/progressTotal*100):0}%`}}/></div>
-    <p><strong>{progress.done}</strong> of {progressTotal} ready{progressParts.length?` - ${progressParts.join(', ')}`:''}</p>
+    <div className="identity-generation-bar"><i style={{width:`${stepsTotal?Math.round(stepsDone/stepsTotal*100):0}%`}}/></div>
+    <p><strong>{progress.done}</strong> of {progressTotal} images ready{progressParts.length?` - ${progressParts.join(', ')}`:''}{videosTotal?` · ${videosReady} of ${videosTotal} videos`:''}</p>
     {purchaseStage!=='ready'&&<small>Each image is generated by a provider and takes a little while. This page can be left open.</small>}
    </div>}
    {videosTotal>0&&<div className="identity-purchase-videos"><p><strong>{videosReady}</strong> of {videosTotal} videos ready{videosRunning?' - each takes a minute or two':''}</p><div className="identity-video-grid">{Object.entries(videos).map(([subject,item])=><figure key={subject}>{item.video?<video src={item.video} controls muted playsInline preload="metadata"/>:<div className={`identity-video-pending${item.status==='failed'?' is-failed':''}`}>{item.status==='failed'?(item.error||'Not completed'):'Creating video...'}</div>}<figcaption><strong>{applicationSubjects.find(s=>s.id===subject)?.name||subject}</strong></figcaption></figure>)}</div></div>}
