@@ -37,9 +37,21 @@ test('clips are remembered on the purchase record once per preview', async () =>
   const store = {get: async k => map.get(k) ?? null, put: async (k, v) => { map.set(k, v); }};
   const first = await attachVideo(store, 'a'.repeat(32), 'test', {jobId: 'j1', source: 's1'});
   assert.equal(first.videos.length, 1);
-  await attachVideo(store, 'a'.repeat(32), 'test', {jobId: 'j1-again', source: 's1'});
+  await attachVideo(store, 'a'.repeat(32), 'test', {jobId: 'j1', source: 's1'});
   const second = await attachVideo(store, 'a'.repeat(32), 'test', {jobId: 'j2', source: 's2'});
-  assert.deepEqual(second.videos.map(v => v.jobId), ['j1', 'j2'], 'same source is not attached twice');
+  assert.deepEqual(second.videos.map(v => v.jobId), ['j1', 'j2'], 'same source and job is not attached twice');
   assert.equal(second.packageId, 'studio', 'the rest of the record is kept');
   assert.equal(await attachVideo(store, 'b'.repeat(32), 'test', {jobId: 'x', source: 'y'}), null, 'no purchase, nothing to attach to');
+});
+
+test('a retried clip replaces the failed entry for the same preview', async () => {
+  const data = new Map([['purchase:test:' + 'a'.repeat(32), JSON.stringify({packageId: 'studio', videos: [{jobId: 'old', source: 'v1'}]})]]);
+  const store = {get: async k => data.get(k) ?? null, put: async (k, v) => {data.set(k, v)}};
+  const same = await attachVideo(store, 'a'.repeat(32), 'test', {jobId: 'old', source: 'v1'});
+  assert.equal(same.videos.length, 1);
+  const replaced = await attachVideo(store, 'a'.repeat(32), 'test', {jobId: 'new', source: 'v1'});
+  assert.equal(replaced.videos.length, 1);
+  assert.equal(replaced.videos[0].jobId, 'new');
+  assert.equal(replaced.videos[0].replaced, 'old');
+  assert.equal(gateVideo(replaced, 'v1').job.jobId, 'new');
 });
