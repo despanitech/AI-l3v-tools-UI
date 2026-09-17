@@ -4,6 +4,7 @@ import './IdentityPackages.css';
 import {call,headers} from '../lib/name-logo-request.mjs';
 import {accessFetch} from '../lib/master-access.mjs';
 import {pickVideoSubjects} from '../lib/video-picks.mjs';
+import {ARTWORK_SHORT,artworkCounts,balanceArtwork,nextArtwork} from '../lib/artwork-mix.mjs';
 import {applicationArtwork,applicationGroups,applicationPreviewImage,applicationPreviewStyle,applicationSubjects,recommendedApplications,selectionSubjects} from './identityApplicationSubjects';
 
 const packages=[
@@ -33,6 +34,9 @@ export default function IdentityPackages({request,name,designs=[]}){
  const [example,setExample]=useState(null);
  const [activeGroup,setActiveGroup]=useState('All');
  const [selectedSubjects,setSelectedSubjects]=useState(()=>{const intent=readIntent();return intent?.subjects?.length?intent.subjects:recommendedApplications[intent?.packageId]||recommendedApplications.free});
+ // Which artwork each product carries. Left alone, the set is split evenly
+ // across the designs; the buyer can change any product.
+ const [artworkBySubject,setArtworkBySubject]=useState(()=>readIntent()?.artwork||{});
  const [selectionSaved,setSelectionSaved]=useState(false);
  const [activeDesignId,setActiveDesignId]=useState(()=>designs.find(item=>/^[a-f0-9]{32}$/.test(item?.id))?.id||'');
  const [jobs,setJobs]=useState({});
@@ -71,6 +75,15 @@ export default function IdentityPackages({request,name,designs=[]}){
  };
  const availableDesigns=designs.filter(item=>/^[a-f0-9]{32}$/.test(item?.id));
  const activeMode=availableDesigns.find(item=>item.id===activeDesignId)?.mode||'';
+ const designModes=availableDesigns.map(item=>item.mode).filter(Boolean);
+ const naturalArtwork=id=>applicationArtwork(applicationSubjects.find(item=>item.id===id)||{id}).mode;
+ useEffect(()=>{if(!designModes.length)return;setArtworkBySubject(current=>balanceArtwork(selectedSubjects,designModes,current,naturalArtwork))},[selectedSubjects,designModes.join(',')]);
+ const artworkFor=id=>(purchaseIntent?.artwork||artworkBySubject)[id]||activeMode;
+ const designFor=id=>availableDesigns.find(item=>item.mode===artworkFor(id))?.id||purchaseIntent?.designId||activeDesignId;
+ const cycleArtwork=id=>setArtworkBySubject(current=>({...current,[id]:nextArtwork(current[id]||activeMode,designModes)}));
+ const applyArtworkToAll=()=>setArtworkBySubject(Object.fromEntries(selectedSubjects.map(id=>[id,activeMode])));
+ const balanceEvenly=()=>setArtworkBySubject(balanceArtwork(selectedSubjects,designModes,{},naturalArtwork));
+ const mixCounts=artworkCounts(purchaseIntent?.artwork||artworkBySubject,selectedSubjects);
  const visibleSubjects=activeGroup==='All'?selectionSubjects:selectionSubjects.filter(item=>item.group===activeGroup);
  // Once a package is paid for, the order is fixed: no upgrade, downgrade or
  // change of applications while the bundle is being made or after delivery.
@@ -239,18 +252,17 @@ export default function IdentityPackages({request,name,designs=[]}){
   if(!subjects.length)return;
   purchaseStarted.current=true;
   const controller=new AbortController();generationController.current=controller;
-  const designId=purchaseIntent?.designId||activeDesignId;
   setIsGenerating(true);
   setJobs(Object.fromEntries(subjects.map(id=>[id,{status:'waiting'}])));
   let cursor=0;
   const worker=async()=>{
    while(cursor<subjects.length){
     const subjectId=subjects[cursor++];
-    try{await waitForVisualization(subjectId,controller.signal,designId)}
+    try{await waitForVisualization(subjectId,controller.signal,designFor(subjectId))}
     catch(error){if(error.name!=='AbortError')updateJob(subjectId,{status:'failed',error:error.status===403?'Not included in your package.':error.message})}
    }
   };
-  Promise.all(Array.from({length:Math.min(3,subjects.length)},worker)).then(()=>{
+  Promise.all(Array.from({length:Math.min(8,subjects.length)},worker)).then(()=>{
    if(controller.signal.aborted)return;
    setIsGenerating(false);
    setPurchaseStage('ready');
@@ -362,7 +374,7 @@ export default function IdentityPackages({request,name,designs=[]}){
   setGenerationError('');setSpent(false);setCheckingOut(true);
   try{
    // The redirect discards component state, so what was bought has to outlive it.
-   try{sessionStorage.setItem(INTENT_KEY,JSON.stringify({packageId:selected,subjects:selectedSubjects,designId:activeDesignId}))}catch{}
+   try{sessionStorage.setItem(INTENT_KEY,JSON.stringify({packageId:selected,subjects:selectedSubjects,designId:activeDesignId,artwork:artworkBySubject}))}catch{}
    const data=await call('checkout',request,{packageId:selected});
    if(!data?.url)throw Error();
    location.assign(data.url);
@@ -448,8 +460,9 @@ export default function IdentityPackages({request,name,designs=[]}){
    <header><div><p>MAKE IT YOURS</p><h3 id="identity-subject-title">Choose where your identity appears</h3><span>Pick {chosen.count} distinct, real-world applications. We started you with a balanced mix.</span></div><strong className={selectedSubjects.length===chosen.count?'complete':''}>{selectedSubjects.length} / {chosen.count} selected</strong></header>
    <nav aria-label="Application categories">{['All',...applicationGroups].map(group=><button key={group} type="button" className={activeGroup===group?'active':''} onClick={()=>setActiveGroup(group)}>{group}</button>)}</nav>
    {availableDesigns.length>1&&<p className="identity-demo-note">The tiles below are John Smith demos. Your order is made with <strong>your own {activeMode?({logo:'name logo',initials:'initials',signature:'signature'})[activeMode]:'design'}</strong>, applied to every product you choose.</p>}
+   {availableDesigns.length>1&&selected!=='free'&&<p className="identity-artwork-mix"><strong>Your mix:</strong> {designModes.map(mode=>`${mixCounts[mode]||0} ${ARTWORK_SHORT[mode].toLowerCase()}`).join(' · ')}. Click the label on any selected product to change its artwork.{!locked&&<> <button type="button" onClick={balanceEvenly}>Balance evenly</button> <button type="button" onClick={applyArtworkToAll}>Apply {ARTWORK_SHORT[activeMode]?.toLowerCase()||'this'} to all</button></>}</p>}
    {availableDesigns.length>1&&<div className="identity-artwork-choice"><span>ARTWORK TO APPLY</span>{availableDesigns.map((design,index)=><button key={design.id} type="button" className={activeDesignId===design.id?'active':''} onClick={()=>setActiveDesignId(design.id)}>{design.mode||['Name logo','Initials','Signature'][index]||`Design ${index+1}`}</button>)}</div>}
-   <div className="identity-subject-grid">{visibleSubjects.map(subject=>{const checked=selectedSubjects.includes(subject.id);const unavailable=!checked&&selectedSubjects.length>=chosen.count;const job=jobs[subject.id];const imageUrl=job?.imageUrl||applicationPreviewImage(subject,activeMode);const preview=job?.imageUrl?{backgroundImage:`url(${job.imageUrl})`,backgroundPosition:'center',backgroundSize:'cover'}:applicationPreviewStyle(subject,activeMode);const artwork=applicationArtwork(subject,activeMode);return <button key={subject.id} type="button" className={`${checked?'selected':''}${job?' has-job':''}`} aria-pressed={checked} disabled={unavailable||isGenerating||locked} onClick={()=>toggleSubject(subject.id)}><span className="identity-subject-preview" style={preview}><span className="identity-subject-view" role="button" tabIndex="0" onClick={event=>{event.stopPropagation();window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:imageUrl,alt:`${subject.name} with ${artwork.label}`}}))}} onKeyDown={event=>{if(!['Enter',' '].includes(event.key))return;event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:imageUrl,alt:`${subject.name} with ${artwork.label}`}}))}}>View</span></span><span className={`identity-subject-check${job?.status==='running'?' is-running':''}`}>{job?.status==='running'?'':job?.status==='succeeded'?'OK':job?.status==='failed'?'!':checked?'OK':'+'}</span><div><strong>{subject.name}</strong><small>{job?.status==='succeeded'?'Ready':job?.status==='failed'?'Failed':job?job.status:`${subject.group} · ${artwork.label}`}</small></div></button>})}</div>
+   <div className="identity-subject-grid">{visibleSubjects.map(subject=>{const checked=selectedSubjects.includes(subject.id);const unavailable=!checked&&selectedSubjects.length>=chosen.count;const job=jobs[subject.id];const tileMode=selected!=='free'&&checked?artworkFor(subject.id):activeMode;const imageUrl=job?.imageUrl||applicationPreviewImage(subject,tileMode);const preview=job?.imageUrl?{backgroundImage:`url(${job.imageUrl})`,backgroundPosition:'center',backgroundSize:'cover'}:applicationPreviewStyle(subject,tileMode);const artwork=applicationArtwork(subject,tileMode);return <button key={subject.id} type="button" className={`${checked?'selected':''}${job?' has-job':''}`} aria-pressed={checked} disabled={unavailable||isGenerating||locked} onClick={()=>toggleSubject(subject.id)}><span className="identity-subject-preview" style={preview}><span className="identity-subject-view" role="button" tabIndex="0" onClick={event=>{event.stopPropagation();window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:imageUrl,alt:`${subject.name} with ${artwork.label}`}}))}} onKeyDown={event=>{if(!['Enter',' '].includes(event.key))return;event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:imageUrl,alt:`${subject.name} with ${artwork.label}`}}))}}>View</span></span><span className={`identity-subject-check${job?.status==='running'?' is-running':''}`}>{job?.status==='running'?'':job?.status==='succeeded'?'OK':job?.status==='failed'?'!':checked?'OK':'+'}</span>{checked&&selected!=='free'&&designModes.length>1&&!job&&<span className={`identity-subject-artwork${locked?' is-locked':''}`} role="button" tabIndex="0" title={locked?'The order is fixed':'Change the artwork on this product'} onClick={event=>{event.stopPropagation();if(!locked)cycleArtwork(subject.id)}} onKeyDown={event=>{if(!['Enter',' '].includes(event.key))return;event.preventDefault();event.stopPropagation();if(!locked)cycleArtwork(subject.id)}}>{ARTWORK_SHORT[tileMode]||tileMode}</span>}<div><strong>{subject.name}</strong><small>{job?.status==='succeeded'?'Ready':job?.status==='failed'?'Failed':job?job.status:`${subject.group} · ${artwork.label}`}</small></div></button>})}</div>
    <div className="identity-subject-actions"><button type="button" onClick={()=>{setSelectedSubjects(recommendedApplications[selected]);setSelectionSaved(false)}}>Restore suggested mix</button><button type="button" onClick={()=>{setSelectedSubjects([]);setSelectionSaved(false)}}>Clear all</button></div>
   </section>}
   {generationError&&<p className="identity-subject-error" role="alert">{generationError}{spent&&<> <button type="button" className="identity-order-again" onClick={()=>window.dispatchEvent(new CustomEvent('identity:order-again'))}>Start a new identity</button></>}</p>}
