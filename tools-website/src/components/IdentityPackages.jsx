@@ -27,10 +27,12 @@ function readIntent(){
 }
 
 export default function IdentityPackages({request,name,designs=[]}){
- const [selected,setSelected]=useState('free');
+ // Back from checkout the intent says what was bought; showing it while the
+ // payment is confirmed keeps the free package from looking selected.
+ const [selected,setSelected]=useState(()=>readIntent()?.packageId||'free');
  const [example,setExample]=useState(null);
  const [activeGroup,setActiveGroup]=useState('All');
- const [selectedSubjects,setSelectedSubjects]=useState(recommendedApplications.free);
+ const [selectedSubjects,setSelectedSubjects]=useState(()=>{const intent=readIntent();return intent?.subjects?.length?intent.subjects:recommendedApplications[intent?.packageId]||recommendedApplications.free});
  const [selectionSaved,setSelectionSaved]=useState(false);
  const [activeDesignId,setActiveDesignId]=useState(()=>designs.find(item=>/^[a-f0-9]{32}$/.test(item?.id))?.id||'');
  const [jobs,setJobs]=useState({});

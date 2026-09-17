@@ -263,3 +263,21 @@ test('studio clips: gated on the purchase, three per identity, delivered into th
     assert.equal((await after.json()).reason,'no-video-package','delivered entitles no more clips');
   }finally{globalThis.fetch=original;Date.now=realNow}
 });
+
+test('in a simulated lane, a read the simulator does not know falls through to the gateway',async()=>{
+  const original=globalThis.fetch;
+  const calls=[];
+  const png=new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,0]);
+  globalThis.fetch=async(url)=>{calls.push(String(url));if(/visualization-image/.test(String(url)))return new Response(png,{status:200});if(/visualization-list/.test(String(url)))return new Response(JSON.stringify({visualizations:[{id:'a'.repeat(32),status:'succeeded',output:{template:'socks'}}]}),{status:200});return new Response('{}',{status:404})};
+  try{
+    const lane=laneEnv('dev');
+    const image=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/visualization-image?id='+'a'.repeat(32),{headers:access}),lane);
+    assert.equal(image.status,200,'a real identity\'s preview is served in dev');
+    assert.ok(calls.some(url=>/gateway\.example\/name-logo\/visualization-image/.test(url)),'the gateway answered the read');
+    const list=await (await post('visualization-list',{},lane)).json();
+    assert.equal(list.visualizations.length,1,'the real list is shown when the simulator has nothing');
+    calls.length=0;
+    await post('visualization-generate',{designId:'b'.repeat(32),template:'socks'},lane);
+    assert.ok(!calls.some(url=>/visualization-generate/.test(url)),'generation never falls through to the gateway');
+  }finally{globalThis.fetch=original}
+});
