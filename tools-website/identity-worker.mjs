@@ -50,11 +50,12 @@ async function fetchClip(env,origin,video){
   try{
     let response;
     if(video.startsWith('/'))response=await env.ASSETS.fetch(new Request(new URL(video,origin)));
-    else{if(!env.VIDEO_OUTPUT_BASE_URL||!video.startsWith(String(env.VIDEO_OUTPUT_BASE_URL).replace(/\/$/,'')+'/'))return null;response=await fetch(video,{redirect:'manual',signal:AbortSignal.timeout(60000)});}
-    if(!response.ok)return null;
+    else{if(!env.VIDEO_OUTPUT_BASE_URL||!video.startsWith(String(env.VIDEO_OUTPUT_BASE_URL).replace(/\/$/,'')+'/'))return {reason:'untrusted-host'};response=await fetch(video,{redirect:'manual',signal:AbortSignal.timeout(60000)});}
+    if(!response.ok)return {reason:'http-'+response.status};
     const bytes=await bounded(response,25*1024*1024);
-    return bytes.length>=12&&String.fromCharCode(...bytes.slice(4,8))==='ftyp'?bytes:null;
-  }catch{return null}
+    if(bytes.length<12||String.fromCharCode(...bytes.slice(4,8))!=='ftyp')return {reason:'not-mp4'};
+    return {bytes};
+  }catch(error){return {reason:'fetch-failed:'+String(error?.message||error).slice(0,80)}}
 }
 async function bounded(response, limit) {
   if (!response.body) throw new Error('Missing body');
@@ -193,9 +194,9 @@ export default {
         const purchaseRecord=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,stripeConfig(env).mode,{includeFulfilled:true}):null;
         const clips=async()=>{const out=[];for(const [index,item] of (purchaseRecord?.videos||[]).entries()){
           const state=await identityVideo(env,{mode,action:'visualization-video-status',access,account,origin:url.origin,id:item.jobId,traceId});
-          if(state.status!=='succeeded'||!state.video)continue;
-          const bytes=await fetchClip(env,url.origin,state.video);
-          if(bytes)out.push({name:`video-${index+1}.mp4`,bytes});
+          const fetched=state.status==='succeeded'&&state.video?await fetchClip(env,url.origin,state.video):null;
+          console.log(JSON.stringify({event:'name-logo.bundle-clip',index:index+1,status:state.status||null,hasVideo:Boolean(state.video),bytes:fetched?.bytes?.length||0,reason:fetched?.reason||null,traceId}));
+          if(fetched?.bytes)out.push({name:`video-${index+1}.mp4`,bytes:fetched.bytes});
         }return out};
         const built=await buildBundle(env,{accountId:account,requestId:access.requestId,receipt:access.receipt,name:body.name,clips,
           gateway:isSimulated(mode)?simulatedCaller(env,url.origin):gatewayCaller(env,traceId,access.requestId)});
@@ -315,13 +316,26 @@ export default {
       }
       const started=Date.now();
       let response;
-      if(isSimulated(mode)&&action!=='health'){
-        // dev and uat never reach the gateway. The simulator answers with the
-        // same shapes on its own clock, from the site's sample images.
-        response=await simulatedResponse(env,url.origin,action,payload);
-      }else{
+      const upstreamFetch=()=>{
         const upstream=new URL(env.NAME_LOGO_URL);if(upstream.protocol!=='https:')throw new Error('Invalid gateway');upstream.pathname='/name-logo/'+action;upstream.search='';
-        response=await fetch(upstream,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.NAME_LOGO_TOKEN,'X-L3V-Trace-Id':traceId,...(access.requestId?{'X-L3V-Request-Id':access.requestId}:{})},body:JSON.stringify(payload),redirect:'manual',signal:AbortSignal.timeout(30000)});
+        return fetch(upstream,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.NAME_LOGO_TOKEN,'X-L3V-Trace-Id':traceId,...(access.requestId?{'X-L3V-Request-Id':access.requestId}:{})},body:JSON.stringify(payload),redirect:'manual',signal:AbortSignal.timeout(30000)});
+      };
+      if(isSimulated(mode)&&action!=='health'){
+        // dev and test never generate at the gateway. The simulator answers with
+        // the same shapes on its own clock, from the site's sample images. A
+        // read it does not know - an identity made on the real lane, opened
+        // from the library - falls through to the gateway; reads cost nothing.
+        response=await simulatedResponse(env,url.origin,action,payload);
+        const readAction=['image','visualization-image','visualization-list','visualization-status','status'].includes(action);
+        let unknownToSimulator=response.status===404;
+        // The simulator answers an unknown request's list with an empty one; a
+        // real identity's previews live at the gateway.
+        if(!unknownToSimulator&&action==='visualization-list'&&response.ok){const listed=await response.clone().json().catch(()=>null);unknownToSimulator=!(listed?.visualizations?.length)}
+        if(readAction&&unknownToSimulator&&env.NAME_LOGO_URL&&env.NAME_LOGO_TOKEN){
+          try{const real=await upstreamFetch();if(real.ok)response=real}catch{}
+        }
+      }else{
+        response=await upstreamFetch();
       }
       console.log(JSON.stringify({event:'name-logo.edge-request',action,status:response.status,durationMs:Date.now()-started,traceId}));
       if(!response.ok)console.warn('name-logo upstream rejected',JSON.stringify({action,status:response.status,traceId}));

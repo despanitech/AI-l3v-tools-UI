@@ -19,8 +19,8 @@ const previewTitle=row=>{const template=row.template||row.output?.template||'';r
 // opening full size. Both read straight from the gateway with the request's
 // receipt, so nothing is cached in this browser beyond the object URLs.
 function AssetPreviews({rows,all=false,onOpen}){
- const [items,setItems]=useState([]);
- useEffect(()=>{let live=true;const objects=[],controller=new AbortController();
+ const [items,setItems]=useState([]),[settled,setSettled]=useState(false);
+ useEffect(()=>{let live=true;const objects=[],controller=new AbortController();setSettled(false);
   async function load(){
    try{
     const root=rows[0],receipt=await requestReceipt(root.request_id),access={requestId:root.request_id,receipt};
@@ -39,7 +39,7 @@ function AssetPreviews({rows,all=false,onOpen}){
       const src=URL.createObjectURL(await response.blob());objects.push(src);
       return {kind:'image',src,label:isDesign(row)?stageLabel(row):previewTitle(row)};
      }))).filter(Boolean);
-     if(live)setItems([...loaded,...loadedClips]);
+     if(live){setItems([...loaded,...loadedClips]);setSettled(true)}
      return;
     }
     const jobs=rows.filter(row=>row.resource_kind==='video-job').slice(-6),loaded=[];
@@ -50,13 +50,13 @@ function AssetPreviews({rows,all=false,onOpen}){
      if(typeof data.video==='string')loaded.push({kind:'video',src:data.video,label:'Generated video'});
      else if(typeof data.image==='string'&&data.image.startsWith('data:image/'))loaded.push({kind:'image',src:data.image,label:'First frame'});
     }
-    if(live)setItems(loaded.reverse());
-   }catch(error){if(error.name!=='AbortError'&&live)setItems([])}
+    if(live){setItems(loaded.reverse());setSettled(true)}
+   }catch(error){if(error.name!=='AbortError'&&live){setItems([]);setSettled(true)}}
   }
   load();
   return()=>{live=false;controller.abort();objects.forEach(URL.revokeObjectURL)};
  },[rows,all]);
- if(!items.length)return all?<p className="asset-gallery-empty" role="status">Loading images...</p>:null;
+ if(!items.length)return all?<p className="asset-gallery-empty" role="status">{settled?'These images are no longer available here. The stored bundle, if there is one, still is.':'Loading images...'}</p>:null;
  return <div className={all?'asset-gallery':'asset-preview-strip'} aria-label={all?'All saved images':'Saved work previews'}>{items.map((item,index)=><figure key={item.src+index}>
   {item.kind==='video'
    ?<video src={item.src} muted playsInline preload="metadata" controls aria-label={item.label}/>
