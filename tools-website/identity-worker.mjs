@@ -42,7 +42,28 @@ async function identityVideo(env,{mode,action,access,account,origin,id,traceId})
   if(response.status===503)return {error:'Video generation is not available yet',status:503};
   if(response.status>=400)return {error:'This preview cannot become a video',status:400};
   if(!data.job?.id)return {error:'Video unavailable',status:502};
-  return {id:data.job.id,status:data.job.status,video:typeof data.video==='string'?data.video:null,error:data.error||null};
+  const diagnostic=safeDiagnostic(data.diagnostic);
+  if(diagnostic&&!['queued','running','succeeded'].includes(data.job.status))console.log(JSON.stringify({event:'name-logo.job-failed',kind:'video',jobId:data.job.id,status:data.job.status,...diagnostic,traceId}));
+  return {id:data.job.id,status:data.job.status,video:typeof data.video==='string'?data.video:null,error:data.error||null,diagnostic};
+}
+// What a failed job says about itself, limited to the allowlisted fields.
+function safeDiagnostic(value){
+  if(!value||typeof value!=='object')return null;
+  const out={};
+  for(const key of ['code','stage','traceId','reason','detail']){const v=value[key];if(typeof v==='string'&&v.length<=200)out[key]=v}
+  return Object.keys(out).length?out:null;
+}
+// Failed designs and previews in a status body are logged once per response.
+async function logReportedFailures(response,action,traceId){
+  if(!response.ok||!['status','visualization-status'].includes(action))return;
+  try{
+    const data=await response.clone().json();
+    const items=action==='status'?(data.designs||[]).map(d=>({kind:'design',jobId:d.id,status:d.status,diagnostic:d.diagnostic})):[{kind:'preview',jobId:data.id,status:data.status,diagnostic:data.diagnostic}];
+    for(const item of items){
+      if(['queued','running','succeeded','waiting'].includes(item.status)||!item.status)continue;
+      console.log(JSON.stringify({event:'name-logo.job-failed',kind:item.kind,jobId:item.jobId,status:item.status,...(safeDiagnostic(item.diagnostic)||{code:'no-diagnostic'}),traceId}));
+    }
+  }catch{}
 }
 // A delivered clip, as bytes, for the bundle. Simulated clips are site assets;
 // real ones come from the media host and nowhere else.
@@ -231,14 +252,14 @@ export default {
             // is replaced by a fresh submission (the backend refuses a rerun of one
             // the provider actually produced).
             const state=await identityVideo(env,{mode,action:'visualization-video-status',access,account,origin:url.origin,id:gate.job.jobId,traceId});
-            if(!state.error&&['queued','running','succeeded'].includes(state.status))return json({id:state.id,status:state.status,video:state.video||null,error:null,source:body.id},200,{'X-L3V-Trace-Id':traceId});
+            if(!state.error&&['queued','running','succeeded'].includes(state.status))return json({id:state.id,status:state.status,video:state.video||null,error:null,diagnostic:null,source:body.id},200,{'X-L3V-Trace-Id':traceId});
             console.log(JSON.stringify({event:'name-logo.video-retry',previous:state.status||'missing',traceId}));
           }
         }
         const result=await identityVideo(env,{mode,action:todo,access,account,origin:url.origin,id,traceId});
         if(result.error&&!result.id)return json({error:result.error},result.status||502);
         if(todo==='visualization-video'&&env.INVITATIONS)await attachVideo(env.INVITATIONS,access.requestId,stripeMode,{jobId:result.id,source:body.id});
-        return json({id:result.id,status:result.status,video:result.video||null,error:result.error||null,source:body.id},200,{'X-L3V-Trace-Id':traceId});
+        return json({id:result.id,status:result.status,video:result.video||null,error:result.error||null,diagnostic:result.diagnostic||null,source:body.id},200,{'X-L3V-Trace-Id':traceId});
       }
       if(action==='checkout'){
         if(!env.INVITATIONS||(!paymentSimulated(mode)&&!checkoutReady(env)))return json({error:'Payment is not available yet'},503);
@@ -346,6 +367,7 @@ export default {
         response=await upstreamFetch();
       }
       console.log(JSON.stringify({event:'name-logo.edge-request',action,status:response.status,durationMs:Date.now()-started,traceId}));
+      await logReportedFailures(response,action,traceId);
       if(!response.ok)console.warn('name-logo upstream rejected',JSON.stringify({action,status:response.status,traceId}));
       if(response.status>=300 && response.status<400)return json({error:'The design service could not complete this request'},503);
       if(!response.ok)return json({error:response.status===404?'Design not found or expired':'The design service could not complete this request'},[400,403,404,409,429].includes(response.status)?response.status:503);

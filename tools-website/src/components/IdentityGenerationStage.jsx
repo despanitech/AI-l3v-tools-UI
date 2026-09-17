@@ -1,3 +1,4 @@
+import {failureText} from '../lib/failure-copy.mjs';
 import {useState} from 'react';
 import {createPortal} from 'react-dom';
 import IdentityPackages from './IdentityPackages';
@@ -117,7 +118,7 @@ export default function IdentityGenerationStage({
           <div className="identity-step3-application-grid">
             {(previews.length?previews:Array.from({length:9},(_,index)=>({key:`waiting-${index}`,status:'waiting'}))).map(item=><figure key={item.key}>
               <div style={!item.imageUrl&&item.id?applicationPreviewStyle(item):undefined}>{item.imageUrl?<button type="button" className="identity-preview-open" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${previewTitle(item)} visualization`}}))} aria-label={`View ${previewTitle(item)} full size`}><img src={item.imageUrl} alt={`${previewTitle(item)} visualization`}/></button>:<span className={item.status==='failed'?'is-failed':''}>{item.status!=='failed'&&<i className="identity-preview-spinner"/>}{item.status==='failed'?'Preview needs attention':'Adding your identity…'}</span>}</div>
-              <figcaption><strong>{item.id?previewTitle(item):'Selecting application'}</strong><small>{item.status==='succeeded'?'Ready':item.status==='failed'?'Not completed':'In progress'}</small></figcaption>
+              <figcaption><strong>{item.id?previewTitle(item):'Selecting application'}</strong><small title={item.status==='failed'?failureText(item.diagnostic):undefined}>{item.status==='succeeded'?'Ready':item.status==='failed'?failureText(item.diagnostic,'Not completed.'):'In progress'}</small></figcaption>
             </figure>)}
           </div>
           {nextBar('identity-step3-next')}
@@ -153,7 +154,7 @@ export default function IdentityGenerationStage({
           const design=shown[index];
           const image=design&&assets[design.id]?.png;
           const failed=designOver(design);
-          const reason=design?.error||(design?.diagnostic?.code?`Not completed (${design.diagnostic.code}).`:'Not completed.');
+          const reason=design?.error||failureText(design?.diagnostic);
           return <article key={slot.type}>
             <div className="identity-generation-placeholder-frame">
               <span>{slot.number}</span>
