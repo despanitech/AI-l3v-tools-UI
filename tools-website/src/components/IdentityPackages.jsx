@@ -235,7 +235,7 @@ export default function IdentityPackages({request,name,designs=[]}){
    while(cursor<subjects.length){
     const subjectId=subjects[cursor++];
     try{await waitForVisualization(subjectId,controller.signal,designId)}
-    catch(error){if(error.name!=='AbortError')updateJob(subjectId,{status:'failed',error:error.message})}
+    catch(error){if(error.name!=='AbortError')updateJob(subjectId,{status:'failed',error:error.status===403?'Not included in your package.':error.message})}
    }
   };
   Promise.all(Array.from({length:Math.min(3,subjects.length)},worker)).then(()=>{

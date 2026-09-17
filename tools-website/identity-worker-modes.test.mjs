@@ -167,3 +167,52 @@ test('the stored mode drives the lane, not the deploy default',async()=>{
     assert.equal(response.status,200,'simulated although the deploy default is production');
   }finally{globalThis.fetch=original}
 });
+
+test('generation is gated at the edge: nine included, more only with an undelivered purchase',async()=>{
+  const original=globalThis.fetch;globalThis.fetch=noNetwork;
+  try{
+    const lane=laneEnv('dev');
+    const {id}=await (await post('generate',{first:'John',last:'Smith',requestKey:'k',token:'x',styleId:'soft-angular'},lane)).json();
+    const {designs}=await (await post('status',{id},lane)).json();
+    const design=designs[0].id;
+    const templates=['upper-arm-tattoo','canvas-tote','backpack','baseball-cap','beanie','leather-wallet','phone-case','keychain','luggage-tag','t-shirt','hoodie'];
+    for(const template of templates.slice(0,9)){
+      assert.equal((await post('visualization-generate',{designId:design,template},lane)).status,200,template);
+    }
+    const again=await post('visualization-generate',{designId:design,template:'beanie'},lane);
+    assert.equal(again.status,200,'an existing pair is free');
+    const tenth=await post('visualization-generate',{designId:design,template:templates[9]},lane);
+    assert.equal(tenth.status,403,'the tenth needs a purchase');
+    const body=await tenth.json();
+    assert.equal(body.gated,true);assert.equal(body.reason,'included-used');assert.equal(body.used,9);assert.equal(body.allowance,9);
+    assert.equal((await post('checkout',{packageId:'creator'},lane)).status,200,'dev purchase');
+    assert.equal((await post('visualization-generate',{designId:design,template:templates[9]},lane)).status,200,'paid: allowed');
+    const entitlement=await (await post('entitlement',{},lane)).json();
+    assert.equal(entitlement.packageId,'creator');
+    await post('fulfil',{},lane);
+    const after=await post('visualization-generate',{designId:design,template:templates[10]},lane);
+    assert.equal(after.status,403,'delivered: no longer entitles');
+    assert.equal((await after.json()).reason,'included-used');
+  }finally{globalThis.fetch=original}
+});
+
+test('production gates from the gateway list, not from anything the client sends',async()=>{
+  const original=globalThis.fetch;
+  const names=['apron','backpack','beanie','envelope','hoodie-a','keychain','notebook','scarf','socks'];
+  const nine=names.map((template,i)=>({id:String(i),status:'succeeded',output:{template,sourceDesignId:'e'.repeat(32)}}));
+  let generateCalls=0;
+  globalThis.fetch=async(url,init)=>{
+    const path=String(url);
+    if(/visualization-list/.test(path))return new Response(JSON.stringify({visualizations:nine}),{status:200});
+    if(/visualization-generate/.test(path)){generateCalls++;return new Response(JSON.stringify({id:'f'.repeat(32),status:'queued'}),{status:200})}
+    return new Response('{}',{status:200});
+  };
+  try{
+    const lane=laneEnv('production');
+    const blocked=await post('visualization-generate',{designId:'e'.repeat(32),template:'t-shirt'},lane);
+    assert.equal(blocked.status,403);
+    assert.equal(generateCalls,0,'the gateway was never asked');
+    const existing=await post('visualization-generate',{designId:'e'.repeat(32),template:'beanie'},lane);
+    assert.equal(existing.status,200,'re-asking for an existing job passes through');
+  }finally{globalThis.fetch=original}
+});
