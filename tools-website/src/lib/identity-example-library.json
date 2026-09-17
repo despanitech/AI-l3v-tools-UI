@@ -40,6 +40,22 @@
     "src": "/review/john-smith-34/logo-05-geometric-emblem.png"
   },
   {
+    "category": "logo",
+    "styleId": "angular-open",
+    "styleName": "Angular (open)",
+    "job": "logo-06-angular-open",
+    "target": "John",
+    "src": "/review/john-smith-34/logo-06-angular-open.png"
+  },
+  {
+    "category": "logo",
+    "styleId": "gothic-weave-logo",
+    "styleName": "Gothic weave",
+    "job": "logo-07-gothic-weave-logo",
+    "target": "John",
+    "src": "/review/john-smith-34/logo-07-gothic-weave-logo.png"
+  },
+  {
     "category": "initials",
     "styleId": "heritage-ornament",
     "styleName": "Heritage Ornament",

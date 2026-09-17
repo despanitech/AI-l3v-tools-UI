@@ -3,7 +3,7 @@ import previews from '../src/lib/style-previews.json' with {type:'json'};
 test('individual gallery samples, carousel, defaults and ink',async({page})=>{
  await page.route('**/api/name-logo/catalog',r=>r.fulfill({json:{enabled:true,styles:previews.map(p=>({...p,name:p.id}))}}));
  await page.goto('/#logo');await page.locator('#first-name').fill('Evan');await page.locator('#last-name').fill('Hart');await page.getByRole('button',{name:'Continue →'}).click();
- for(const [mode,n] of [['Name logo',5],['Initials',37],['Signature',35]]){
+ for(const [mode,n] of [['Name logo',7],['Initials',37],['Signature',35]]){
   await page.locator('.workspace-rail button').filter({hasText:mode}).click();
   await page.getByRole('button',{name:'Change style',exact:true}).click();
   await expect(page.locator('.style-gallery-items button')).toHaveCount(n);
