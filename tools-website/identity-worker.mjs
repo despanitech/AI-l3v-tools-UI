@@ -5,6 +5,7 @@ import {invitationShare} from './invitation-share.mjs';
 import {buildBundle,listBundles,getBundle} from './bundle-store.mjs';
 import {resolveAppMode,storeAppMode,MODES,simulated as isSimulated,paymentSimulated} from './app-mode.mjs';
 import {simulatedCaller,simulatedResponse} from './simulated-gateway.mjs';
+import {gateVisualization} from './generation-allowance.mjs';
 import {createCheckoutSession,verifyWebhookForModes,recordPurchase,purchaseFor,markDownloaded,markFulfilled,clearPurchase,checkoutReady,stripeConfig,webhookSecrets,PAID_PACKAGES} from './stripe-checkout.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
@@ -221,6 +222,17 @@ export default {
       if(action==='visualization-generate') {
         if(Object.keys(body).sort().join(',')!=='designId,template' || !/^[a-f0-9]{32}$/.test(body.designId||'') || !/^[a-z-]{1,32}$/.test(body.template||''))return json({error:'Choose an available visualization'},400);
         payload={...payload,designId:body.designId,template:body.template};
+        // Decided from server-side facts only: the request's current list at
+        // the gateway and its purchase record. Nothing the client says counts.
+        const lister=isSimulated(mode)?simulatedCaller(env,url.origin):gatewayCaller(env,traceId,access.requestId);
+        const listed=await lister('visualization-list',{access});
+        if(!listed)return json({error:'The design service could not complete this request'},503);
+        const purchase=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,stripeConfig(env).mode):null;
+        const gate=gateVisualization(listed.visualizations,purchase,{designId:body.designId,template:body.template});
+        if(!gate.allowed){
+          console.log(JSON.stringify({event:'name-logo.generation-gated',reason:gate.reason,used:gate.used,allowance:gate.allowance,traceId}));
+          return json({error:gate.reason==='package-complete'?'Your package is complete.':'This identity has used its included previews. Choose a package to create more.',gated:true,reason:gate.reason,used:gate.used,allowance:gate.allowance},403,{'X-L3V-Trace-Id':traceId});
+        }
       }
       if(action==='visualization-status') {
         if(Object.keys(body).join(',')!=='id' || !/^[a-f0-9]{32}$/.test(body.id||''))return json({error:'Invalid visualization'},400);

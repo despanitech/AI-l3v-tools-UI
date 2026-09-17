@@ -38,7 +38,7 @@ export function applicationArtwork(subject,mode){
 export const recommendedApplications = {
   free: ['upper-arm-tattoo','perfume-bottle'],
   creator: ['upper-arm-tattoo','canvas-tote','t-shirt','hoodie','business-card','letterhead','perfume-bottle','candle-jar','storefront-sign','office-wall'],
-  studio: ['upper-arm-tattoo','canvas-tote','backpack','baseball-cap','beanie','t-shirt','hoodie','polo-shirt','denim-jacket','sports-jersey','business-card','letterhead','envelope','notebook','fountain-pen','perfume-bottle','candle-jar','coffee-cup','wine-bottle','skincare-bottle','storefront-sign','office-wall','reception-desk','cafe-menu','restaurant-awning'],
+  studio:['upper-arm-tattoo','canvas-tote','backpack','baseball-cap','beanie','t-shirt','hoodie','polo-shirt','denim-jacket','sports-jersey','business-card','letterhead','envelope','notebook','fountain-pen','perfume-bottle','candle-jar','coffee-cup','wine-bottle','skincare-bottle','storefront-sign','office-wall','reception-desk','cafe-menu','restaurant-awning','leather-wallet','phone-case','keychain','luggage-tag','travel-luggage'],
 };
 
 const stableNumber=value=>Array.from(value).reduce((hash,char)=>((hash*33)^char.charCodeAt(0))>>>0,5381);
