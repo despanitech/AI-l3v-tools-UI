@@ -17,7 +17,7 @@ test('an undelivered purchase adds exactly the package image count', () => {
   const creator = {packageId: 'creator', paidAt: 'now'};
   const studio = {packageId: 'studio', paidAt: 'now'};
   assert.equal(allowanceFor(creator), 19);
-  assert.equal(allowanceFor(studio), 34);
+  assert.equal(allowanceFor(studio), 39);
   assert.equal(gateVisualization(listOf(18), creator, {designId: design, template: 'x'}).allowed, true);
   const over = gateVisualization(listOf(19), creator, {designId: design, template: 'x'});
   assert.equal(over.allowed, false);

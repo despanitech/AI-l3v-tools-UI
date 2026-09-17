@@ -11,7 +11,7 @@ const PURCHASE_PREFIX = 'purchase:';
 /** Paid packages, keyed as the UI knows them. Prices live in configuration. */
 export const PAID_PACKAGES = {
   creator: {name: 'Creator set', images: 10},
-  studio: {name: 'Signature studio', images: 25},
+  studio: {name: 'Signature studio', images: 30},
 };
 
 export const MODES = ['test', 'live'];
