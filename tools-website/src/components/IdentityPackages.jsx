@@ -359,7 +359,11 @@ export default function IdentityPackages({request,name,designs=[]}){
      const current=videosRef.current[pick.subject];
      if(!current?.jobId||['succeeded','failed'].includes(current.status))continue;
      pending=true;
-     try{const state=await call('visualization-video-status',request,{id:current.jobId},controller.signal);setVideos(items=>({...items,[pick.subject]:{...items[pick.subject],status:state.status==='succeeded'&&!state.video?'running':state.status,video:state.video||null,error:state.error||null}}))}
+     try{const state=await call('visualization-video-status',request,{id:current.jobId},controller.signal);
+      // Only queued and running are still work. Anything else the backend
+      // reports - failed, ambiguous, expired - is over, or the wait never ends.
+      const status=state.status==='succeeded'?(state.video?'succeeded':'running'):['queued','running'].includes(state.status)?state.status:'failed';
+      setVideos(items=>({...items,[pick.subject]:{...items[pick.subject],status,video:state.video||null,error:status==='failed'?(state.error||'This video could not be completed.'):null}}))}
      catch(error){if(error.name==='AbortError')return;if(error.status===404)setVideos(items=>({...items,[pick.subject]:{...items[pick.subject],status:'failed',error:'This video expired.'}}))}
     }
     if(!pending)return;
