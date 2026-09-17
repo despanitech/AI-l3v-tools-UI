@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import previews from '../lib/style-previews.json';
+import {orderStyles} from '../lib/style-order.mjs';
 import InkPreview from './InkPreview.jsx';
 
 const modes=[['logo','Name logo'],['initials','Initials'],['signature','Signature']];
@@ -9,7 +10,7 @@ export default function StyleCatalog({styles,selected,onChange,first,last,onEdit
  useEffect(()=>{if(open)dialog.current?.showModal();else dialog.current?.close()},[open]);
  useEffect(()=>{if(!open){setGalleryReady(false);return}const timer=setTimeout(()=>setGalleryReady(true),40);return()=>clearTimeout(timer)},[open,gallery]);
  useEffect(()=>{const update=()=>{if(window.matchMedia('(max-width: 760px)').matches){setCompact(false);return}if(dock.current&&!dock.current.classList.contains('is-compact'))expandedDockHeight.current=dock.current.getBoundingClientRect().height;const remaining=document.documentElement.scrollHeight-window.innerHeight-window.scrollY;setCompact(window.scrollY>4&&remaining<(expandedDockHeight.current||170)+16)};requestAnimationFrame(update);window.addEventListener('scroll',update,{passive:true});window.addEventListener('resize',update);return()=>{window.removeEventListener('scroll',update);window.removeEventListener('resize',update)}},[]);
- const available=styles.length?styles:previews.map(({id,mode})=>({id,mode,name:id.split('-').map(word=>word[0].toUpperCase()+word.slice(1)).join(' ')}));
+ const available=orderStyles(styles.length?styles:previews.map(({id,mode})=>({id,mode,name:id.split('-').map(word=>word[0].toUpperCase()+word.slice(1)).join(' ')})));
  function stylesFor(mode){return available.filter(s=>s.mode===mode)}
  function currentFor(mode){const shown=stylesFor(mode),chosen=selected.find(s=>s.mode===mode)?.id,index=Math.max(0,shown.findIndex(s=>s.id===chosen));return {shown,index,current:shown[index]}}
  function choose(mode,id){onChange(selected.map(s=>s.mode===mode?{mode,id}:s))}

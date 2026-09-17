@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import SecurityCheck from './SecurityCheck.jsx';
 import StyleCatalog from './StyleCatalog.jsx';
+import {defaultStyleId,onPhone} from '../lib/style-order.mjs';
 import VectorEditor from './VectorEditor.jsx';
 import IdentityMockup from './IdentityMockup.jsx';
 import IdentityGenerationStage from './IdentityGenerationStage.jsx';
@@ -10,7 +11,7 @@ import {accessFetch} from '../lib/master-access.mjs';
 
 export default function NameLogoGenerator({first,last,visible,onFirst,onLast,intro,onStepChange,onReachable,onActiveSetCleared,buildStep}){
  const localSample=typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.location.hostname);
- const [config,setConfig]=useState(null),[selected,setSelected]=useState([{mode:'logo',id:'soft-angular'},{mode:'initials',id:'woven-serif'},{mode:'signature',id:'compact-autograph'}]),[request,setRequest]=useState(savedRequest),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[token,setToken]=useState(''),[message,setMessage]=useState(''),[assets,setAssets]=useState({}),[editing,setEditing]=useState(null),[mockup,setMockup]=useState(null);
+ const [config,setConfig]=useState(null),[selected,setSelected]=useState([{mode:'logo',id:onPhone()?'tall-stems':'hard-angular'},{mode:'initials',id:'woven-serif'},{mode:'signature',id:'compact-autograph'}]),[request,setRequest]=useState(savedRequest),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[token,setToken]=useState(''),[message,setMessage]=useState(''),[assets,setAssets]=useState({}),[editing,setEditing]=useState(null),[mockup,setMockup]=useState(null);
  const [step,setStep]=useState(()=>localSample&&new URLSearchParams(location.search).get('buildStep')==='2'?'styles':'name');
  const active=useRef(null),cache=useRef({});
  const [showPackages,setShowPackages]=useState(false);
@@ -34,7 +35,7 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
  },[]);
  useEffect(()=>{const navigate=event=>{const target=Number(event.detail);setManualStep(target);if(target===1||target===2)setStep(target===2?'styles':'name');if(target===3)setShowPackages(false);if(target===4)setShowPackages(true)};window.addEventListener('identity-step-navigation',navigate);return()=>window.removeEventListener('identity-step-navigation',navigate)},[]);
 
- useEffect(()=>{const c=new AbortController();accessFetch('/api/name-logo/catalog',{signal:c.signal}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{setConfig(data);setSelected(['logo','initials','signature'].map(mode=>({mode,id:data.styles?.find(s=>s.mode===mode)?.id||({logo:'soft-angular',initials:'woven-serif',signature:'compact-autograph'})[mode]})))}).catch(e=>{if(e.name!=='AbortError'){setConfig({enabled:false,styles:[]});setMessage('Could not connect. Refresh to try again.')}});return()=>{c.abort();active.current?.abort();Object.values(cache.current).forEach(a=>{URL.revokeObjectURL(a.png);if(a.svg)URL.revokeObjectURL(a.svg)})}},[]);
+ useEffect(()=>{const c=new AbortController();accessFetch('/api/name-logo/catalog',{signal:c.signal}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{setConfig(data);setSelected(['logo','initials','signature'].map(mode=>({mode,id:defaultStyleId(data.styles||[],mode,{phone:onPhone()})||({logo:'hard-angular',initials:'woven-serif',signature:'compact-autograph'})[mode]})))}).catch(e=>{if(e.name!=='AbortError'){setConfig({enabled:false,styles:[]});setMessage('Could not connect. Refresh to try again.')}});return()=>{c.abort();active.current?.abort();Object.values(cache.current).forEach(a=>{URL.revokeObjectURL(a.png);if(a.svg)URL.revokeObjectURL(a.svg)})}},[]);
 
  useEffect(()=>{if(request?.id)poll(request)},[]);
 
