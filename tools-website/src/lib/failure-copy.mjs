@@ -11,3 +11,12 @@ export function failureText(diagnostic, fallback = 'Not completed.') {
   if (ref) text += ` Ref ${ref}.`;
   return text;
 }
+
+// While a job is on another attempt: "Retrying · attempt 2 of 3 (planner exit 1)".
+export function retryText(retry) {
+  const r = retry && typeof retry === 'object' ? retry : null;
+  if (!r || typeof r.attempt !== 'number') return '';
+  const of = typeof r.of === 'number' ? ` of ${r.of}` : '';
+  const why = typeof r.reason === 'string' && r.reason ? r.reason : typeof r.code === 'string' && r.code ? r.code : '';
+  return `Retrying · attempt ${r.attempt}${of}${why ? ` (${why})` : ''}`;
+}

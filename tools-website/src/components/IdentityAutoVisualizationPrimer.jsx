@@ -79,7 +79,7 @@ export default function IdentityAutoVisualizationPrimer({request,designs=[],asse
             // so every automatic preview failed even though its job had succeeded.
             const response=await call('visualization-status',request,{id:jobId},controller.current.signal);
             job=response?.job||response;
-            persist(key,{jobId,status:job?.status||'running'});
+            persist(key,{jobId,status:job?.status||'running',retry:job?.retry||null,diagnostic:job?.diagnostic||null});
           }
           if(job.status!=='succeeded')throw new Error(job.error||'Visualization generation failed.');
           const imageId=job?.id||jobId;

@@ -1,4 +1,4 @@
-import {failureText} from '../lib/failure-copy.mjs';
+import {failureText,retryText} from '../lib/failure-copy.mjs';
 import {useState} from 'react';
 import {createPortal} from 'react-dom';
 import IdentityPackages from './IdentityPackages';
@@ -118,7 +118,7 @@ export default function IdentityGenerationStage({
           <div className="identity-step3-application-grid">
             {(previews.length?previews:Array.from({length:9},(_,index)=>({key:`waiting-${index}`,status:'waiting'}))).map(item=><figure key={item.key}>
               <div style={!item.imageUrl&&item.id?applicationPreviewStyle(item):undefined}>{item.imageUrl?<button type="button" className="identity-preview-open" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${previewTitle(item)} visualization`}}))} aria-label={`View ${previewTitle(item)} full size`}><img src={item.imageUrl} alt={`${previewTitle(item)} visualization`}/></button>:<span className={item.status==='failed'?'is-failed':''}>{item.status!=='failed'&&<i className="identity-preview-spinner"/>}{item.status==='failed'?'Preview needs attention':'Adding your identity…'}</span>}</div>
-              <figcaption><strong>{item.id?previewTitle(item):'Selecting application'}</strong><small title={item.status==='failed'?failureText(item.diagnostic):undefined}>{item.status==='succeeded'?'Ready':item.status==='failed'?failureText(item.diagnostic,'Not completed.'):'In progress'}</small></figcaption>
+              <figcaption><strong>{item.id?previewTitle(item):'Selecting application'}</strong><small title={item.status==='failed'?failureText(item.diagnostic):item.retry?retryText(item.retry):undefined} className={item.retry&&item.status!=='succeeded'&&item.status!=='failed'?'is-retrying':''}>{item.status==='succeeded'?'Ready':item.status==='failed'?failureText(item.diagnostic,'Not completed.'):item.retry?`Retrying ${item.retry.attempt}${item.retry.of?`/${item.retry.of}`:''}`:'In progress'}</small></figcaption>
             </figure>)}
           </div>
           {nextBar('identity-step3-next')}
@@ -155,12 +155,13 @@ export default function IdentityGenerationStage({
           const image=design&&assets[design.id]?.png;
           const failed=designOver(design);
           const reason=design?.error||failureText(design?.diagnostic);
+          const retrying=!failed&&!image&&design?.status==='running'&&retryText(design?.retry);
           return <article key={slot.type}>
             <div className="identity-generation-placeholder-frame">
               <span>{slot.number}</span>
-              {image?<img src={image} alt={`${slot.label} result`}/>:<div>{!failed&&<span className="style-spinner"/>}<strong>{failed?'Could not generate':'Generating'}</strong><small>{failed?reason:`${slot.label} will appear here.`}</small></div>}
+              {image?<img src={image} alt={`${slot.label} result`}/>:<div>{!failed&&<span className="style-spinner"/>}<strong>{failed?'Could not generate':retrying?'Retrying':'Generating'}</strong><small className={retrying?'is-retrying':''}>{failed?reason:retrying||`${slot.label} will appear here.`}</small></div>}
             </div>
-            <footer><div><strong>{slot.label}</strong><small>{design?styleName(design):'Preparing worker'}</small></div><b>{image?'Ready':failed?'Failed':'Working'}</b></footer>
+            <footer><div><strong>{slot.label}</strong><small>{design?styleName(design):'Preparing worker'}</small></div><b>{image?'Ready':failed?'Failed':retrying?'Retrying':'Working'}</b></footer>
           </article>;
         })}
         <p className="identity-generation-stability-note">Finished designs stay in place while the remaining work completes.</p>
