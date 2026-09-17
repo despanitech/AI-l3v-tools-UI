@@ -196,7 +196,6 @@ export default function IdentityPackages({request,name,designs=[]}){
  const purchaseStarted=useRef(false);
  // Studio's clips: started once the images are in, tracked by the preview
  // they were made from, and delivery waits for them.
- const videosStarted=useRef(false);
  const [videos,setVideos]=useState({});
  const deliveryStarted=useRef(false);
  const [deliveredHere,setDelivered]=useState(false);
@@ -228,7 +227,7 @@ export default function IdentityPackages({request,name,designs=[]}){
   .map(item=>({id:item.id,name:item.subject?.name||item.id,imageUrl:item.job.imageUrl}));
  const selectionShort=Math.max(0,chosen.count-selectedSubjects.length);
  const imagesReady=generatedItems.length>0&&progressSettled===progressTotal;
- const videosTotal=paidFor?Math.min(chosen.videos||0,generatedItems.length):0;
+ const videosTotal=paidFor?Math.min(chosen.videos||0,designModes.length):0;
  const videoList=Object.values(videos);
  const videosReady=videoList.filter(item=>item.status==='succeeded'&&item.video).length;
  const videosRunning=videoList.some(item=>!['succeeded','failed'].includes(item.status));
@@ -340,38 +339,44 @@ export default function IdentityPackages({request,name,designs=[]}){
   })();
  },[paidFor,bundleReady,videosSettled,request?.access?.requestId,name]);
 
+ // One clip per design, started the moment the first image of that design is
+ // in - not after the whole set. Motion-friendly products are preferred when
+ // more than one has finished. A design whose images all failed gets no clip.
+ const startedModes=useRef(new Set());
  useEffect(()=>{
-  if(!paidFor||!imagesReady||!videosTotal||videosStarted.current||!request?.access)return;
-  videosStarted.current=true;
+  if(!paidFor||!videosTotal||!request?.access)return;
+  for(const mode of designModes.slice(0,videosTotal)){
+   if(startedModes.current.has(mode))continue;
+   const finished=generatedItems.filter(item=>artworkFor(item.id)===mode&&jobs[item.id]?.id);
+   if(!finished.length){
+    if(imagesReady){startedModes.current.add(mode);setVideos(current=>({...current,['none-'+mode]:{status:'failed',mode,name:`${ARTWORK_SHORT[mode]||mode} video`,error:'No finished image to make this video from.'}}))}
+    continue;
+   }
+   const pick=pickVideoSubjects(finished,1)[0];
+   startedModes.current.add(mode);
+   setVideos(current=>({...current,[pick.id]:{status:'starting',mode,name:pick.name}}));
+   call('visualization-video',request,{id:jobs[pick.id].id})
+    .then(created=>setVideos(current=>({...current,[pick.id]:{...current[pick.id],jobId:created.id,status:['queued','running','succeeded'].includes(created.status)?created.status:'queued',video:created.video||null}})))
+    .catch(error=>setVideos(current=>({...current,[pick.id]:{...current[pick.id],status:'failed',error:error.status===403?'Not included in your package.':'This video could not be started.'}})));
+  }
+ },[paidFor,videosTotal,imagesReady,generatedItems.length,request?.access?.requestId]);
+ // Poll every clip that is still work, five seconds apart, until none is.
+ useEffect(()=>{
+  const pending=Object.entries(videos).filter(([,item])=>item.jobId&&['queued','running'].includes(item.status));
+  if(!pending.length||!request?.access)return;
   const controller=new AbortController();
-  const picks=pickVideoSubjects(generatedItems,videosTotal).map(item=>({subject:item.id,visualization:jobs[item.id]?.id})).filter(item=>item.visualization);
-  const wait=ms=>new Promise((resolve,reject)=>{const timer=setTimeout(resolve,ms);controller.signal.addEventListener('abort',()=>{clearTimeout(timer);reject(new DOMException('Aborted','AbortError'))},{once:true})});
-  (async()=>{
-   for(const pick of picks){
-    setVideos(current=>({...current,[pick.subject]:{status:'starting'}}));
-    try{const created=await call('visualization-video',request,{id:pick.visualization},controller.signal);setVideos(current=>({...current,[pick.subject]:{jobId:created.id,status:created.status==='existing'?'queued':created.status,video:created.video||null}}))}
-    catch(error){if(error.name==='AbortError')return;setVideos(current=>({...current,[pick.subject]:{status:'failed',error:error.status===403?'Not included in your package.':'This video could not be started.'}}))}
+  const timer=setTimeout(async()=>{
+   for(const [subject,item] of pending){
+    try{const state=await call('visualization-video-status',request,{id:item.jobId},controller.signal);
+     // Only queued and running are still work. Anything else the backend
+     // reports - failed, ambiguous, expired - is over, or the wait never ends.
+     const status=state.status==='succeeded'?(state.video?'succeeded':'running'):['queued','running'].includes(state.status)?state.status:'failed';
+     setVideos(items=>({...items,[subject]:{...items[subject],status,video:state.video||null,error:status==='failed'?(state.error||'This video could not be completed.'):null}}))}
+    catch(error){if(error.name==='AbortError')return;if(error.status===404)setVideos(items=>({...items,[subject]:{...items[subject],status:'failed',error:'This video expired.'}}))}
    }
-   while(!controller.signal.aborted){
-    await wait(5000);
-    let pending=false;
-    for(const pick of picks){
-     const current=videosRef.current[pick.subject];
-     if(!current?.jobId||['succeeded','failed'].includes(current.status))continue;
-     pending=true;
-     try{const state=await call('visualization-video-status',request,{id:current.jobId},controller.signal);
-      // Only queued and running are still work. Anything else the backend
-      // reports - failed, ambiguous, expired - is over, or the wait never ends.
-      const status=state.status==='succeeded'?(state.video?'succeeded':'running'):['queued','running'].includes(state.status)?state.status:'failed';
-      setVideos(items=>({...items,[pick.subject]:{...items[pick.subject],status,video:state.video||null,error:status==='failed'?(state.error||'This video could not be completed.'):null}}))}
-     catch(error){if(error.name==='AbortError')return;if(error.status===404)setVideos(items=>({...items,[pick.subject]:{...items[pick.subject],status:'failed',error:'This video expired.'}}))}
-    }
-    if(!pending)return;
-   }
-  })();
-  return()=>controller.abort();
- },[paidFor,imagesReady,videosTotal,request?.access?.requestId]);
- const videosRef=useRef(videos);videosRef.current=videos;
+  },5000);
+  return()=>{clearTimeout(timer);controller.abort()};
+ },[videos,request?.access?.requestId]);
 
  const packagesBusy=Boolean(isGenerating||videosRunning||confirmingPayment||bundling||(purchaseStage&&purchaseStage!=='ready'&&purchaseStage!=='unconfirmed'&&!delivered));
  useEffect(()=>{window.dispatchEvent(new CustomEvent('identity:busy',{detail:{source:'packages',busy:packagesBusy}}))},[packagesBusy]);
@@ -458,7 +463,7 @@ export default function IdentityPackages({request,name,designs=[]}){
     <p><strong>{progress.done}</strong> of {progressTotal} images ready{progressParts.length?` - ${progressParts.join(', ')}`:''}{videosTotal?` · ${videosReady} of ${videosTotal} videos`:''}</p>
     {purchaseStage!=='ready'&&<small>Each image is generated by a provider and takes a little while. This page can be left open.</small>}
    </div>}
-   {videosTotal>0&&<div className="identity-purchase-videos"><p><strong>{videosReady}</strong> of {videosTotal} videos ready{videosRunning?' - each takes a minute or two':''}</p><div className="identity-video-grid">{Object.entries(videos).map(([subject,item])=><figure key={subject}>{item.video?<video src={item.video} controls muted playsInline preload="metadata"/>:<div className={`identity-video-pending${item.status==='failed'?' is-failed':''}`}>{item.status==='failed'?(item.error||'Not completed'):'Creating video...'}</div>}<figcaption><strong>{applicationSubjects.find(s=>s.id===subject)?.name||subject}</strong></figcaption></figure>)}</div></div>}
+   {videosTotal>0&&<div className="identity-purchase-videos"><p><strong>{videosReady}</strong> of {videosTotal} videos ready{videosRunning?' - each takes a minute or two':''}</p><div className="identity-video-grid">{Object.entries(videos).map(([subject,item])=><figure key={subject}>{item.video?<video src={item.video} controls muted playsInline preload="metadata"/>:<div className={`identity-video-pending${item.status==='failed'?' is-failed':''}`}>{item.status==='failed'?(item.error||'Not completed'):'Creating video...'}</div>}<figcaption><strong>{item.name||applicationSubjects.find(s=>s.id===subject)?.name||subject}</strong>{item.mode&&<small> · {ARTWORK_SHORT[item.mode]||item.mode}</small>}</figcaption></figure>)}</div></div>}
    {purchasedReady.length>0&&<div className="identity-purchase-grid">{purchasedReady.map(item=><figure className="identity-viewable-image" key={item.id}><img src={item.imageUrl} alt={`${item.name} visualization`}/><button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${item.name} visualization`}}))}>View</button><figcaption><strong>{item.name}</strong></figcaption></figure>)}</div>}
    {delivered&&<button type="button" className="identity-order-again" onClick={()=>window.dispatchEvent(new CustomEvent('identity:order-again'))}>Start a new identity</button>}
    {entitlement?.mode==='test'&&!delivered&&<button type="button" className="identity-reset-purchase" onClick={resetPurchase}>Clear this test purchase</button>}
