@@ -20,6 +20,8 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
  const [regenerationWarning,setRegenerationWarning]=useState(null);
  const updateVisualization=useCallback((key,patch)=>setVisualizations(current=>({...current,[key]:{...current[key],...patch}})),[]);
  useEffect(()=>setVisualizations({}),[request?.id]);
+ // The rail beside the steps shows these as they land.
+ useEffect(()=>{window.dispatchEvent(new CustomEvent('identity:previews',{detail:{items:Object.entries(visualizations).map(([key,item])=>({key,name:item?.name||item?.id,imageUrl:item?.imageUrl,status:item?.status}))}}))},[visualizations]);
 
  useEffect(()=>{if(localSample&&!request&&buildStep===1)setStep('name');if(localSample&&!request&&buildStep===2)setStep('styles')},[localSample,request,buildStep]);
  // Stripe returns to a fresh page load, where showPackages has reset to false
