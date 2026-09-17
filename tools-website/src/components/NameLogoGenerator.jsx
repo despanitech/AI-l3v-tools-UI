@@ -122,7 +122,7 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
    {!config?.enabled&&<p role="status">{config?'Generation is not available yet.':'Checking availability...'}</p>}
    {!request&&<p role="status">{message}</p>}
    {request&&<IdentityAutoVisualizationPrimer request={request} designs={generatedDesigns} assets={assets} enabled={autoVisualizations} onUpdate={updateVisualization}/>} 
-   {request&&!viewingPast&&<IdentityGenerationStage request={request} result={result} busy={busy} message={message} assets={assets} recovery={recovery} onPoll={request.id&&!busy?()=>poll(request):null} onReset={changeName} onEdit={id=>setEditing(id)} onMockup={id=>setMockup(id)} showPackages={showPackages} onNext={()=>{setShowPackages(true);setManualStep(4)}} visualizations={visualizations}/>} 
+   {request&&!viewingPast&&<IdentityGenerationStage request={request} result={result} busy={busy} message={message} assets={assets} recovery={recovery} onPoll={request.id&&!busy?()=>poll(request):null} onReset={changeName} onRetry={()=>invalidateActiveSet(2)} onEdit={id=>setEditing(id)} onMockup={id=>setMockup(id)} showPackages={showPackages} onNext={()=>{setShowPackages(true);setManualStep(4)}} visualizations={visualizations}/>} 
    {editing&&<VectorEditor key={editing} source={assets[editing].source} onClose={()=>setEditing(null)}/>} 
    {mockup&&<IdentityMockup key={mockup} request={request} designId={mockup} templates={config.visualizations||[]} onClose={()=>setMockup(null)}/>} 
   </section>

@@ -29,7 +29,7 @@ function personName(request){
 function previewTitle(item){return item?.title||item?.label||item?.name||item?.subject||item?.id||'Real-world application'}
 
 export default function IdentityGenerationStage({
-  request,result,busy,message,assets={},recovery,onPoll,onReset,onEdit,onMockup,
+  request,result,busy,message,assets={},recovery,onPoll,onReset,onRetry,onEdit,onMockup,
   showPackages=false,onNext,visualizations={},sample=false,
 }){
   const [showResults,setShowResults]=useState(false);
@@ -37,6 +37,11 @@ export default function IdentityGenerationStage({
   const shown=slots.map((slot,index)=>designs.find((design,designIndex)=>designKind(design,designIndex)===slot.type)||designs[index]||null);
   const complete=shown.every(design=>design?.status==='succeeded'&&assets[design.id]?.png);
   const finished=shown.filter(design=>design?.status==='succeeded').length;
+  // A design the backend gave up on - failed, ambiguous, expired - is over.
+  // Only queued and running are still work; anything else must not spin.
+  const designOver=design=>Boolean(design)&&!['queued','running','succeeded'].includes(design.status);
+  const failedDesigns=shown.filter(designOver).length;
+  const stillWorking=shown.some(design=>!design||['queued','running'].includes(design.status));
   const previews=Object.values(visualizations);
   const readyPreviews=previews.filter(item=>item.status==='succeeded').length;
   const failedPreviews=previews.filter(item=>item.status==='failed').length;
@@ -133,7 +138,7 @@ export default function IdentityGenerationStage({
     {complete&&readyActions('identity-step3-ready-actions top')}
 
     {!complete&&<div className="collection-progress">
-      <div><strong>{busy?'Generating your identity':'Generation in progress'}</strong><span>{finished} of 3 ready</span></div>
+      <div><strong>{busy?'Generating your identity':failedDesigns>0&&!stillWorking?'Generation stopped':'Generation in progress'}</strong><span>{finished} of 3 ready{failedDesigns>0&&!stillWorking?` · ${failedDesigns} failed`:''}</span></div>
       <div className="collection-progress-track"><i style={{width:`${Math.max(4,finished/3*100)}%`}}/></div>
     </div>}
 
@@ -147,11 +152,12 @@ export default function IdentityGenerationStage({
         {slots.map((slot,index)=>{
           const design=shown[index];
           const image=design&&assets[design.id]?.png;
-          const failed=design?.status==='failed';
+          const failed=designOver(design);
+          const reason=design?.error||(design?.diagnostic?.code?`Not completed (${design.diagnostic.code}).`:'Not completed.');
           return <article key={slot.type}>
             <div className="identity-generation-placeholder-frame">
               <span>{slot.number}</span>
-              {image?<img src={image} alt={`${slot.label} result`}/>:<div>{!failed&&<span className="style-spinner"/>}<strong>{failed?'Could not generate':'Generating'}</strong><small>{failed?(design?.error||'Please try again.'):`${slot.label} will appear here.`}</small></div>}
+              {image?<img src={image} alt={`${slot.label} result`}/>:<div>{!failed&&<span className="style-spinner"/>}<strong>{failed?'Could not generate':'Generating'}</strong><small>{failed?reason:`${slot.label} will appear here.`}</small></div>}
             </div>
             <footer><div><strong>{slot.label}</strong><small>{design?styleName(design):'Preparing worker'}</small></div><b>{image?'Ready':failed?'Failed':'Working'}</b></footer>
           </article>;
@@ -164,5 +170,6 @@ export default function IdentityGenerationStage({
 
     {!complete&&message&&<p className="generation-status-message">{message}</p>}
     {!complete&&recovery&&<div className="generation-recovery"><strong>{recovery.title||'Generation needs attention'}</strong><p>{recovery.message||message}</p>{onPoll&&<button type="button" onClick={onPoll}>Check again</button>}</div>}
+    {failedDesigns>0&&!stillWorking&&!busy&&onRetry&&<div className="generation-recovery is-failed" role="alert"><strong>{failedDesigns===1?'One design did not complete':`${failedDesigns} designs did not complete`}</strong><p>The provider gave up on {failedDesigns===1?'it':'them'}. Your name and styles are kept; generate the set again to get a complete collection.</p><button type="button" onClick={onRetry}>Generate the set again</button></div>}
   </section>;
 }

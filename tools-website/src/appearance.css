@@ -295,3 +295,4 @@ html {
 
 /* The step strip is locked while any step has work in flight. */
 .identity-stepper.is-locked .identity-step:disabled{cursor:not-allowed;opacity:.55}
+.generation-recovery.is-failed{border-color:#b3261e;background:#fff5f4}.generation-recovery.is-failed strong{color:#b3261e}.generation-recovery.is-failed button{border-color:#b3261e;background:#b3261e;color:#fff}
