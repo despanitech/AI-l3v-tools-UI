@@ -216,3 +216,50 @@ test('production gates from the gateway list, not from anything the client sends
     assert.equal(existing.status,200,'re-asking for an existing job passes through');
   }finally{globalThis.fetch=original}
 });
+
+test('studio clips: gated on the purchase, three per identity, delivered into the bundle',async()=>{
+  const original=globalThis.fetch;globalThis.fetch=noNetwork;
+  const realNow=Date.now;let offset=0;Date.now=()=>realNow.call(Date)+offset;
+  const ftyp=new Uint8Array([0,0,0,0x18,0x66,0x74,0x79,0x70,0x69,0x73,0x6f,0x6d,0,0,0,0]);
+  const png=new Uint8Array([137,80,78,71,13,10,26,10,0,0,0,0]);
+  try{
+    const lane=laneEnv('dev',{ASSETS:{fetch:async req=>new Response(String(req.url).endsWith('.mp4')?ftyp:png,{status:200})}});
+    const {id}=await (await post('generate',{first:'John',last:'Smith',requestKey:'k',token:'x',styleId:'soft-angular'},lane)).json();
+    const {designs}=await (await post('status',{id},lane)).json();
+    const design=designs[0].id;
+    // Before any purchase, and with Creator, clips are refused.
+    const none=await post('visualization-video',{id:'e'.repeat(32)},lane);
+    assert.equal(none.status,403);assert.equal((await none.json()).reason,'no-video-package');
+    assert.equal((await post('checkout',{packageId:'studio'},lane)).status,200,'dev purchase of studio');
+    const previews=[];
+    for(const template of ['hot-air-balloon','city-bus','boat-sail','candle-jar']){
+      const made=await post('visualization-generate',{designId:design,template},lane);
+      assert.equal(made.status,200,template);previews.push((await made.json()).id);
+    }
+    offset+=20000;  // previews land
+    const first=await post('visualization-video',{id:previews[0]},lane);
+    assert.equal(first.status,200);const firstBody=await first.json();assert.equal(firstBody.status,'queued');
+    const again=await post('visualization-video',{id:previews[0]},lane);
+    assert.equal((await again.json()).id,firstBody.id,'same preview is the same clip, not a second one');
+    assert.equal((await post('visualization-video',{id:previews[1]},lane)).status,200);
+    assert.equal((await post('visualization-video',{id:previews[2]},lane)).status,200);
+    const fourth=await post('visualization-video',{id:previews[3]},lane);
+    assert.equal(fourth.status,403);assert.equal((await fourth.json()).reason,'videos-complete');
+    const record=JSON.parse(lane._kv.get('purchase:test:'+'a'.repeat(32)));
+    assert.equal(record.videos.length,3,'the purchase remembers its three clips');
+    const soon=await (await post('visualization-video-status',{id:firstBody.id},lane)).json();
+    assert.notEqual(soon.status,'succeeded');
+    offset+=10000;  // clips land
+    const done=await (await post('visualization-video-status',{id:firstBody.id},lane)).json();
+    assert.equal(done.status,'succeeded');assert.match(done.video,/\/assets\/identity-subjects\/demo\/clips\/logo\.mp4$/);
+    // The bundle is stored per invitation account, so the call carries one.
+    const credential='x'.repeat(43),accountId=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(credential))),b=>b.toString(16).padStart(2,'0')).join('');
+    lane._kv.set('token:'+accountId,accountId);
+    const built=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/bundle-build',{method:'POST',headers:{...access,'X-L3V-Invitation':credential},body:JSON.stringify({name:'John Smith'})}),lane);
+    assert.equal(built.status,200,'bundle: '+JSON.stringify(await built.clone().json()));
+    assert.equal((await built.json()).count,4+3,'four images and three clips in the bundle');
+    await post('fulfil',{},lane);
+    const after=await post('visualization-video',{id:previews[3]},lane);
+    assert.equal((await after.json()).reason,'no-video-package','delivered entitles no more clips');
+  }finally{globalThis.fetch=original;Date.now=realNow}
+});

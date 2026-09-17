@@ -6,6 +6,8 @@ import {buildBundle,listBundles,getBundle} from './bundle-store.mjs';
 import {resolveAppMode,storeAppMode,MODES,simulated as isSimulated,paymentSimulated} from './app-mode.mjs';
 import {simulatedCaller,simulatedResponse} from './simulated-gateway.mjs';
 import {gateVisualization} from './generation-allowance.mjs';
+import {VIDEO_SETTINGS,gateVideo,attachVideo} from './identity-videos.mjs';
+import {simulate,siteAssets} from './simulated-gateway.mjs';
 import {createCheckoutSession,verifyWebhookForModes,recordPurchase,purchaseFor,markDownloaded,markFulfilled,clearPurchase,checkoutReady,stripeConfig,webhookSecrets,PAID_PACKAGES} from './stripe-checkout.mjs';
 const json = (value, status=200, headers={}) => Response.json(value, {status, headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers}});
 const hex = bytes => Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2,'0')).join('');
@@ -18,6 +20,41 @@ async function ownerAuthorized(request, secret) {
   if (!secret || !supplied.startsWith('Bearer ')) return false;
   const digest = async value => hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
   return await digest(supplied.slice(7)) === await digest(secret);
+}
+// Studio clips. The backend route rides the identity request's own receipt;
+// dev and test answer from the simulator on its own clock.
+async function identityVideo(env,{mode,action,access,account,origin,id,traceId}){
+  const create=action==='visualization-video';
+  if(isSimulated(mode)){
+    const result=await simulate(env.IDENTITY_BUNDLES,siteAssets(env,origin),{action,payload:{access,id}});
+    if(result.status>=300)return {error:result.json?.error||'Video unavailable',status:result.status};
+    return {id:result.json.job.id,status:result.json.job.status,video:result.json.video||null,error:result.json.error||null};
+  }
+  if(!env.HERMES_URL||!env.HERMES_TOKEN)return {error:'Video generation is not available yet',status:503};
+  const target=new URL(env.HERMES_URL);if(target.protocol!=='https:')return {error:'Video generation is not available yet',status:503};
+  target.pathname=create?'/identity-video':'/identity-video-status';target.search='';target.hash='';
+  const body=create?{access,visualizationId:id,...VIDEO_SETTINGS,...(account&&{accountId:account})}:{access,id};
+  const response=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.HERMES_TOKEN,'X-L3V-Trace-Id':traceId},body:JSON.stringify(body),redirect:'manual',signal:AbortSignal.timeout(30000)});
+  const data=await response.json().catch(()=>({}));
+  console.log(JSON.stringify({event:'name-logo.video-request',action,status:response.status,traceId}));
+  if(response.status===429)return {error:'Video limit reached',status:429};
+  if(response.status===404)return {error:'Video not found or expired',status:404};
+  if(response.status===503)return {error:'Video generation is not available yet',status:503};
+  if(response.status>=400)return {error:'This preview cannot become a video',status:400};
+  if(!data.job?.id)return {error:'Video unavailable',status:502};
+  return {id:data.job.id,status:data.job.status,video:typeof data.video==='string'?data.video:null,error:data.error||null};
+}
+// A delivered clip, as bytes, for the bundle. Simulated clips are site assets;
+// real ones come from the media host and nowhere else.
+async function fetchClip(env,origin,video){
+  try{
+    let response;
+    if(video.startsWith('/'))response=await env.ASSETS.fetch(new Request(new URL(video,origin)));
+    else{if(!env.VIDEO_OUTPUT_BASE_URL||!video.startsWith(String(env.VIDEO_OUTPUT_BASE_URL).replace(/\/$/,'')+'/'))return null;response=await fetch(video,{redirect:'manual',signal:AbortSignal.timeout(60000)});}
+    if(!response.ok)return null;
+    const bytes=await bounded(response,25*1024*1024);
+    return bytes.length>=12&&String.fromCharCode(...bytes.slice(4,8))==='ftyp'?bytes:null;
+  }catch{return null}
 }
 async function bounded(response, limit) {
   if (!response.body) throw new Error('Missing body');
@@ -107,7 +144,7 @@ export default {
     if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs','/api/capacity-status'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
-    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded','fulfil','purchase-reset','bundle-build','bundle-list','bundle'].includes(action)) return json({error:'Not found'},404);
+    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded','fulfil','purchase-reset','bundle-build','bundle-list','bundle','visualization-video','visualization-video-status'].includes(action)) return json({error:'Not found'},404);
     if(isSimulated(mode)&&!env.IDENTITY_BUNDLES)return json({error:'Simulation storage is not configured'},503);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
     if(!ready) return action==='catalog' ? json({enabled:false,styles:[]}) : json({error:'Name generation is not available yet'},503);
@@ -153,7 +190,14 @@ export default {
             'Content-Disposition':`attachment; filename="${(object.customMetadata?.name||'identity').replace(/[^a-zA-Z0-9-]/g,'-').slice(0,40)||'identity'}-bundle.zip"`}});
         }
         if(Object.keys(body).length&&Object.keys(body).join(',')!=='name')return json({error:'Invalid fields'},400);
-        const built=await buildBundle(env,{accountId:account,requestId:access.requestId,receipt:access.receipt,name:body.name,
+        const purchaseRecord=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,stripeConfig(env).mode,{includeFulfilled:true}):null;
+        const clips=async()=>{const out=[];for(const [index,item] of (purchaseRecord?.videos||[]).entries()){
+          const state=await identityVideo(env,{mode,action:'visualization-video-status',access,account,origin:url.origin,id:item.jobId,traceId});
+          if(state.status!=='succeeded'||!state.video)continue;
+          const bytes=await fetchClip(env,url.origin,state.video);
+          if(bytes)out.push({name:`video-${index+1}.mp4`,bytes});
+        }return out};
+        const built=await buildBundle(env,{accountId:account,requestId:access.requestId,receipt:access.receipt,name:body.name,clips,
           gateway:isSimulated(mode)?simulatedCaller(env,url.origin):gatewayCaller(env,traceId,access.requestId)});
         console.log(JSON.stringify({event:'name-logo.bundle-stored',stored:Boolean(built),count:built?.count||0,traceId}));
         if(!built)return json({error:'Nothing to bundle yet'},409);
@@ -167,6 +211,25 @@ export default {
         const purchase=record&&!record.fulfilledAt?record:null;
         // `mode` here is the Stripe mode; the lane is read again by name.
         return json({enabled:Boolean(env.INVITATIONS)&&(paymentSimulated(lane)||checkoutReady(env)),mode,appMode:lane,packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null,downloadedAt:record?.downloadedAt||null,downloadCount:record?.downloadCount||0,fulfilledAt:record?.fulfilledAt||null,fulfilledPackageId:record?.fulfilledAt?record.packageId:null});
+      }
+      if(action==='visualization-video'||action==='visualization-video-status'){
+        if(Object.keys(body).join(',')!=='id'||!/^[a-f0-9]{32}$/.test(body.id||''))return json({error:'Invalid video'},400);
+        const stripeMode=stripeConfig(env).mode;
+        let id=body.id,todo=action;
+        if(action==='visualization-video'){
+          // Studio only, undelivered, three per identity, one per preview - from the purchase record, never from the client.
+          const purchase=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,stripeMode):null;
+          const gate=gateVideo(purchase,body.id);
+          if(!gate.allowed){
+            console.log(JSON.stringify({event:'name-logo.video-gated',reason:gate.reason,used:gate.used,allowance:gate.allowance,traceId}));
+            return json({error:gate.reason==='videos-complete'?'Your videos are complete.':'Videos are included with Signature studio.',gated:true,reason:gate.reason},403);
+          }
+          if(gate.reason==='existing'){id=gate.job.jobId;todo='visualization-video-status'}
+        }
+        const result=await identityVideo(env,{mode,action:todo,access,account,origin:url.origin,id,traceId});
+        if(result.error&&!result.id)return json({error:result.error},result.status||502);
+        if(todo==='visualization-video'&&env.INVITATIONS)await attachVideo(env.INVITATIONS,access.requestId,stripeMode,{jobId:result.id,source:body.id});
+        return json({id:result.id,status:result.status,video:result.video||null,error:result.error||null,source:body.id},200,{'X-L3V-Trace-Id':traceId});
       }
       if(action==='checkout'){
         if(!env.INVITATIONS||(!paymentSimulated(mode)&&!checkoutReady(env)))return json({error:'Payment is not available yet'},503);
