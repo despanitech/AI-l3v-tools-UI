@@ -225,7 +225,15 @@ export default {
             console.log(JSON.stringify({event:'name-logo.video-gated',reason:gate.reason,used:gate.used,allowance:gate.allowance,traceId}));
             return json({error:gate.reason==='videos-complete'?'Your videos are complete.':'Videos are included with Signature studio.',gated:true,reason:gate.reason},403);
           }
-          if(gate.reason==='existing'){id=gate.job.jobId;todo='visualization-video-status'}
+          if(gate.reason==='existing'){
+            // The same preview already has a clip. While it is queued, running or
+            // delivered that clip is the answer; a clip that ended without a video
+            // is replaced by a fresh submission (the backend refuses a rerun of one
+            // the provider actually produced).
+            const state=await identityVideo(env,{mode,action:'visualization-video-status',access,account,origin:url.origin,id:gate.job.jobId,traceId});
+            if(!state.error&&['queued','running','succeeded'].includes(state.status))return json({id:state.id,status:state.status,video:state.video||null,error:null,source:body.id},200,{'X-L3V-Trace-Id':traceId});
+            console.log(JSON.stringify({event:'name-logo.video-retry',previous:state.status||'missing',traceId}));
+          }
         }
         const result=await identityVideo(env,{mode,action:todo,access,account,origin:url.origin,id,traceId});
         if(result.error&&!result.id)return json({error:result.error},result.status||502);

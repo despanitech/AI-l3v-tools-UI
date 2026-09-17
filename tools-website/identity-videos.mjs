@@ -34,14 +34,17 @@ export function gateVideo(purchase, visualizationId) {
 
 const key = (requestId, mode) => `purchase:${mode}:${requestId}`;
 
-/** Remember a created clip on the purchase record. Idempotent per source preview. */
+/** Remember a created clip on the purchase record: one entry per source preview,
+ * so a retried clip replaces the failed one instead of using up the allowance. */
 export async function attachVideo(store, requestId, mode, {jobId, source}) {
   const raw = await store.get(key(requestId, mode));
   if (!raw) return null;
   let record;
   try { record = JSON.parse(raw); } catch { return null; }
   const videos = Array.isArray(record.videos) ? record.videos : [];
-  if (!videos.some(item => item.source === source)) videos.push({jobId, source, createdAt: new Date().toISOString()});
+  const index = videos.findIndex(item => item.source === source);
+  if (index < 0) videos.push({jobId, source, createdAt: new Date().toISOString()});
+  else if (videos[index].jobId !== jobId) videos[index] = {jobId, source, createdAt: new Date().toISOString(), replaced: videos[index].jobId};
   const updated = {...record, videos};
   await store.put(key(requestId, mode), JSON.stringify(updated));
   return updated;

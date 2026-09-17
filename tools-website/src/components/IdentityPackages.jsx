@@ -231,11 +231,15 @@ export default function IdentityPackages({request,name,designs=[]}){
  const videoList=Object.values(videos);
  const videosReady=videoList.filter(item=>item.status==='succeeded'&&item.video).length;
  const videosRunning=videoList.some(item=>!['succeeded','failed'].includes(item.status));
- const videosSettled=videosTotal===0||(videoList.length>=videosTotal&&!videosRunning);
+ const videosFailed=videoList.filter(item=>item.status==='failed').length;
+ // Every clip that was paid for has to be in. A failed clip does not settle
+ // the set - it stops delivery and is offered for retry.
+ const videosSettled=videosTotal===0||videosReady>=videosTotal;
+ const videosBlocked=videosTotal>0&&imagesReady&&!videosRunning&&videosFailed>0&&videosReady<videosTotal;
  // Nothing says "ready" - not the bar, not the banner, not Download - until
  // the clips are in as well. A set with clips still rendering is not done.
  const bundleReady=imagesReady&&videosSettled;
- const stepsTotal=progressTotal+videosTotal,stepsDone=progressSettled+videoList.filter(item=>['succeeded','failed'].includes(item.status)).length;
+ const stepsTotal=progressTotal+videosTotal,stepsDone=progressSettled+videosReady;
  const generationFinished=progressTotal>0&&progressSettled===progressTotal&&generatedItems.length>0;
  const purchasedSubjects=purchaseIntent?.subjects||[];
  const purchasedReady=purchasedSubjects.map(id=>({id,job:jobs[id],subject:applicationSubjects.find(item=>item.id===id)}))
@@ -277,7 +281,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  // the shell to render under the step strip. Same pattern as the lightbox.
  useEffect(()=>{
   const detail=(purchaseStage||paidFor||delivered)?{
-   stage:purchaseStage==='confirming'?'confirming':purchaseStage==='unconfirmed'?'unconfirmed':delivered?'delivered':bundleReady?'ready':'preparing',
+   stage:purchaseStage==='confirming'?'confirming':purchaseStage==='unconfirmed'?'unconfirmed':delivered?'delivered':bundleReady?'ready':videosBlocked?'videos-failed':'preparing',
    packageName:paidPackageName||'',
    downloadedAt:entitlement?.downloadedAt||null,
    // After a reload nothing is held in memory, so a delivered identity would
@@ -342,7 +346,14 @@ export default function IdentityPackages({request,name,designs=[]}){
  // One clip per design, started the moment the first image of that design is
  // in - not after the whole set. Motion-friendly products are preferred when
  // more than one has finished. A design whose images all failed gets no clip.
- const startedModes=useRef(new Set());
+ const startedModes=useRef(new Set()),startAttempts=useRef({});
+ const [retryTick,setRetryTick]=useState(0);
+ // Clear the failed clips and let the start effect submit them again.
+ function retryVideos(){
+  setVideos(current=>Object.fromEntries(Object.entries(current).filter(([,item])=>item.status!=='failed')));
+  for(const [,item] of Object.entries(videos))if(item.status==='failed'&&item.mode)startedModes.current.delete(item.mode);
+  setRetryTick(tick=>tick+1);
+ }
  useEffect(()=>{
   if(!paidFor||!videosTotal||!request?.access)return;
   for(const mode of designModes.slice(0,videosTotal)){
@@ -357,9 +368,15 @@ export default function IdentityPackages({request,name,designs=[]}){
    setVideos(current=>({...current,[pick.id]:{status:'starting',mode,name:pick.name}}));
    call('visualization-video',request,{id:jobs[pick.id].id})
     .then(created=>setVideos(current=>({...current,[pick.id]:{...current[pick.id],jobId:created.id,status:['queued','running','succeeded'].includes(created.status)?created.status:'queued',video:created.video||null}})))
-    .catch(error=>setVideos(current=>({...current,[pick.id]:{...current[pick.id],status:'failed',error:error.status===403?'Not included in your package.':'This video could not be started.'}})));
+    .catch(error=>{
+     // A refused start cost nothing. The preview may simply not be stored
+     // yet, so try again a few times before giving up on this clip.
+     const attempts=(startAttempts.current[mode]||0)+1;startAttempts.current[mode]=attempts;
+     if(error.status!==403&&attempts<4){setVideos(current=>({...current,[pick.id]:{...current[pick.id],status:'starting',error:null}}));setTimeout(()=>{startedModes.current.delete(mode);setRetryTick(tick=>tick+1)},15000);return}
+     setVideos(current=>({...current,[pick.id]:{...current[pick.id],status:'failed',error:error.status===403?'Not included in your package.':'This video could not be started.'}}));
+    });
   }
- },[paidFor,videosTotal,imagesReady,generatedItems.length,request?.access?.requestId]);
+ },[paidFor,videosTotal,imagesReady,generatedItems.length,request?.access?.requestId,retryTick]);
  // Poll every clip that is still work, five seconds apart, until none is.
  useEffect(()=>{
   const pending=Object.entries(videos).filter(([,item])=>item.jobId&&['queued','running'].includes(item.status));
@@ -456,14 +473,15 @@ export default function IdentityPackages({request,name,designs=[]}){
       :purchaseStage==='unconfirmed'?'The confirmation has not arrived. Nothing was prepared and you have not been charged twice. Reload this page in a moment, or contact support with your request reference.'
       :delivered?'Your bundle is stored in My assets and stays available there. Download it here or any time from the library.'
       :bundleReady?`Your ${paidPackageName||'package'} bundle is ready.`
+      :videosBlocked?`${videosFailed} of ${videosTotal} videos could not be made. Nothing has been delivered yet - retry the videos to finish your ${paidPackageName||'package'} set.`
       :'Your bundle is being prepared. This page can be left open.'}</span>
    </header>
-   {purchaseStage!=='confirming'&&purchaseStage!=='unconfirmed'&&<div className="identity-generation-progress">
+   {purchaseStage!=='confirming'&&purchaseStage!=='unconfirmed'&&<div className={`identity-generation-progress${videosBlocked?' is-failed':''}`}>
     <div className="identity-generation-bar"><i style={{width:`${stepsTotal?Math.round(stepsDone/stepsTotal*100):0}%`}}/></div>
     <p><strong>{progress.done}</strong> of {progressTotal} images ready{progressParts.length?` - ${progressParts.join(', ')}`:''}{videosTotal?` · ${videosReady} of ${videosTotal} videos`:''}</p>
     {purchaseStage!=='ready'&&<small>Each image is generated by a provider and takes a little while. This page can be left open.</small>}
    </div>}
-   {videosTotal>0&&<div className="identity-purchase-videos"><p><strong>{videosReady}</strong> of {videosTotal} videos ready{videosRunning?' - each takes a minute or two':''}</p><div className="identity-video-grid">{Object.entries(videos).map(([subject,item])=><figure key={subject}>{item.video?<video src={item.video} controls muted playsInline preload="metadata"/>:<div className={`identity-video-pending${item.status==='failed'?' is-failed':''}`}>{item.status==='failed'?(item.error||'Not completed'):'Creating video...'}</div>}<figcaption><strong>{item.name||applicationSubjects.find(s=>s.id===subject)?.name||subject}</strong>{item.mode&&<small> · {ARTWORK_SHORT[item.mode]||item.mode}</small>}</figcaption></figure>)}</div></div>}
+   {videosTotal>0&&<div className={`identity-purchase-videos${videosBlocked?' is-failed':''}`}><p><strong>{videosReady}</strong> of {videosTotal} videos ready{videosRunning?' - each takes a minute or two':''}{videosBlocked&&<> · <b>{videosFailed} failed</b></>}{videosBlocked&&<button type="button" className="identity-retry-videos" onClick={retryVideos}>Retry the failed videos</button>}</p><div className="identity-video-grid">{Object.entries(videos).map(([subject,item])=><figure key={subject}>{item.video?<video src={item.video} controls muted playsInline preload="metadata"/>:<div className={`identity-video-pending${item.status==='failed'?' is-failed':''}`}>{item.status==='failed'?(item.error||'Not completed'):'Creating video...'}</div>}<figcaption><strong>{item.name||applicationSubjects.find(s=>s.id===subject)?.name||subject}</strong>{item.mode&&<small> · {ARTWORK_SHORT[item.mode]||item.mode}</small>}</figcaption></figure>)}</div></div>}
    {purchasedReady.length>0&&<div className="identity-purchase-grid">{purchasedReady.map(item=><figure className="identity-viewable-image" key={item.id}><img src={item.imageUrl} alt={`${item.name} visualization`}/><button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${item.name} visualization`}}))}>View</button><figcaption><strong>{item.name}</strong></figcaption></figure>)}</div>}
    {delivered&&<button type="button" className="identity-order-again" onClick={()=>window.dispatchEvent(new CustomEvent('identity:order-again'))}>Start a new identity</button>}
    {entitlement?.mode==='test'&&!delivered&&<button type="button" className="identity-reset-purchase" onClick={resetPurchase}>Clear this test purchase</button>}
