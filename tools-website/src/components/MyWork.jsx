@@ -4,13 +4,14 @@ import {importAccountWork,savedReceipts} from '../lib/video-receipt.mjs';
 import {savedRequest,headers as nameLogoHeaders} from '../lib/name-logo-request.mjs';
 
 const DESIGN_LABELS={logo:'Name logo',initials:'Initials',signature:'Signature'};
-const label=row=>row.resource_kind==='name-logo-job'?(DESIGN_LABELS[row.mode]||'Identity design'):({'name-logo-visualization':'Real-world preview','analysis':'Analysis','first-frame':'First frame','video':'Video','name-logo-portfolio':'Identity collection','video-job':row.job_kind==='frame'?'First frame':row.job_kind==='video'?'Video':'Analysis'}[row.resource_kind]||row.resource_kind.replaceAll('-',' '));
+const label=row=>row.resource_kind==='name-logo-job'?(DESIGN_LABELS[row.mode]||'Identity design'):({'name-logo-visualization':'Real-world preview','analysis':'Analysis','first-frame':'First frame','video':'Video','name-logo-portfolio':'Identity collection','identity-video':'Video','video-job':row.job_kind==='frame'?'First frame':row.job_kind==='video'?'Video':'Analysis'}[row.resource_kind]||row.resource_kind.replaceAll('-',' '));
 const stageLabel=row=>row.mode?(DESIGN_LABELS[row.mode]||'Identity design'):row.stage_key?.startsWith('video_')?'Generated video':row.stage_key?.startsWith('frame_')?'First frame':'Identity design';
 
 const isDesign=row=>row.resource_kind==='name-logo-job';
 // Anything generated from one of the three packages lands here, so a bundle is
 // offered whenever any real-world preview was ever produced for the request.
 const isPreview=row=>row.resource_kind==='name-logo-visualization'&&row.job_status==='succeeded';
+const isClip=row=>row.resource_kind==='identity-video'&&row.job_status==='succeeded';
 const identityName=rows=>{const named=rows.find(row=>row.first);return named?`${named.first} ${named.last||''}`.trim():''};
 const previewTitle=row=>{const template=row.template||row.output?.template||'';return template?template.replace(/-/g,' ').replace(/^\w/,c=>c.toUpperCase()):'Real-world preview'};
 
@@ -24,8 +25,13 @@ function AssetPreviews({rows,all=false,onOpen}){
    try{
     const root=rows[0],receipt=await requestReceipt(root.request_id),access={requestId:root.request_id,receipt};
     if(root.scope==='name-logo'){
-     const designs=rows.filter(isDesign),previews=rows.filter(isPreview);
+     const designs=rows.filter(isDesign),previews=rows.filter(isPreview),clips=rows.filter(isClip);
      const wanted=all?[...designs,...previews]:[...designs.slice(0,3),...previews.slice(0,5)];
+     const loadedClips=(await Promise.all((all?clips:clips.slice(0,2)).map(async row=>{
+      const response=await fetch('/api/name-logo/visualization-video-status',{method:'POST',headers:{'Content-Type':'application/json',...nameLogoHeaders({access})},body:JSON.stringify({id:row.resource_id}),signal:controller.signal});
+      if(!response.ok)return null;const data=await response.json();
+      return data.video?{kind:'video',src:data.video,label:'Video'}:null;
+     }))).filter(Boolean);
      const loaded=(await Promise.all(wanted.map(async row=>{
       const path=isDesign(row)?'image':'visualization-image';
       const response=await fetch(`/api/name-logo/${path}?id=${encodeURIComponent(row.resource_id)}`,{headers:nameLogoHeaders({access}),signal:controller.signal});
@@ -33,7 +39,7 @@ function AssetPreviews({rows,all=false,onOpen}){
       const src=URL.createObjectURL(await response.blob());objects.push(src);
       return {kind:'image',src,label:isDesign(row)?stageLabel(row):previewTitle(row)};
      }))).filter(Boolean);
-     if(live)setItems(loaded);
+     if(live)setItems([...loaded,...loadedClips]);
      return;
     }
     const jobs=rows.filter(row=>row.resource_kind==='video-job').slice(-6),loaded=[];

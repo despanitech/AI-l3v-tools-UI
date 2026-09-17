@@ -63,6 +63,8 @@ export function simulatedCatalog() {
 
 const designsKey = requestId => `${PREFIX}${requestId}/designs.json`;
 const previewKey = (requestId, id) => `${PREFIX}${requestId}/previews/${id}.json`;
+const videoKey = (requestId, id) => `${PREFIX}${requestId}/videos/${id}.json`;
+const VIDEO_DONE_AT = 8;
 
 async function readJson(store, key) {
   const object = await store.get(key);
@@ -158,6 +160,25 @@ export async function simulate(store, assets, {action, payload = {}, now = Date.
     const mode = designs?.designs?.find(design => design.id === record.designId)?.mode;
     const bytes = await assets(sampleForTemplate(record.template, mode));
     return bytes ? {status: 200, bytes} : {status: 404, json: {error: 'Sample missing'}};
+  }
+
+  if (action === 'visualization-video') {
+    const record = valid32(requestId) && valid32(payload.id) ? await readJson(store, previewKey(requestId, payload.id)) : null;
+    if (!record) return {status: 404, json: {error: 'Visualization not found'}};
+    if (stage(record.createdAt, previewDoneAt(record.id), now) !== 'succeeded') return {status: 400, json: {error: 'Completed preview required'}};
+    const designs = await readJson(store, designsKey(requestId));
+    const mode = designs?.designs?.find(design => design.id === record.designId)?.mode || 'logo';
+    const clip = {id: id32(), createdAt: now, source: payload.id, mode};
+    await store.put(videoKey(requestId, clip.id), JSON.stringify(clip), {httpMetadata: {contentType: 'application/json'}});
+    return {status: 202, json: {job: {id: clip.id, status: 'queued'}}};
+  }
+
+  if (action === 'visualization-video-status') {
+    const clip = valid32(requestId) && valid32(payload.id) ? await readJson(store, videoKey(requestId, payload.id)) : null;
+    if (!clip) return {status: 404, json: {error: 'Video not found'}};
+    const status = stage(clip.createdAt, VIDEO_DONE_AT, now);
+    return {status: 200, json: {job: {id: clip.id, status}, duration: 5, resolution: '480p', audio: false,
+      ...(status === 'succeeded' ? {video: `/assets/identity-subjects/demo/clips/${clip.mode}.mp4`} : {})}};
   }
 
   return {status: 404, json: {error: 'Not found'}};

@@ -9,7 +9,7 @@ import {zip, safeEntryName} from './src/lib/zip.mjs';
 
 const KEY_PREFIX = 'bundles/';
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
-const MAX_IMAGES = 40;
+const MAX_IMAGES = 60;
 
 const valid = value => /^[a-f0-9]{32,64}$/.test(value || '');
 
@@ -22,7 +22,7 @@ export function bundleKey(accountId, requestId) {
  * Fetch the request's finished visualizations from the gateway and store one
  * zip. Returns null when the request has nothing to bundle.
  */
-export async function buildBundle(env, {accountId, requestId, receipt, name, gateway}) {
+export async function buildBundle(env, {accountId, requestId, receipt, name, gateway, clips}) {
   if (!valid(accountId) || !valid(requestId)) return null;
 
   const listed = await gateway('visualization-list', {access: {requestId, receipt}});
@@ -39,6 +39,8 @@ export async function buildBundle(env, {accountId, requestId, receipt, name, gat
     files.push({name: safeEntryName(item.output.template, index, bytes[0] === 0xFF ? 'jpg' : 'png'), bytes});
   }
   if (!files.length) return null;
+  // Studio's clips, when the purchase has any; a clip that is not ready yet is simply not in the bundle.
+  if (typeof clips === 'function') for (const clip of await clips()) if (clip?.bytes?.length) files.push(clip);
 
   const blob = zip(files);
   const bytes = new Uint8Array(await blob.arrayBuffer());

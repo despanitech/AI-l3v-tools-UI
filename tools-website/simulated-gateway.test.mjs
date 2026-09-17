@@ -131,3 +131,23 @@ test('a preview made from a design serves the demo of that artwork type', async 
   assert.equal(sampleForTemplate('candle-jar', 'logo'), '/assets/identity-subjects/demo/logo/candle-jar.jpg');
   assert.match(sampleForTemplate('candle-jar'), /branded\/packaging-john-smith-\d\.png$/, 'no artwork type falls back to the category crop');
 });
+
+test('a clip is made from a finished preview and lands on its own clock', async () => {
+  const store = bucket();
+  const t0 = 9_000_000;
+  const created = await simulate(store, assets, {action: 'generate', now: t0, payload: {access, styles: [{mode: 'logo', id: 'soft-angular'}, {mode: 'initials', id: 'woven-serif'}, {mode: 'signature', id: 'compact-autograph'}]}});
+  const design = (await simulate(store, assets, {action: 'status', now: t0, payload: {access, id: created.json.id}})).json.designs.find(d => d.mode === 'signature');
+  const preview = await simulate(store, assets, {action: 'visualization-generate', now: t0, payload: {access, designId: design.id, template: 'boat-sail'}});
+  const early = await simulate(store, assets, {action: 'visualization-video', now: t0 + 1000, payload: {access, id: preview.json.id}});
+  assert.equal(early.status, 400, 'the preview must be finished first');
+  const clip = await simulate(store, assets, {action: 'visualization-video', now: t0 + 20000, payload: {access, id: preview.json.id}});
+  assert.equal(clip.status, 202);
+  assert.equal(clip.json.job.status, 'queued');
+  const running = await simulate(store, assets, {action: 'visualization-video-status', now: t0 + 23000, payload: {access, id: clip.json.job.id}});
+  assert.equal(running.json.job.status, 'running');
+  assert.equal(running.json.video, undefined, 'no url before it lands');
+  const done = await simulate(store, assets, {action: 'visualization-video-status', now: t0 + 29000, payload: {access, id: clip.json.job.id}});
+  assert.equal(done.json.job.status, 'succeeded');
+  assert.equal(done.json.video, '/assets/identity-subjects/demo/clips/signature.mp4', 'the sample clip matches the design the preview came from');
+  assert.equal((await simulate(store, assets, {action: 'visualization-video', now: t0, payload: {access, id: 'f'.repeat(32)}})).status, 404);
+});

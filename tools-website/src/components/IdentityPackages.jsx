@@ -3,12 +3,13 @@ import {zip,safeEntryName} from '../lib/zip.mjs';
 import './IdentityPackages.css';
 import {call,headers} from '../lib/name-logo-request.mjs';
 import {accessFetch} from '../lib/master-access.mjs';
+import {pickVideoSubjects} from '../lib/video-picks.mjs';
 import {applicationArtwork,applicationGroups,applicationPreviewImage,applicationPreviewStyle,applicationSubjects,recommendedApplications,selectionSubjects} from './identityApplicationSubjects';
 
 const packages=[
  {id:'free',count:9,kicker:'FREE',price:'$0',name:'Try it',headline:'9 included previews',description:'Your nine generated real-world previews are included.',features:['Your generated random applications','No extra generation required','Standard resolution'],image:'/assets/signature-demos/david-villi-large-scale-signature-collage.png',position:'left bottom',example:'Tattoo preview',modalCopy:'Nine real-world applications generated with your identity.'},
- {id:'creator',count:10,kicker:'MOST POPULAR',price:'$5.99',oldPrice:'$9.99',name:'Creator set',headline:'10-image collection',description:'Receive 10 different application images built around your design.',features:['Distinct products and use cases','No recolors counted as another example','HD image downloads'],image:'/assets/signature-demos/david-villi-three-signatures-product-collage.png',position:'right top',example:'Perfume identity',modalCopy:'Ten different product and personal applications in HD.',recommended:true},
- {id:'studio',count:30,kicker:'COMPLETE',price:'$9.99',oldPrice:'$19.99',name:'Signature studio',headline:'30 images + 3 videos',description:'Receive 30 distinct application images, three 5-second videos and production-ready files.',features:['Distinct products, spaces, and use cases','No recolors counted as another example','4K image downloads','Three 5-second product and reveal videos'],image:'/assets/signature-demos/david-villi-large-scale-signature-collage.png',position:'left top',example:'Full brand rollout',modalCopy:'Twenty-five distinct applications plus short cinematic videos.'},
+ {id:'creator',count:10,videos:0,kicker:'MOST POPULAR',price:'$5.99',oldPrice:'$9.99',name:'Creator set',headline:'10-image collection',description:'Receive 10 different application images built around your design.',features:['Distinct products and use cases','No recolors counted as another example','HD image downloads'],image:'/assets/signature-demos/david-villi-three-signatures-product-collage.png',position:'right top',example:'Perfume identity',modalCopy:'Ten different product and personal applications in HD.',recommended:true},
+ {id:'studio',count:30,videos:3,kicker:'COMPLETE',price:'$9.99',oldPrice:'$19.99',name:'Signature studio',headline:'30 images + 3 videos',description:'Receive 30 distinct application images, three 5-second videos and production-ready files.',features:['Distinct products, spaces, and use cases','No recolors counted as another example','4K image downloads','Three 5-second product and reveal videos'],image:'/assets/signature-demos/david-villi-large-scale-signature-collage.png',position:'left top',example:'Full brand rollout',modalCopy:'Twenty-five distinct applications plus short cinematic videos.'},
 ];
 
 function ExampleModal({item,onClose}){
@@ -178,6 +179,10 @@ export default function IdentityPackages({request,name,designs=[]}){
  },[request?.access?.requestId,selectionSaved]);
 
  const purchaseStarted=useRef(false);
+ // Studio's clips: started once the images are in, tracked by the preview
+ // they were made from, and delivery waits for them.
+ const videosStarted=useRef(false);
+ const [videos,setVideos]=useState({});
  const deliveryStarted=useRef(false);
  const [deliveredHere,setDelivered]=useState(false);
  // Delivery is a fact on the server, so a reload or another tab shows the
@@ -208,6 +213,11 @@ export default function IdentityPackages({request,name,designs=[]}){
   .map(item=>({id:item.id,name:item.subject?.name||item.id,imageUrl:item.job.imageUrl}));
  const selectionShort=Math.max(0,chosen.count-selectedSubjects.length);
  const bundleReady=generatedItems.length>0&&progressSettled===progressTotal;
+ const videosTotal=paidFor?Math.min(chosen.videos||0,generatedItems.length):0;
+ const videoList=Object.values(videos);
+ const videosReady=videoList.filter(item=>item.status==='succeeded'&&item.video).length;
+ const videosRunning=videoList.some(item=>!['succeeded','failed'].includes(item.status));
+ const videosSettled=videosTotal===0||(videoList.length>=videosTotal&&!videosRunning);
  const generationFinished=progressTotal>0&&progressSettled===progressTotal&&generatedItems.length>0;
  const purchasedSubjects=purchaseIntent?.subjects||[];
  const purchasedReady=purchasedSubjects.map(id=>({id,job:jobs[id],subject:applicationSubjects.find(item=>item.id===id)}))
@@ -257,9 +267,11 @@ export default function IdentityPackages({request,name,designs=[]}){
    // read "0 of 10 ready" under a banner saying the bundle is stored.
    ready:delivered?0:generatedItems.length,
    total:delivered?0:progressTotal,
+   videosReady:delivered?0:videosReady,
+   videosTotal:delivered?0:videosTotal,
   }:null;
   window.dispatchEvent(new CustomEvent('identity:purchase-state',{detail}));
- },[purchaseStage,paidFor,delivered,bundleReady,paidPackageName,generatedItems.length,progressTotal,entitlement?.downloadedAt]);
+ },[purchaseStage,paidFor,delivered,bundleReady,paidPackageName,generatedItems.length,progressTotal,entitlement?.downloadedAt,videosReady,videosTotal]);
 
  useEffect(()=>{
   const download=()=>{if(delivered)downloadStoredBundle();else if(bundleReady)bundleAndDownload(generatedItems,'bundle')};
@@ -286,7 +298,7 @@ export default function IdentityPackages({request,name,designs=[]}){
  // once fulfilled, so doing it the other way round could leave a buyer with
  // neither an entitlement nor a bundle.
  useEffect(()=>{
-  if(!paidFor||!bundleReady||!request?.access||deliveryStarted.current)return;
+  if(!paidFor||!bundleReady||!videosSettled||!request?.access||deliveryStarted.current)return;
   deliveryStarted.current=true;
   (async()=>{
    try{
@@ -308,9 +320,38 @@ export default function IdentityPackages({request,name,designs=[]}){
     setGenerationError('Your images are ready but could not be saved to My assets yet.');
    }
   })();
- },[paidFor,bundleReady,request?.access?.requestId,name]);
+ },[paidFor,bundleReady,videosSettled,request?.access?.requestId,name]);
 
- const packagesBusy=Boolean(isGenerating||confirmingPayment||bundling||(purchaseStage&&purchaseStage!=='ready'&&purchaseStage!=='unconfirmed'&&!delivered));
+ useEffect(()=>{
+  if(!paidFor||!bundleReady||!videosTotal||videosStarted.current||!request?.access)return;
+  videosStarted.current=true;
+  const controller=new AbortController();
+  const picks=pickVideoSubjects(generatedItems,videosTotal).map(item=>({subject:item.id,visualization:jobs[item.id]?.id})).filter(item=>item.visualization);
+  const wait=ms=>new Promise((resolve,reject)=>{const timer=setTimeout(resolve,ms);controller.signal.addEventListener('abort',()=>{clearTimeout(timer);reject(new DOMException('Aborted','AbortError'))},{once:true})});
+  (async()=>{
+   for(const pick of picks){
+    setVideos(current=>({...current,[pick.subject]:{status:'starting'}}));
+    try{const created=await call('visualization-video',request,{id:pick.visualization},controller.signal);setVideos(current=>({...current,[pick.subject]:{jobId:created.id,status:created.status==='existing'?'queued':created.status,video:created.video||null}}))}
+    catch(error){if(error.name==='AbortError')return;setVideos(current=>({...current,[pick.subject]:{status:'failed',error:error.status===403?'Not included in your package.':'This video could not be started.'}}))}
+   }
+   while(!controller.signal.aborted){
+    await wait(5000);
+    let pending=false;
+    for(const pick of picks){
+     const current=videosRef.current[pick.subject];
+     if(!current?.jobId||['succeeded','failed'].includes(current.status))continue;
+     pending=true;
+     try{const state=await call('visualization-video-status',request,{id:current.jobId},controller.signal);setVideos(items=>({...items,[pick.subject]:{...items[pick.subject],status:state.status==='succeeded'&&!state.video?'running':state.status,video:state.video||null,error:state.error||null}}))}
+     catch(error){if(error.name==='AbortError')return;if(error.status===404)setVideos(items=>({...items,[pick.subject]:{...items[pick.subject],status:'failed',error:'This video expired.'}}))}
+    }
+    if(!pending)return;
+   }
+  })();
+  return()=>controller.abort();
+ },[paidFor,bundleReady,videosTotal,request?.access?.requestId]);
+ const videosRef=useRef(videos);videosRef.current=videos;
+
+ const packagesBusy=Boolean(isGenerating||videosRunning||confirmingPayment||bundling||(purchaseStage&&purchaseStage!=='ready'&&purchaseStage!=='unconfirmed'&&!delivered));
  useEffect(()=>{window.dispatchEvent(new CustomEvent('identity:busy',{detail:{source:'packages',busy:packagesBusy}}))},[packagesBusy]);
  useEffect(()=>()=>window.dispatchEvent(new CustomEvent('identity:busy',{detail:{source:'packages',busy:false}})),[]);
 
@@ -395,6 +436,7 @@ export default function IdentityPackages({request,name,designs=[]}){
     <p><strong>{progress.done}</strong> of {progressTotal} ready{progressParts.length?` - ${progressParts.join(', ')}`:''}</p>
     {purchaseStage!=='ready'&&<small>Each image is generated by a provider and takes a little while. This page can be left open.</small>}
    </div>}
+   {videosTotal>0&&<div className="identity-purchase-videos"><p><strong>{videosReady}</strong> of {videosTotal} videos ready{videosRunning?' - each takes a minute or two':''}</p><div className="identity-video-grid">{Object.entries(videos).map(([subject,item])=><figure key={subject}>{item.video?<video src={item.video} controls muted playsInline preload="metadata"/>:<div className={`identity-video-pending${item.status==='failed'?' is-failed':''}`}>{item.status==='failed'?(item.error||'Not completed'):'Creating video...'}</div>}<figcaption><strong>{applicationSubjects.find(s=>s.id===subject)?.name||subject}</strong></figcaption></figure>)}</div></div>}
    {purchasedReady.length>0&&<div className="identity-purchase-grid">{purchasedReady.map(item=><figure className="identity-viewable-image" key={item.id}><img src={item.imageUrl} alt={`${item.name} visualization`}/><button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${item.name} visualization`}}))}>View</button><figcaption><strong>{item.name}</strong></figcaption></figure>)}</div>}
    {delivered&&<button type="button" className="identity-order-again" onClick={()=>window.dispatchEvent(new CustomEvent('identity:order-again'))}>Start a new identity</button>}
    {entitlement?.mode==='test'&&!delivered&&<button type="button" className="identity-reset-purchase" onClick={resetPurchase}>Clear this test purchase</button>}
