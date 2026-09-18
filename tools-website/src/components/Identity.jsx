@@ -18,6 +18,7 @@ const PURCHASE_COPY={
  preparing:{title:'Thanks for your payment',body:'Your bundle is being prepared. This page can be left open.'},
  ready:{title:'Thanks for your payment',body:'Your bundle is ready to download.'},
  'videos-failed':{title:'Your videos did not complete',body:'The images are ready, but the videos failed and nothing has been delivered. Retry them to finish your set.'},
+ 'videos-rejected':{title:'The video provider blocked this name',body:'Its content filter judged the name or artwork profane or explicit, so the videos cannot be made and nothing has been delivered. Start again with a different name or spelling.'},
  delivered:{title:'Saved to My assets',body:'Your bundle is stored in the library and stays available there.'},
  downloaded:{title:'Your bundle has been downloaded',body:'It stays available here. Download it again any time.'},
  unconfirmed:{title:'Payment not confirmed yet',body:'Nothing was prepared and you have not been charged twice. Reload in a moment, or contact support with your request reference.'},
@@ -25,7 +26,7 @@ const PURCHASE_COPY={
 
 function PurchaseBanner({state}){
  if(!state)return null;
- const copy=PURCHASE_COPY[state.stage==='ready'&&state.downloadedAt?'downloaded':state.stage]||PURCHASE_COPY.preparing;
+ const copy=PURCHASE_COPY[state.stage==='ready'&&state.downloadedAt?'downloaded':state.stage==='videos-failed'&&state.videosContentRejected?'videos-rejected':state.stage]||PURCHASE_COPY.preparing;
  const done=state.stage==='ready',waiting=state.stage==='confirming',failed=state.stage==='unconfirmed';
  const percent=state.total?Math.round(state.ready/state.total*100):0;
  return <aside className={`identity-purchase-banner ${state.stage}`} role="status" aria-live="polite">
@@ -38,7 +39,8 @@ function PurchaseBanner({state}){
   </div>
   {done&&<button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:download-bundle'))}>{state.downloadedAt?'Download again':'Download bundle'}</button>}
   {state.stage==='videos-failed'&&state.videosFailedReasons?.length>0&&<ul className="identity-purchase-reasons" aria-label="Why the videos failed">{state.videosFailedReasons.map((reason,index)=><li key={index}>{reason}</li>)}</ul>}
-  {state.stage==='videos-failed'&&<button type="button" className="is-retry" onClick={()=>window.dispatchEvent(new CustomEvent('identity:retry-videos'))}>Retry the failed videos</button>}
+  {state.stage==='videos-failed'&&!state.videosContentRejected&&<button type="button" className="is-retry" onClick={()=>window.dispatchEvent(new CustomEvent('identity:retry-videos'))}>Retry the failed videos</button>}
+  {state.stage==='videos-failed'&&state.videosContentRejected&&<button type="button" className="is-retry" onClick={()=>window.dispatchEvent(new CustomEvent('identity:order-again'))}>Start again with a different name</button>}
  </aside>;
 }
 
