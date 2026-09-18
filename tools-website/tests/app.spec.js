@@ -162,3 +162,4 @@ test('public hostname never connects to local editor and desktop layout renders'
   await page.getByRole('heading', {name: 'Make it your own.'}).click();
   await page.screenshot({path: 'test-results/identity-desktop.png', fullPage: true});
 });
+
