@@ -34,7 +34,7 @@ function PurchaseBanner({state}){
    <strong>{copy.title}</strong>
    <span>{copy.body}</span>
    {!waiting&&!failed&&state.total>0&&<div className="identity-purchase-meter"><i style={{width:`${percent}%`}}/></div>}
-   {!waiting&&!failed&&state.total>0&&<small>{state.ready} of {state.total} ready{state.videosTotal?` · videos ${state.videosReady} of ${state.videosTotal}`:''}{state.packageName?` · ${state.packageName}`:''}</small>}
+   {!waiting&&!failed&&state.total>0&&<small>{state.ready} of {state.total} ready{state.videosTotal?` · videos ${state.videosReady} of ${state.videosTotal}${state.videosRunning?` (${state.videosRunning} rendering${state.videosStartedAt?` since ${new Date(state.videosStartedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`:''})`:state.videosFailed?` (${state.videosFailed} failed)`:''}`:''}{state.packageName?` · ${state.packageName}`:''}</small>}
   </div>
   {done&&<button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:download-bundle'))}>{state.downloadedAt?'Download again':'Download bundle'}</button>}
  </aside>;

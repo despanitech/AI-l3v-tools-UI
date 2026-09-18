@@ -291,6 +291,10 @@ export default function IdentityPackages({request,name,designs=[]}){
    total:delivered?0:stepsTotal,
    videosReady:delivered?0:videosReady,
    videosTotal:delivered?0:videosTotal,
+   // What the clips are doing right now, so the banner never reads as dead.
+   videosRunning:delivered?0:videoList.filter(item=>!['succeeded','failed'].includes(item.status)).length,
+   videosFailed:delivered?0:videosFailed,
+   videosStartedAt:delivered?null:Math.min(...videoList.map(item=>item.startedAt||Infinity).filter(Number.isFinite),Infinity)===Infinity?null:Math.min(...videoList.map(item=>item.startedAt||Infinity).filter(Number.isFinite)),
   }:null;
   window.dispatchEvent(new CustomEvent('identity:purchase-state',{detail}));
  },[purchaseStage,paidFor,delivered,bundleReady,paidPackageName,generatedItems.length,progressTotal,entitlement?.downloadedAt,videosReady,videosTotal]);
