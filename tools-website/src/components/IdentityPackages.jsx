@@ -5,7 +5,7 @@ import {call,headers} from '../lib/name-logo-request.mjs';
 import {accessFetch} from '../lib/master-access.mjs';
 import {pickVideoSubjects} from '../lib/video-picks.mjs';
 import {ARTWORK_SHORT,artworkCounts,balanceArtwork,nextArtwork} from '../lib/artwork-mix.mjs';
-import {failureText,retryText} from '../lib/failure-copy.mjs';
+import {failureText,retryText,isContentRejected} from '../lib/failure-copy.mjs';
 import {INCLUDED_PREVIEWS} from '../../generation-allowance.mjs';
 import {applicationArtwork,applicationGroups,applicationPreviewImage,applicationPreviewStyle,applicationSubjects,recommendedApplications,selectionSubjects} from './identityApplicationSubjects';
 
@@ -297,6 +297,7 @@ export default function IdentityPackages({request,name,designs=[]}){
    videosFailed:delivered?0:videosFailed,
    // The reasons themselves, so the banner can quote them instead of "did not complete".
    videosFailedReasons:delivered?[]:videoList.filter(item=>item.status==='failed').map(item=>item.error).filter(Boolean).slice(0,3),
+   videosContentRejected:!delivered&&videosFailed>0&&videoList.filter(item=>item.status==='failed').every(item=>isContentRejected(item.error)),
    videosStartedAt:delivered?null:Math.min(...videoList.map(item=>item.startedAt||Infinity).filter(Number.isFinite),Infinity)===Infinity?null:Math.min(...videoList.map(item=>item.startedAt||Infinity).filter(Number.isFinite)),
   }:null;
   window.dispatchEvent(new CustomEvent('identity:purchase-state',{detail}));

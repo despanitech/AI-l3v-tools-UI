@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {failureText, retryText} from './src/lib/failure-copy.mjs';
+import {failureText, retryText, isContentRejected, CONTENT_REJECTED_TEXT} from './src/lib/failure-copy.mjs';
 
 test('a recorded reason leads, then the code and a short reference', () => {
   assert.equal(failureText({code: 'image-auth-required', stage: 'generate-image:generating', traceId: 'a'.repeat(32), reason: 'Image worker ended in state failed-or-ambiguous during generating (RuntimeError)'}),
@@ -20,4 +20,11 @@ test('a running job on another attempt says so, with the reason', () => {
   assert.equal(retryText({attempt: 3, of: 3, code: 'provider-no-final-image'}), 'Retrying · attempt 3 of 3 (provider-no-final-image)');
   assert.equal(retryText(null), '');
   assert.equal(retryText({code: 'x'}), '');
+});
+
+test('a content rejection is said plainly, with no code or reference', () => {
+  assert.equal(failureText({code: 'content-rejected', stage: 'provider', traceId: 'c'.repeat(32), reason: 'anything', detail: 'INPUT_PREPROCESSING.SAFETY.THIRD_PARTY'}), CONTENT_REJECTED_TEXT);
+  assert.equal(isContentRejected({code: 'content-rejected'}), true);
+  assert.equal(isContentRejected(CONTENT_REJECTED_TEXT), true);
+  assert.equal(isContentRejected({code: 'provider-timeout'}), false);
 });
