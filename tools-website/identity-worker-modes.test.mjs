@@ -257,6 +257,9 @@ test('studio clips: gated on the purchase, two per identity, delivered into the 
     const built=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/bundle-build',{method:'POST',headers:{...access,'X-L3V-Invitation':credential},body:JSON.stringify({name:'John Smith'})}),lane);
     assert.equal(built.status,200,'bundle: '+JSON.stringify(await built.clone().json()));
     assert.equal((await built.json()).count,4+2,'four images and two clips in the bundle');
+    const withDesigns=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/bundle-build',{method:'POST',headers:{...access,'X-L3V-Invitation':credential},body:JSON.stringify({name:'John Smith',designs:designs.map(d=>({id:d.id,mode:d.mode}))})}),lane);
+    assert.equal(withDesigns.status,200);
+    assert.equal((await withDesigns.json()).count,3+4+2,'three designs (PNG; the simulator has no SVG), four images, two clips');
     await post('fulfil',{},lane);
     const after=await post('visualization-video',{id:previews[3]},lane);
     assert.equal((await after.json()).reason,'no-video-package','delivered entitles no more clips');

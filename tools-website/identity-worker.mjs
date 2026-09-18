@@ -211,7 +211,8 @@ export default {
           return new Response(object.body,{headers:{'Content-Type':'application/zip','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff',
             'Content-Disposition':`attachment; filename="${(object.customMetadata?.name||'identity').replace(/[^a-zA-Z0-9-]/g,'-').slice(0,40)||'identity'}-bundle.zip"`}});
         }
-        if(Object.keys(body).length&&Object.keys(body).join(',')!=='name')return json({error:'Invalid fields'},400);
+        if(Object.keys(body).some(key=>!['name','designs'].includes(key)))return json({error:'Invalid fields'},400);
+        const designs=Array.isArray(body.designs)?body.designs.filter(item=>item&&/^[a-f0-9]{32}$/.test(item.id||'')&&['logo','initials','signature'].includes(item.mode)).slice(0,3):[];
         const purchaseRecord=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,stripeConfig(env).mode,{includeFulfilled:true}):null;
         const clips=async()=>{const out=[];for(const [index,item] of (purchaseRecord?.videos||[]).entries()){
           const state=await identityVideo(env,{mode,action:'visualization-video-status',access,account,origin:url.origin,id:item.jobId,traceId});
@@ -219,7 +220,7 @@ export default {
           console.log(JSON.stringify({event:'name-logo.bundle-clip',index:index+1,status:state.status||null,hasVideo:Boolean(state.video),bytes:fetched?.bytes?.length||0,reason:fetched?.reason||null,traceId}));
           if(fetched?.bytes)out.push({name:`video-${index+1}.mp4`,bytes:fetched.bytes});
         }return out};
-        const built=await buildBundle(env,{accountId:account,requestId:access.requestId,receipt:access.receipt,name:body.name,clips,
+        const built=await buildBundle(env,{accountId:account,requestId:access.requestId,receipt:access.receipt,name:body.name,clips,designs,
           gateway:isSimulated(mode)?simulatedCaller(env,url.origin):gatewayCaller(env,traceId,access.requestId)});
         console.log(JSON.stringify({event:'name-logo.bundle-stored',stored:Boolean(built),count:built?.count||0,traceId}));
         if(!built)return json({error:'Nothing to bundle yet'},409);

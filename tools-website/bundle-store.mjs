@@ -22,16 +22,27 @@ export function bundleKey(accountId, requestId) {
  * Fetch the request's finished visualizations from the gateway and store one
  * zip. Returns null when the request has nothing to bundle.
  */
-export async function buildBundle(env, {accountId, requestId, receipt, name, gateway, clips}) {
+export async function buildBundle(env, {accountId, requestId, receipt, name, gateway, clips, designs = []}) {
   if (!valid(accountId) || !valid(requestId)) return null;
+
+  // The identity itself comes first: each design as PNG, and as SVG where the
+  // gateway traced one. Never only the products it was applied to.
+  const identity = [];
+  for (const design of designs.filter(item => /^[a-f0-9]{32}$/.test(item?.id || '')).slice(0, 3)) {
+    const label = ['logo', 'initials', 'signature'].includes(design.mode) ? design.mode : 'design';
+    const png = await gateway('image', {access: {requestId, receipt}, id: design.id}, true);
+    if (png && png.length <= MAX_IMAGE_BYTES) identity.push({name: `identity-${label}.png`, bytes: png});
+    const svg = await gateway('image', {access: {requestId, receipt}, id: design.id, format: 'svg'}, true).catch(() => null);
+    if (svg && svg.length <= MAX_IMAGE_BYTES) identity.push({name: `identity-${label}.svg`, bytes: svg});
+  }
 
   const listed = await gateway('visualization-list', {access: {requestId, receipt}});
   const ready = (listed?.visualizations || [])
     .filter(item => item.status === 'succeeded' && item.output?.template)
     .slice(0, MAX_IMAGES);
-  if (!ready.length) return null;
+  if (!ready.length && !identity.length) return null;
 
-  const files = [];
+  const files = [...identity];
   for (const [index, item] of ready.entries()) {
     const bytes = await gateway('visualization-image', {access: {requestId, receipt}, id: item.id}, true);
     if (!bytes || bytes.length > MAX_IMAGE_BYTES) continue;
