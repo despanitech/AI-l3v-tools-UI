@@ -50,6 +50,7 @@
 .asset-tile-badge{position:absolute;top:8px;left:8px;padding:3px 8px;border-radius:999px;background:rgba(36,36,36,.82);color:#fff;font-size:10px;font-weight:600;letter-spacing:.6px;pointer-events:none}
 .asset-tile-more>button{display:grid;place-content:center;justify-items:center;gap:2px;border-style:dashed;background:#f1f0ea;color:var(--foreground,#242424);font-size:18px;font-weight:500;cursor:pointer}
 .asset-tile-more small{font-size:11px;color:var(--muted,#666)}
+.asset-tile-more.is-loading>div{display:grid;place-content:center;justify-items:center;gap:6px;aspect-ratio:4/3;border:1px dashed var(--border,#e3e3de);border-radius:10px;background:#f6f6f2}
 .asset-gallery-empty{margin:18px 0 0;color:var(--muted,#666);font-size:13px}
 @media(max-width:700px){.asset-card{padding:18px 16px}.asset-card-head{flex-direction:column}.asset-card-actions{width:100%}.asset-card-actions button{flex:1}.asset-grid,.asset-grid.is-all{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.asset-tile figcaption{font-size:10.5px}}
 .asset-lightbox{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px;background:rgba(10,10,10,.86)}
