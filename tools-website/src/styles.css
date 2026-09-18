@@ -66,3 +66,6 @@
 .identity-preview-open{display:block;width:100%;height:100%;padding:0;border:0;background:none;cursor:zoom-in}.identity-preview-open img{display:block;width:100%;height:100%;object-fit:cover}
 .identity-showcase-strip figure>button{display:block;width:100%;height:100%;padding:0;border:0;background:none;cursor:zoom-in}.identity-showcase-strip figure>button img{display:block;width:100%;height:100%;object-fit:cover}
 .identity-showcase-note{display:block;margin-top:8px;color:var(--muted,#666);font-size:10px;line-height:1.3;text-align:center}
+/* My assets carries the same rail as the identity pages; the page widens to make room. */
+.my-work:has(.identity-entry-layout){width:min(1220px,calc(100% - 64px))}.my-work .identity-entry-main{min-width:0}.my-work .identity-showcase{margin-top:52px}
+@media(max-width:900px){.my-work:has(.identity-entry-layout){width:min(980px,calc(100% - 40px))}.my-work .identity-entry-layout{grid-template-columns:1fr}.my-work .identity-showcase{display:none}}
