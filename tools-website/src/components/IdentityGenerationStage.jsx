@@ -176,6 +176,6 @@ export default function IdentityGenerationStage({
 
     {!complete&&message&&<p className="generation-status-message">{message}</p>}
     {!complete&&recovery&&<div className="generation-recovery"><strong>{recovery.title||'Generation needs attention'}</strong><p>{recovery.message||message}</p>{onPoll&&<button type="button" onClick={onPoll}>Check again</button>}</div>}
-    {failedDesigns>0&&!stillWorking&&!busy&&onRetry&&<div className="generation-recovery is-failed" role="alert"><strong>{failedDesigns===1?'One design did not complete':`${failedDesigns} designs did not complete`}</strong><p>The provider gave up on {failedDesigns===1?'it':'them'}. Your name and styles are kept; generate the set again to get a complete collection.</p><button type="button" onClick={onRetry}>Generate the set again</button></div>}
+    {failedDesigns>0&&!stillWorking&&!busy&&onRetry&&<div className="generation-recovery is-failed" role="alert"><strong>{failedDesigns===1?'One design did not complete':`${failedDesigns} designs did not complete`}</strong><ul className="identity-purchase-reasons">{shown.map((design,index)=>designOver(design)?<li key={design.id}><strong>{slots[index].label}:</strong> {design.error||failureText(design.diagnostic)}</li>:null)}</ul><p>Your name and styles are kept; generate the set again to get a complete collection.</p><button type="button" onClick={onRetry}>Generate the set again</button></div>}
   </section>;
 }
