@@ -1,4 +1,5 @@
 import {failureText,retryText} from '../lib/failure-copy.mjs';
+import {INCLUDED_PREVIEWS} from '../../generation-allowance.mjs';
 import {useState} from 'react';
 import {createPortal} from 'react-dom';
 import IdentityPackages from './IdentityPackages';
@@ -46,12 +47,12 @@ export default function IdentityGenerationStage({
   const previews=Object.values(visualizations);
   const readyPreviews=previews.filter(item=>item.status==='succeeded').length;
   const failedPreviews=previews.filter(item=>item.status==='failed').length;
-  const previewTotal=9;
+  const previewTotal=INCLUDED_PREVIEWS;
   const previewProgress=Math.round((readyPreviews/previewTotal)*100);
   const previewBatchFailed=failedPreviews===previewTotal;
 
   // The same advancement control is rendered above and below the content.
-  // Step 4 is built on the nine previews, so the way forward opens only once
+  // Step 4 is built on the included previews, so the way forward opens only once
   // they have all settled - it must not invite the buyer to skip them.
   const previewsPending=!sample&&!previewBatchFailed&&(previews.length<previewTotal||previews.some(item=>!['succeeded','failed','expired'].includes(item.status)));
   const nextBar=className=><div className={`${className}${previewsPending?' is-waiting':''}`}>
@@ -119,7 +120,7 @@ export default function IdentityGenerationStage({
           {nextBar('identity-step3-next identity-step3-next-top')}
           <div className="identity-step3-preview-progress" aria-label={`${readyPreviews} of ${previewTotal} previews ready`}><i style={{width:`${Math.max(previews.length?4:0,previewProgress)}%`}}/><span>{readyPreviews?`${readyPreviews} complete · `:''}{failedPreviews?`${failedPreviews} need attention · `:''}{Math.max(0,previewTotal-readyPreviews-failedPreviews)} in progress</span></div>
           <div className="identity-step3-application-grid">
-            {(previews.length?previews:Array.from({length:9},(_,index)=>({key:`waiting-${index}`,status:'waiting'}))).map(item=><figure key={item.key}>
+            {(previews.length?previews:Array.from({length:previewTotal},(_,index)=>({key:`waiting-${index}`,status:'waiting'}))).map(item=><figure key={item.key}>
               <div style={!item.imageUrl&&item.id?applicationPreviewStyle(item):undefined}>{item.imageUrl?<button type="button" className="identity-preview-open" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${previewTitle(item)} visualization`}}))} aria-label={`View ${previewTitle(item)} full size`}><img src={item.imageUrl} alt={`${previewTitle(item)} visualization`}/></button>:<span className={item.status==='failed'?'is-failed':''}>{item.status!=='failed'&&<i className="identity-preview-spinner"/>}{item.status==='failed'?'Preview needs attention':'Adding your identity…'}</span>}</div>
               <figcaption><strong>{item.id?previewTitle(item):'Preparing preview'}</strong><small title={item.status==='failed'?failureText(item.diagnostic):item.retry?retryText(item.retry):undefined} className={item.retry&&item.status!=='succeeded'&&item.status!=='failed'?'is-retrying':''}>{item.status==='succeeded'?'Ready':item.status==='failed'?failureText(item.diagnostic,'Not completed.'):item.retry?`Retrying ${item.retry.attempt}${item.retry.of?`/${item.retry.of}`:''}`:'In progress'}</small></figcaption>
             </figure>)}

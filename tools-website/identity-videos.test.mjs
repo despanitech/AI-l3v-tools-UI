@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {pickVideoSubjects, gateVideo, attachVideo, videosIncluded, VIDEO_SETTINGS, MOTION_FRIENDLY} from './identity-videos.mjs';
 
-test('studio includes three clips, creator none, at five seconds 480p without audio', () => {
-  assert.equal(videosIncluded('studio'), 3);
+test('studio includes two clips, creator none, at five seconds 480p without audio', () => {
+  assert.equal(videosIncluded('studio'), 2);
   assert.equal(videosIncluded('creator'), 0);
   assert.equal(videosIncluded('free'), 0);
   assert.deepEqual(VIDEO_SETTINGS, {duration: 5, resolution: '480p', audio: false});

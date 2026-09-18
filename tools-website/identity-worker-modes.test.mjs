@@ -176,17 +176,17 @@ test('generation is gated at the edge: nine included, more only with an undelive
     const {designs}=await (await post('status',{id},lane)).json();
     const design=designs[0].id;
     const templates=['upper-arm-tattoo','canvas-tote','backpack','baseball-cap','beanie','leather-wallet','phone-case','keychain','luggage-tag','t-shirt','hoodie'];
-    for(const template of templates.slice(0,9)){
+    for(const template of templates.slice(0,5)){
       assert.equal((await post('visualization-generate',{designId:design,template},lane)).status,200,template);
     }
     const again=await post('visualization-generate',{designId:design,template:'beanie'},lane);
     assert.equal(again.status,200,'an existing pair is free');
-    const tenth=await post('visualization-generate',{designId:design,template:templates[9]},lane);
-    assert.equal(tenth.status,403,'the tenth needs a purchase');
+    const tenth=await post('visualization-generate',{designId:design,template:templates[5]},lane);
+    assert.equal(tenth.status,403,'the sixth needs a purchase');
     const body=await tenth.json();
-    assert.equal(body.gated,true);assert.equal(body.reason,'included-used');assert.equal(body.used,9);assert.equal(body.allowance,9);
+    assert.equal(body.gated,true);assert.equal(body.reason,'included-used');assert.equal(body.used,5);assert.equal(body.allowance,5);
     assert.equal((await post('checkout',{packageId:'creator'},lane)).status,200,'dev purchase');
-    assert.equal((await post('visualization-generate',{designId:design,template:templates[9]},lane)).status,200,'paid: allowed');
+    assert.equal((await post('visualization-generate',{designId:design,template:templates[5]},lane)).status,200,'paid: allowed');
     const entitlement=await (await post('entitlement',{},lane)).json();
     assert.equal(entitlement.packageId,'creator');
     await post('fulfil',{},lane);
@@ -217,7 +217,7 @@ test('production gates from the gateway list, not from anything the client sends
   }finally{globalThis.fetch=original}
 });
 
-test('studio clips: gated on the purchase, three per identity, delivered into the bundle',async()=>{
+test('studio clips: gated on the purchase, two per identity, delivered into the bundle',async()=>{
   const original=globalThis.fetch;globalThis.fetch=noNetwork;
   const realNow=Date.now;let offset=0;Date.now=()=>realNow.call(Date)+offset;
   const ftyp=new Uint8Array([0,0,0,0x18,0x66,0x74,0x79,0x70,0x69,0x73,0x6f,0x6d,0,0,0,0]);
@@ -242,11 +242,10 @@ test('studio clips: gated on the purchase, three per identity, delivered into th
     const again=await post('visualization-video',{id:previews[0]},lane);
     assert.equal((await again.json()).id,firstBody.id,'same preview is the same clip, not a second one');
     assert.equal((await post('visualization-video',{id:previews[1]},lane)).status,200);
-    assert.equal((await post('visualization-video',{id:previews[2]},lane)).status,200);
-    const fourth=await post('visualization-video',{id:previews[3]},lane);
-    assert.equal(fourth.status,403);assert.equal((await fourth.json()).reason,'videos-complete');
+    const third=await post('visualization-video',{id:previews[2]},lane);
+    assert.equal(third.status,403);assert.equal((await third.json()).reason,'videos-complete');
     const record=JSON.parse(lane._kv.get('purchase:test:'+'a'.repeat(32)));
-    assert.equal(record.videos.length,3,'the purchase remembers its three clips');
+    assert.equal(record.videos.length,2,'the purchase remembers its two clips');
     const soon=await (await post('visualization-video-status',{id:firstBody.id},lane)).json();
     assert.notEqual(soon.status,'succeeded');
     offset+=10000;  // clips land
@@ -257,7 +256,7 @@ test('studio clips: gated on the purchase, three per identity, delivered into th
     lane._kv.set('token:'+accountId,accountId);
     const built=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/bundle-build',{method:'POST',headers:{...access,'X-L3V-Invitation':credential},body:JSON.stringify({name:'John Smith'})}),lane);
     assert.equal(built.status,200,'bundle: '+JSON.stringify(await built.clone().json()));
-    assert.equal((await built.json()).count,4+3,'four images and three clips in the bundle');
+    assert.equal((await built.json()).count,4+2,'four images and two clips in the bundle');
     await post('fulfil',{},lane);
     const after=await post('visualization-video',{id:previews[3]},lane);
     assert.equal((await after.json()).reason,'no-video-package','delivered entitles no more clips');

@@ -10,7 +10,7 @@
 import {PAID_PACKAGES} from './stripe-checkout.mjs';
 
 /** The automatic previews every identity gets on step 3. */
-export const INCLUDED_PREVIEWS = 9;
+export const INCLUDED_PREVIEWS = 5;
 
 export function allowanceFor(purchase) {
   const paid = purchase && !purchase.fulfilledAt ? PAID_PACKAGES[purchase.packageId]?.images || 0 : 0;
