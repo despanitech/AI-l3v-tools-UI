@@ -110,7 +110,7 @@ export default function IdentityGenerationStage({
       <div className="identity-step3-workspace">
         <aside className="identity-step3-design-rail">
           <div><p className="eyebrow">YOUR ACTIVE SET</p><h2>{personName(request)}</h2><p>Your generated designs are saved.</p></div>
-          {shown.map((design,index)=><figure key={design.id} className="identity-viewable-image">
+          {shown.map((design,index)=><figure key={design.id} className="identity-active-design">
             {assets[design.id]?.png?<button type="button" className="identity-design-open" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:assets[design.id].png,alt:`${slots[index].label} - ${styleName(design)}`}}))} aria-label={`View ${slots[index].label} full size`}><img src={assets[design.id].png} alt={`${slots[index].label} result`}/></button>:<img src={assets[design.id]?.png} alt={`${slots[index].label} result`}/>}
             <figcaption><strong>{slots[index].label}</strong><small>{styleName(design)}</small></figcaption>
           </figure>)}
