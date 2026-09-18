@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {accessFetch,requestReceipt} from '../lib/master-access.mjs';
 import {importAccountWork,savedReceipts} from '../lib/video-receipt.mjs';
 import {savedRequest,headers as nameLogoHeaders} from '../lib/name-logo-request.mjs';
+import RecentIdentityVisualizations from './RecentIdentityVisualizations.jsx';
 
 const DESIGN_LABELS={logo:'Name logo',initials:'Initials',signature:'Signature'};
 const label=row=>row.resource_kind==='name-logo-job'?(DESIGN_LABELS[row.mode]||'Identity design'):({'name-logo-visualization':'Real-world preview','analysis':'Analysis','first-frame':'First frame','video':'Video','name-logo-portfolio':'Identity collection','identity-video':'Video','video-job':row.job_kind==='frame'?'First frame':row.job_kind==='video'?'Video':'Analysis'}[row.resource_kind]||row.resource_kind.replaceAll('-',' '));
@@ -142,7 +143,7 @@ export default function MyWork({hidden}){
   finally{setBundling('')}
  }
 
- return <section className="my-work" hidden={hidden}>
+ return <section className="my-work" hidden={hidden}><div className="identity-entry-layout"><div className="identity-entry-main">
   <p className="eyebrow">PRIVATE LIBRARY</p>
   <h1>My assets</h1>
   <p>Everything generated under this invitation. Designs and previews are kept until the date on each card; a downloaded bundle is stored and stays available after that.</p>
@@ -173,5 +174,5 @@ export default function MyWork({hidden}){
    <button type="button" aria-label="Close full-size image" onClick={()=>setLightbox(null)}>Close</button>
    <figure onClick={event=>event.stopPropagation()}><img src={lightbox.src} alt={lightbox.label}/><figcaption>{lightbox.label}</figcaption></figure>
   </div>}
- </section>;
+ </div><RecentIdentityVisualizations/></div></section>;
 }
