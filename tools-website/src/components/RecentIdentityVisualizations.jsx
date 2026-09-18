@@ -15,6 +15,9 @@ function demoSamples(count){
 
 // Module-level so the rail survives unmounting (e.g. switching to My assets and back).
 const kept={items:[],urls:new Map()};
+// Feed images are private, so they are fetched with the invitation header and
+// held as object URLs for the session rather than re-requested every poll.
+const feedImages=new Map();
 
 export default function RecentIdentityVisualizations(){
  // The rail keeps the last real previews it was shown - across step changes,
@@ -46,8 +49,20 @@ export default function RecentIdentityVisualizations(){
  const [feed,setFeed]=useState([]);
  useEffect(()=>{
   let stopped=false;
-  const load=async()=>{try{const response=await accessFetch('/api/name-logo/recent');if(!response.ok)return;const data=await response.json();if(stopped)return;
-   setFeed((data.items||[]).map(item=>({key:'recent:'+item.id,name:applicationSubjects.find(s=>s.id===item.template)?.name||(item.template||'preview').replace(/-/g,' ').replace(/^\w/,c=>c.toUpperCase()),imageUrl:item.url})))}catch{}};
+  const load=async()=>{try{
+   const response=await accessFetch('/api/name-logo/recent');if(!response.ok)return;
+   const data=await response.json();if(stopped)return;
+   const next=[];
+   for(const item of (data.items||[]).slice(0,12)){
+    let imageUrl=feedImages.get(item.id);
+    if(!imageUrl){
+     const image=await accessFetch(item.url);if(!image.ok)continue;
+     imageUrl=URL.createObjectURL(await image.blob());feedImages.set(item.id,imageUrl);
+    }
+    next.push({key:'recent:'+item.id,name:applicationSubjects.find(s=>s.id===item.template)?.name||(item.template||'preview').replace(/-/g,' ').replace(/^\w/,c=>c.toUpperCase()),imageUrl});
+   }
+   if(!stopped&&next.length)setFeed(next);
+  }catch{}};
   load();const timer=setInterval(load,30000);
   return()=>{stopped=true;clearInterval(timer)};
  },[]);

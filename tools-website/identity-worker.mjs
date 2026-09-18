@@ -79,6 +79,14 @@ async function fetchClip(env,origin,video){
     return {bytes};
   }catch(error){return {reason:'fetch-failed:'+String(error?.message||error).slice(0,80)}}
 }
+// Only a short, plain sentence from the gateway is passed back to the page.
+// Anything carrying a path, markup or a stack stays private.
+async function upstreamReason(response){
+  try{
+    const value=JSON.parse(new TextDecoder().decode(await bounded(response,4096)))?.error;
+    return typeof value==='string'&&/^[A-Za-z0-9 ,.'()-]{3,160}$/.test(value)?value:'';
+  }catch{return ''}
+}
 async function bounded(response, limit) {
   if (!response.body) throw new Error('Missing body');
   const reader=response.body.getReader(), chunks=[]; let size=0;
@@ -374,9 +382,15 @@ export default {
       }
       console.log(JSON.stringify({event:'name-logo.edge-request',action,status:response.status,durationMs:Date.now()-started,traceId}));
       await logReportedFailures(response,action,traceId);
-      if(!response.ok)console.warn('name-logo upstream rejected',JSON.stringify({action,status:response.status,traceId}));
       if(response.status>=300 && response.status<400)return json({error:'The design service could not complete this request'},503);
-      if(!response.ok)return json({error:response.status===404?'Design not found or expired':'The design service could not complete this request'},[400,403,404,409,429].includes(response.status)?response.status:503);
+      if(!response.ok){
+        // The gateway's own words reach the page. Replacing them with one
+        // generic sentence once turned a rejected field into a whole morning
+        // of staring at a spinner, with the reason visible nowhere.
+        const reason=await upstreamReason(response);
+        console.warn('name-logo upstream rejected',JSON.stringify({action,status:response.status,reason,traceId}));
+        return json({error:response.status===404?'Design not found or expired':(reason||'The design service could not complete this request')},[400,403,404,409,429].includes(response.status)?response.status:503);
+      }
       const isImage=action==='image'||action==='visualization-image';
       const bytes=await bounded(response,isImage?25*1024*1024:150000);
       // A real preview that a page just loaded joins the shared feed (once per id).
