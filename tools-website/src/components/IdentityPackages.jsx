@@ -29,7 +29,7 @@ function readIntent(){
  }catch{return null}
 }
 
-export default function IdentityPackages({request,name,designs=[]}){
+export default function IdentityPackages({request,name,designs=[],designAssets={}}){
  // Back from checkout the intent says what was bought; showing it while the
  // payment is confirmed keeps the free package from looking selected.
  const [selected,setSelected]=useState(()=>readIntent()?.packageId||'free');
@@ -341,7 +341,7 @@ export default function IdentityPackages({request,name,designs=[]}){
   deliveryStarted.current=true;
   (async()=>{
    try{
-    await call('bundle-build',request,{name:name||''});
+    await call('bundle-build',request,{name:name||'',designs:availableDesigns.map(item=>({id:item.id,mode:item.mode}))});
     await call('fulfil',request,{});
     // My assets lists work claimed for the account. The bundle is already
     // stored under it; the claim makes the card appear.
@@ -466,11 +466,19 @@ export default function IdentityPackages({request,name,designs=[]}){
   if(bundling||!items.length)return;
   setBundleError('');setBundling(true);
   try{
-   const files=await Promise.all(items.map(async(item,index)=>{
+   // The identity itself first - each design as PNG and, where traced, SVG - then the products.
+   const identityFiles=[];
+   for(const design of availableDesigns){
+    const asset=designAssets[design.id];if(!asset?.png)continue;
+    const label=['logo','initials','signature'].includes(design.mode)?design.mode:'design';
+    try{const png=await fetch(asset.png);if(png.ok)identityFiles.push({name:`identity-${label}.png`,bytes:new Uint8Array(await png.arrayBuffer())})}catch{}
+    if(asset.source)identityFiles.push({name:`identity-${label}.svg`,bytes:new TextEncoder().encode(asset.source)});
+   }
+   const files=[...identityFiles,...await Promise.all(items.map(async(item,index)=>{
     const response=await fetch(item.imageUrl);
     if(!response.ok)throw Error('unavailable');
     return {name:safeEntryName(item.name,index),bytes:new Uint8Array(await response.arrayBuffer())};
-   }));
+   }))];
    const stem=String(name||'identity').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'identity';
    const url=URL.createObjectURL(zip(files));
    const link=document.createElement('a');

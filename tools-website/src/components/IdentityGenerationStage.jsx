@@ -93,7 +93,7 @@ export default function IdentityGenerationStage({
             <button type="button" onClick={onReset}>Start over</button>
           </div>
         </aside>
-        <IdentityPackages request={request} name={personName(request)} designs={shown}/>
+        <IdentityPackages request={request} name={personName(request)} designs={shown} designAssets={assets}/>
       </div>
       {showResults&&typeof document!=='undefined'&&createPortal(
         <div className="identity-results-overlay" role="dialog" aria-modal="true" aria-label="Generated identity results" onMouseDown={event=>event.target===event.currentTarget&&setShowResults(false)}>
