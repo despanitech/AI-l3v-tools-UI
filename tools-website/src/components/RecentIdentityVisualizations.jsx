@@ -1,9 +1,9 @@
 import {useEffect,useMemo,useState} from 'react';
-import {applicationSubjects,demoPreviewImage} from '../lib/application-templates.mjs';
+import {applicationSubjects,demoPreviewImage,demoIdentityName} from '../lib/application-templates.mjs';
 import {accessFetch} from '../lib/master-access.mjs';
 
 // The rail shows what it says: the previews of the identity being made, as
-// they land, newest first. Before any exist it shows John Smith demos, and
+// they land, newest first. Before any exist it shows the demo identity, and
 // says so. Every tile opens full size.
 const DEMO_MODES=['logo','initials','signature'];
 
@@ -75,6 +75,6 @@ export default function RecentIdentityVisualizations(){
   <div className="identity-showcase-strip"><div className="identity-showcase-track">{[...shown,...shown].map((item,index)=><figure key={`${item.key}-${index}`}>
    <button type="button" onClick={()=>open(item)} aria-label={`View ${item.name} full size`}><img src={item.imageUrl} alt={item.name} loading="lazy"/></button>
   </figure>)}</div></div>
-  {!merged.length&&<small className="identity-showcase-note">John Smith demos. Real generations appear here as they are made.</small>}
+  {!merged.length&&<small className="identity-showcase-note">{demoIdentityName} demos. Real generations appear here as they are made.</small>}
  </aside>;
 }

@@ -1,5 +1,5 @@
 // Pure data about the real-world application templates: which exist, how
-// they are grouped, and where their John Smith sample crops live. No React,
+// they are grouped, and where their demo images live. No React,
 // no images imported, so the Worker's dev/uat simulator can use it too.
 
 export const applicationGroups = [
@@ -10,15 +10,6 @@ export const applicationGroups = [
   'Spaces & signage',
   'Outdoor & large format',
 ];
-
-export const applicationThumbnailStems = {
-  'Personal & accessories':'personal-john-smith',
-  'Apparel':'apparel-john-smith',
-  'Stationery & office':'stationery-john-smith',
-  'Packaging & products':'packaging-john-smith',
-  'Spaces & signage':'spaces-john-smith',
-  'Outdoor & large format':'outdoor-john-smith',
-};
 
 export const applicationSubjects = [
   {id:'upper-arm-tattoo',name:'Upper-arm tattoo',group:'Personal & accessories'},
@@ -100,19 +91,25 @@ export const applicationSubjects = [
 
 import demoManifest from './demo-manifest.json' with {type: 'json'};
 
-// John Smith demo of one product carrying one artwork type, generated with
-// the real pipeline. Falls back to the older category crops for anything the
-// demo set does not cover, so a missing file never leaves a tile blank.
-export function demoPreviewImage(subject, mode) {
+// The demo identity every visitor sees before generating: its name is in the
+// manifest, so every "demo" label on the site follows the data.
+export const demoIdentityName = demoManifest.name || 'Demo';
+
+// A demo of one product carrying one artwork type, generated with the real
+// pipeline. When the library holds that product in the chosen style, that
+// image is used; otherwise the mode's default style.
+export function demoPreviewImage(subject, mode, styleId) {
+  const styled = styleId && demoManifest.byStyle?.[mode]?.[styleId];
+  if (Array.isArray(styled) && styled.includes(subject.id)) return `/assets/identity-subjects/demo/${mode}/${styleId}/${subject.id}.jpg`;
   const list = demoManifest[mode];
   return Array.isArray(list) && list.includes(subject.id) ? `/assets/identity-subjects/demo/${mode}/${subject.id}.jpg` : null;
 }
 
-export function applicationPreviewImage(subject, mode){
-  const demo = demoPreviewImage(subject, mode);
+// Falls back to another product of the same group in the same artwork, so a
+// product added before its demo exists never leaves a tile blank.
+export function applicationPreviewImage(subject, mode, styleId){
+  const demo = demoPreviewImage(subject, mode, styleId);
   if (demo) return demo;
-  const group=applicationSubjects.filter(item=>item.group===subject.group);
-  const index=group.findIndex(item=>item.id===subject.id);
-  const stem=applicationThumbnailStems[subject.group];
-  return `/assets/identity-subjects/branded/${stem}-${(index%5)+1}.png`;
+  const sibling = applicationSubjects.find(item => item.group === subject.group && demoPreviewImage(item, mode));
+  return sibling ? demoPreviewImage(sibling, mode) : null;
 }

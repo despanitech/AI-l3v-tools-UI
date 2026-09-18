@@ -1,20 +1,9 @@
-import {applicationGroups,applicationThumbnailStems,applicationSubjects,applicationPreviewImage,demoPreviewImage} from '../lib/application-templates.mjs';
-export {applicationGroups,applicationThumbnailStems,applicationSubjects,applicationPreviewImage,demoPreviewImage};
+import {applicationGroups,applicationSubjects,applicationPreviewImage,demoPreviewImage,demoIdentityName} from '../lib/application-templates.mjs';
+export {applicationGroups,applicationSubjects,applicationPreviewImage,demoPreviewImage,demoIdentityName};
 
-// Category sheets. Nothing renders these yet -- they were previously read
-// only to derive thumbnail filenames, which is what applicationThumbnailStems
-// now does. The six sheet images ship but are currently unreferenced.
-export const applicationPreviewSheets = {
-  'Personal & accessories':'/assets/identity-subjects/branded/personal-john-smith.png',
-  'Apparel':'/assets/identity-subjects/branded/apparel-john-smith.png',
-  'Stationery & office':'/assets/identity-subjects/branded/office-john-smith.png',
-  'Packaging & products':'/assets/identity-subjects/branded/products-john-smith.png',
-  'Spaces & signage':'/assets/identity-subjects/branded/spaces-john-smith.png',
-  'Outdoor & large format':'/assets/identity-subjects/branded/outdoor-john-smith.png',
-};
-
-export function applicationPreviewStyle(subject,mode){
-  return {backgroundImage:`url(${applicationPreviewImage(subject,mode)})`,backgroundPosition:'center',backgroundSize:'cover'};
+export function applicationPreviewStyle(subject,mode,styleId){
+  const image=applicationPreviewImage(subject,mode,styleId);
+  return image?{backgroundImage:`url(${image})`,backgroundPosition:'center',backgroundSize:'cover'}:{};
 }
 
 // Declared explicitly rather than derived from the sheet filename: two
