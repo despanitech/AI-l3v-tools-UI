@@ -5,10 +5,12 @@ import InkPreview from './InkPreview.jsx';
 
 const modes=[['logo','Name logo'],['initials','Initials'],['signature','Signature']];
 
-export default function StyleCatalog({styles,selected,onChange,first,last,onEdit,security,footer}){
+export default function StyleCatalog({styles,selected,onChange,first,last,onEdit,security,footer,ink:inkProp,onInk}){
  // The three-up views lead: side by side by default, stacked on a phone where
  // that is what fits; the single views follow.
- const [active,setActive]=useState(()=>onPhone()?'all-vertical':'all-horizontal'),[gallery,setGallery]=useState('logo'),[ink,setInk]=useState('#202720'),[open,setOpen]=useState(false),[galleryReady,setGalleryReady]=useState(false),[compact,setCompact]=useState(false);const dialog=useRef(null),dock=useRef(null),expandedDockHeight=useRef(0);
+ const [active,setActive]=useState(()=>onPhone()?'all-vertical':'all-horizontal'),[gallery,setGallery]=useState('logo'),[inkState,setInkState]=useState('#202720'),[open,setOpen]=useState(false),[galleryReady,setGalleryReady]=useState(false),[compact,setCompact]=useState(false);const dialog=useRef(null),dock=useRef(null),expandedDockHeight=useRef(0);
+ // The ink is the identity's colour: it is generated and applied with it, not only previewed.
+ const ink=inkProp||inkState,setInk=value=>{setInkState(value);onInk?.(value)};
  useEffect(()=>{if(open)dialog.current?.showModal();else dialog.current?.close()},[open]);
  useEffect(()=>{if(!open){setGalleryReady(false);return}const timer=setTimeout(()=>setGalleryReady(true),40);return()=>clearTimeout(timer)},[open,gallery]);
  useEffect(()=>{const update=()=>{if(window.matchMedia('(max-width: 760px)').matches){setCompact(false);return}if(dock.current&&!dock.current.classList.contains('is-compact'))expandedDockHeight.current=dock.current.getBoundingClientRect().height;const remaining=document.documentElement.scrollHeight-window.innerHeight-window.scrollY;setCompact(window.scrollY>4&&remaining<(expandedDockHeight.current||170)+16)};requestAnimationFrame(update);window.addEventListener('scroll',update,{passive:true});window.addEventListener('resize',update);return()=>{window.removeEventListener('scroll',update);window.removeEventListener('resize',update)}},[]);
@@ -28,7 +30,7 @@ export default function StyleCatalog({styles,selected,onChange,first,last,onEdit
   <aside className="identity-controls-panel">
    <div className="workspace-person"><div><small>Your name</small><strong>{first} {last}</strong></div><button type="button" onClick={onEdit}>Edit</button></div>
    <div className="identity-selection-summary"><small>Your collection</small><div>{modes.map(([mode,label],index)=>{const choice=selected.find(item=>item.mode===mode),style=available.find(item=>item.mode===mode&&item.id===choice?.id);return <article key={mode}><b>{String(index+1).padStart(2,'0')}</b><span><small>{label}</small><strong>{style?.name||'Choose a style'}</strong></span><i aria-hidden="true">✓</i></article>})}</div><p>Each design uses the same name and preview ink.</p></div>
-   <label className="ink-control"><span>Preview ink</span><input aria-label="Preview ink color" type="color" value={ink} onChange={e=>setInk(e.target.value)}/><b>{ink.toUpperCase()}</b></label>
+   <label className="ink-control"><span>Ink colour</span><input aria-label="Ink colour" type="color" value={ink} onChange={e=>setInk(e.target.value)}/><b>{ink.toUpperCase()}</b></label>
    {security&&<div className="identity-security">{security}</div>}
   </aside>
   <div className="identity-generate-footer"><span>All 3 included</span>{footer}</div>

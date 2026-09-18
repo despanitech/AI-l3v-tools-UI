@@ -12,15 +12,32 @@ function demoSamples(count){
  return pool.map(item=>({item,order:crypto.getRandomValues(new Uint32Array(1))[0]})).sort((a,b)=>a.order-b.order).slice(0,count).map(x=>x.item);
 }
 
+// Module-level so the rail survives unmounting (e.g. switching to My assets and back).
+const kept={items:[],urls:new Map()};
+
 export default function RecentIdentityVisualizations(){
- const [live,setLive]=useState([]);
+ // The rail keeps the last real previews it was shown - across step changes,
+ // a cleared set and route switches - and owns copies of the images, since the
+ // generator revokes its object URLs when the set is cleared.
+ const [live,setLive]=useState(()=>kept.items);
  useEffect(()=>{
-  const update=event=>{
-   const items=Array.isArray(event.detail?.items)?event.detail.items:[];
-   setLive(items.filter(item=>item?.status==='succeeded'&&item.imageUrl).map(item=>({key:item.key,name:item.name||'Real-world preview',imageUrl:item.imageUrl})).reverse().slice(0,8));
+  let cancelled=false;
+  const update=async event=>{
+   const items=(Array.isArray(event.detail?.items)?event.detail.items:[]).filter(item=>item?.status==='succeeded'&&item.imageUrl);
+   if(!items.length)return;
+   const next=[];
+   for(const item of items.slice().reverse().slice(0,8)){
+    let imageUrl=kept.urls.get(item.key);
+    if(!imageUrl){
+     try{const blob=await (await fetch(item.imageUrl)).blob();imageUrl=URL.createObjectURL(blob);kept.urls.set(item.key,imageUrl)}catch{continue}
+    }
+    next.push({key:item.key,name:item.name||'Real-world preview',imageUrl});
+   }
+   if(cancelled||!next.length)return;
+   kept.items=next;setLive(next);
   };
   window.addEventListener('identity:previews',update);
-  return()=>window.removeEventListener('identity:previews',update);
+  return()=>{cancelled=true;window.removeEventListener('identity:previews',update)};
  },[]);
  const demos=useMemo(()=>demoSamples(8),[]);
  const shown=live.length?live:demos;

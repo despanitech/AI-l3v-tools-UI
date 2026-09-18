@@ -294,7 +294,8 @@ export default {
       }
       let payload=['catalog','health'].includes(action)?{}:{access};
       if(action==='generate') {
-        if(Object.keys(body).some(key=>!['first','last','styleId','styles','requestKey','token'].includes(key)))return json({error:'Invalid fields'},400);
+        if(Object.keys(body).some(key=>!['first','last','styleId','styles','requestKey','token','ink'].includes(key)))return json({error:'Invalid fields'},400);
+        if(body.ink!==undefined&&(typeof body.ink!=='string'||!/^#[0-9a-f]{6}$/i.test(body.ink)))return json({error:'Invalid ink colour'},400);
         for(const key of ['first','last','requestKey'])if(typeof body[key]!=='string' || body[key].length>100)return json({error:'Invalid name or style'},400);
         if(typeof body.token!=='string' || body.token.length>2048)return json({error:'Complete the security check'},403);
         const styles=body.styles;
@@ -311,7 +312,7 @@ export default {
             return json({error:'Security check expired'},403);
           }
         }
-        payload={...payload,...account&&{accountId:account},...(styles?{styles}:{styleId:body.styleId}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
+        payload={...payload,...account&&{accountId:account},...(styles?{styles}:{styleId:body.styleId}),...(body.ink?{ink:body.ink.toLowerCase()}:{}),quotaSubject:await signature('name-logo-quota:'+ip,env.NAME_LOGO_SESSION_SECRET),...Object.fromEntries(['first','last','requestKey'].map(key=>[key,body[key]]))};
       }
       if(action==='visualization-generate') {
         if(Object.keys(body).sort().join(',')!=='designId,template' || !/^[a-f0-9]{32}$/.test(body.designId||'') || !/^[a-z-]{1,32}$/.test(body.template||''))return json({error:'Choose an available visualization'},400);
