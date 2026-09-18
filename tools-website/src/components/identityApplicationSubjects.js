@@ -46,9 +46,10 @@ const stableNumber=value=>Array.from(value).reduce((hash,char)=>((hash*33)^char.
 export function automaticApplicationPicks(designs=[]){
   return designs.flatMap((design,designIndex)=>{
     if(!/^[a-f0-9]{32}$/.test(design?.id))return [];
+    // Five included previews: two for the first two designs, one for the third.
     const groups=[...applicationGroups]
       .sort((left,right)=>stableNumber(`${design.id}:${left}`)-stableNumber(`${design.id}:${right}`))
-      .slice(0,3);
+      .slice(0,designIndex>=2?1:2);
     return groups.map(group=>{
       const options=applicationSubjects.filter(item=>item.group===group);
       const subject=options[stableNumber(`${design.id}:${group}:subject`)%options.length];
