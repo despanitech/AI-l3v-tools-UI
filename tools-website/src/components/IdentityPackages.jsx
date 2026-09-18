@@ -365,6 +365,9 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
  // in - not after the whole set. Motion-friendly products are preferred when
  // more than one has finished. A design whose images all failed gets no clip.
  const startedModes=useRef(new Set()),startAttempts=useRef({});
+ // Previews the video provider refused (its content filter, e.g. a photo of
+ // bare skin) are not offered again for that design; the clip is re-picked once.
+ const refusedSubjects=useRef({}),replacedNote=useRef({});
  // Clips are submitted one after another: three at once raced on the
  // purchase record at the edge and two of them were forgotten.
  const startQueue=useRef(Promise.resolve());
@@ -372,7 +375,7 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
  // Clear the failed clips and let the start effect submit them again.
  function retryVideos(){
   setVideos(current=>Object.fromEntries(Object.entries(current).filter(([,item])=>item.status!=='failed')));
-  for(const [,item] of Object.entries(videos))if(item.status==='failed'&&item.mode)startedModes.current.delete(item.mode);
+  for(const [subject,item] of Object.entries(videos))if(item.status==='failed'&&item.mode){startedModes.current.delete(item.mode);if(isContentRejected(item.error))refusedSubjects.current[item.mode]=[...(refusedSubjects.current[item.mode]||[]),subject]}
   setRetryTick(tick=>tick+1);
  }
  retryRef.current=retryVideos;
@@ -385,9 +388,10 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
     if(imagesReady){startedModes.current.add(mode);setVideos(current=>({...current,['none-'+mode]:{status:'failed',mode,name:`${ARTWORK_SHORT[mode]||mode} video`,error:'No finished image to make this video from.'}}))}
     continue;
    }
-   const pick=pickVideoSubjects(finished,1)[0];
+   const pick=pickVideoSubjects(finished,1,refusedSubjects.current[mode]||[])[0];
+   if(!pick)continue;
    startedModes.current.add(mode);
-   setVideos(current=>({...current,[pick.id]:{status:'starting',mode,name:pick.name,startedAt:Date.now()}}));
+   setVideos(current=>({...current,[pick.id]:{status:'starting',mode,name:pick.name,startedAt:Date.now(),note:replacedNote.current[mode]||null}}));
    const started=startQueue.current.catch(()=>{}).then(()=>call('visualization-video',request,{id:jobs[pick.id].id}));
    startQueue.current=started;
    started
@@ -412,7 +416,15 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
      // Only queued and running are still work. Anything else the backend
      // reports - failed, ambiguous, expired - is over, or the wait never ends.
      const status=state.status==='succeeded'?(state.video?'succeeded':'running'):['queued','running'].includes(state.status)?state.status:'failed';
-     setVideos(items=>({...items,[subject]:{...items[subject],status,video:state.video||null,error:status==='failed'?failureText(state.diagnostic,state.error||'This video could not be completed.'):null}}))}
+     const refused=status==='failed'&&(isContentRejected(state.diagnostic)||isContentRejected(state.error));
+     if(refused&&item.mode&&!replacedNote.current[item.mode]){
+      // The filter refused this preview image, not the name: drop it, remember it, and pick another product for this design.
+      refusedSubjects.current[item.mode]=[...(refusedSubjects.current[item.mode]||[]),subject];
+      replacedNote.current[item.mode]=`${item.name||subject} was refused by the video provider's content filter (it rejects photos of bare skin, not your name), so this product was used instead.`;
+      setVideos(items=>{const next={...items};delete next[subject];return next});
+      startedModes.current.delete(item.mode);setRetryTick(tick=>tick+1);continue;
+     }
+     setVideos(items=>({...items,[subject]:{...items[subject],status,video:state.video||null,error:status==='failed'?(refused?`The video provider's content filter refused this preview image (it rejects photos of bare skin) - not your name. Retry picks another product.`:failureText(state.diagnostic,state.error||'This video could not be completed.')):null}}))}
     catch(error){if(error.name==='AbortError')return;if(error.status===404)setVideos(items=>({...items,[subject]:{...items[subject],status:'failed',error:'This video expired.'}}))}
    }
   },5000);
@@ -510,10 +522,10 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
    </header>
    {purchaseStage!=='confirming'&&purchaseStage!=='unconfirmed'&&<div className={`identity-generation-progress${videosBlocked?' is-failed':''}`}>
     <div className="identity-generation-bar"><i style={{width:`${stepsTotal?Math.round(stepsDone/stepsTotal*100):0}%`}}/></div>
-    <p><strong>{progress.done}</strong> of {progressTotal} images ready{progressParts.length?` - ${progressParts.join(', ')}`:''}{videosTotal?` · ${videosReady} of ${videosTotal} videos`:''}</p>
+    <p><strong>{progress.done}</strong> of {progressTotal} images ready{progressParts.length?` - ${progressParts.join(', ')}`:''}{videosTotal?` · ${videosReady} of ${videosTotal} videos${videosRunning?` (${videoList.filter(item=>!['succeeded','failed'].includes(item.status)).length} rendering)`:''}${videosFailed?` (${videosFailed} failed)`:''}`:''}</p>
     {purchaseStage!=='ready'&&<small>Each image is generated by a provider and takes a little while. This page can be left open.</small>}
    </div>}
-   {videosTotal>0&&<div className={`identity-purchase-videos${videosBlocked?' is-failed':''}`}><p><strong>{videosReady}</strong> of {videosTotal} videos ready{videosRunning?' - each takes a minute or two':''}{videosBlocked&&<> · <b>{videosFailed} failed</b></>}{videosBlocked&&<button type="button" className="identity-retry-videos" onClick={retryVideos}>Retry the failed videos</button>}</p><div className="identity-video-grid">{Object.entries(videos).map(([subject,item])=><figure key={subject}>{item.video?<video src={item.video} controls muted playsInline preload="metadata"/>:<div className={`identity-video-pending${item.status==='failed'?' is-failed':''}`}>{item.status==='failed'?(item.error||'Not completed'):item.status==='starting'?'Starting...':`Rendering${item.startedAt?` · started ${new Date(item.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`:''}`}</div>}<figcaption><strong>{item.name||applicationSubjects.find(s=>s.id===subject)?.name||subject}</strong>{item.mode&&<small> · {ARTWORK_SHORT[item.mode]||item.mode}</small>}</figcaption></figure>)}</div></div>}
+   {videosTotal>0&&<div className={`identity-purchase-videos${videosBlocked?' is-failed':''}`}><p><strong>{videosReady}</strong> of {videosTotal} videos ready{videosRunning?' - each takes a minute or two':''}{videosBlocked&&<> · <b>{videosFailed} failed</b></>}{videosBlocked&&<button type="button" className="identity-retry-videos" onClick={retryVideos}>Retry the failed videos</button>}</p><div className="identity-video-grid">{Object.entries(videos).map(([subject,item])=><figure key={subject}>{item.video?<video src={item.video} controls muted playsInline preload="metadata"/>:<div className={`identity-video-pending${item.status==='failed'?' is-failed':''}`}>{item.status==='failed'?(item.error||'Not completed'):item.status==='starting'?'Starting...':`Rendering${item.startedAt?` · started ${new Date(item.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`:''}`}</div>}<figcaption><strong>{item.name||applicationSubjects.find(s=>s.id===subject)?.name||subject}</strong>{item.mode&&<small> · {ARTWORK_SHORT[item.mode]||item.mode}</small>}{item.note&&<small className="identity-video-note"> · {item.note}</small>}</figcaption></figure>)}</div></div>}
    {purchasedReady.length>0&&<div className="identity-purchase-grid">{purchasedReady.map(item=><figure className="identity-viewable-image" key={item.id}><img src={item.imageUrl} alt={`${item.name} visualization`}/><button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${item.name} visualization`}}))}>View</button><figcaption><strong>{item.name}</strong></figcaption></figure>)}</div>}
    {delivered&&<button type="button" className="identity-order-again" onClick={()=>window.dispatchEvent(new CustomEvent('identity:order-again'))}>Start a new identity</button>}
    {entitlement?.mode==='test'&&!delivered&&<button type="button" className="identity-reset-purchase" onClick={resetPurchase}>Clear this test purchase</button>}

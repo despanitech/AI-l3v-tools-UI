@@ -10,9 +10,15 @@ export const MOTION_FRIENDLY = [
   'park-kiosk', 'construction-hoarding', 'bicycle-delivery-box', 'scarf', 'hoodie', 'denim-jacket',
 ];
 
+// Previews the video provider's content filter refuses: a photograph of bare
+// skin. The tattoo is never sent for a clip while any other product exists.
+export const NOT_FOR_VIDEO = ['upper-arm-tattoo'];
+
 /** Motion-friendly templates in order, then whatever finished first. `items` carry the template id as `id`. */
-export function pickVideoSubjects(items, count = 3) {
-  const finished = (Array.isArray(items) ? items : []).filter(item => item && item.id);
+export function pickVideoSubjects(items, count = 3, exclude = []) {
+  const skip = new Set(exclude);
+  const all = (Array.isArray(items) ? items : []).filter(item => item && item.id && !skip.has(item.id));
+  const finished = all.some(item => !NOT_FOR_VIDEO.includes(item.id)) ? all.filter(item => !NOT_FOR_VIDEO.includes(item.id)) : all;
   const rank = id => { const at = MOTION_FRIENDLY.indexOf(id); return at < 0 ? MOTION_FRIENDLY.length : at; };
   return [...finished].sort((a, b) => rank(a.id) - rank(b.id)).slice(0, count);
 }
