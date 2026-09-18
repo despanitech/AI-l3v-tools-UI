@@ -55,3 +55,21 @@ test('a retried clip replaces the failed entry for the same preview', async () =
   assert.equal(replaced.videos[0].replaced, 'old');
   assert.equal(gateVideo(replaced, 'v1').job.jobId, 'new');
 });
+
+test('a clip write that another clip overwrote is merged and written again', async () => {
+  // A store where the first put is lost to a concurrent write of the same record.
+  const data = new Map([['purchase:test:' + 'a'.repeat(32), JSON.stringify({packageId: 'studio', videos: [{jobId: 'j-other', source: 'other'}]})]]);
+  let puts = 0;
+  const store = {get: async k => data.get(k) ?? null, put: async (k, v) => { puts++; if (puts === 1) return; data.set(k, v); }};
+  const result = await attachVideo(store, 'a'.repeat(32), 'test', {jobId: 'j-mine', source: 'mine'});
+  assert.equal(puts, 2, 'written again after the read-back showed the entry missing');
+  assert.deepEqual(result.videos.map(v => v.source).sort(), ['mine', 'other']);
+  assert.deepEqual(JSON.parse(data.get('purchase:test:' + 'a'.repeat(32))).videos.map(v => v.source).sort(), ['mine', 'other'], 'the stored record has both');
+});
+
+test('three clips attached back to back all survive', async () => {
+  const data = new Map([['purchase:test:' + 'b'.repeat(32), JSON.stringify({packageId: 'studio'})]]);
+  const store = {get: async k => data.get(k) ?? null, put: async (k, v) => { data.set(k, v); }};
+  for (const [jobId, source] of [['j1', 's1'], ['j2', 's2'], ['j3', 's3']]) await attachVideo(store, 'b'.repeat(32), 'test', {jobId, source});
+  assert.deepEqual(JSON.parse(data.get('purchase:test:' + 'b'.repeat(32))).videos.map(v => v.jobId), ['j1', 'j2', 'j3']);
+});
