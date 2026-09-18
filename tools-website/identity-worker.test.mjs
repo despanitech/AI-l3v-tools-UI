@@ -220,3 +220,22 @@ test('a loaded real-lane preview joins the shared latest-generations feed and is
   assert.equal((await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/recent',{method:'POST'}),feedEnv)).status,405);
  }finally{globalThis.fetch=original}
 });
+
+test('a rejected request carries the gateway reason back to the page, not a generic sentence',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async()=>Response.json({error:'Invalid fields'},{status:400});
+ try{
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/status',{method:'POST',headers:access,body:JSON.stringify({id:'d'.repeat(64)})}),env);
+  assert.equal(response.status,400);
+  assert.equal((await response.json()).error,'Invalid fields');
+ }finally{globalThis.fetch=original}
+});
+
+test('an unsafe upstream body never reaches the page',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async()=>Response.json({error:'Traceback /opt/l3v-name-logo/x.py line 3 <script>'},{status:400});
+ try{
+  const response=await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/status',{method:'POST',headers:access,body:JSON.stringify({id:'d'.repeat(64)})}),env);
+  assert.equal((await response.json()).error,'The design service could not complete this request');
+ }finally{globalThis.fetch=original}
+});

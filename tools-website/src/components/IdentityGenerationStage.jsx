@@ -37,6 +37,12 @@ export default function IdentityGenerationStage({
   const [showResults,setShowResults]=useState(false);
   const designs=(result?.designs||[]).slice(0,3);
   const shown=slots.map((slot,index)=>designs.find((design,designIndex)=>designKind(design,designIndex)===slot.type)||designs[index]||null);
+  // Every result image opens full size; these three were the only ones that did not.
+  const designImage=(design,index)=>{
+   const src=assets[design.id]?.png,alt=`${slots[index].label} result`;
+   if(!src)return <img src={src} alt={alt}/>;
+   return <button type="button" className="identity-design-open" aria-label={`View ${slots[index].label} full size`} onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src,alt:`${slots[index].label} - ${styleName(design)}`}}))}><img src={src} alt={alt}/></button>;
+  };
   const complete=shown.every(design=>design?.status==='succeeded'&&assets[design.id]?.png);
   const finished=shown.filter(design=>design?.status==='succeeded').length;
   // A design the backend gave up on - failed, ambiguous, expired - is over.
@@ -83,7 +89,7 @@ export default function IdentityGenerationStage({
           </div>
           <div className="identity-step4-designs">
             {shown.map((design,index)=><figure key={design.id}>
-              <img src={assets[design.id]?.png} alt={`${slots[index].label} result`}/>
+              {designImage(design,index)}
               <figcaption><strong>{slots[index].label}</strong><small>{styleName(design)}</small></figcaption>
             </figure>)}
           </div>
@@ -99,7 +105,7 @@ export default function IdentityGenerationStage({
         <div className="identity-results-overlay" role="dialog" aria-modal="true" aria-label="Generated identity results" onMouseDown={event=>event.target===event.currentTarget&&setShowResults(false)}>
           <section>
             <header><div><small>YOUR GENERATED IDENTITY</small><h2>{personName(request)}</h2></div><button type="button" onClick={()=>setShowResults(false)}>Close</button></header>
-            <div>{shown.map((design,index)=><figure key={design.id}><img src={assets[design.id]?.png} alt={`${slots[index].label} result`}/><figcaption><strong>{slots[index].label}</strong><small>{styleName(design)}</small></figcaption></figure>)}</div>
+            <div>{shown.map((design,index)=><figure key={design.id}>{designImage(design,index)}<figcaption><strong>{slots[index].label}</strong><small>{styleName(design)}</small></figcaption></figure>)}</div>
           </section>
         </div>,document.body)}
     </div>;

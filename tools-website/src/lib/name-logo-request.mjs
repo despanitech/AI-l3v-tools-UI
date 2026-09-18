@@ -6,5 +6,12 @@ export function savedRequest(){for(const storage of stores())try{const value=JSO
 const random=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>b.toString(16).padStart(2,'0')).join('');
 export async function createRequest(first,last,styleId,ink){const requestId=random(16),access={requestId,receipt:await requestReceipt(requestId)};const value={access,requestKey:access.requestId,first:first.trim(),last:last.trim(),...(Array.isArray(styleId)?{styles:styleId}:{styleId}),...(ink&&/^#[0-9a-f]{6}$/i.test(ink)?{ink:ink.toLowerCase()}:{})};remember(value);return value;}
 export function headers(current){return accessHeaders({'X-L3V-Request-Id':current.access.requestId,'X-L3V-Request-Receipt':current.access.receipt});}
-export async function call(action,current,body,signal){const response=await fetch('/api/name-logo/'+action,{method:'POST',headers:{'Content-Type':'application/json',...headers(current)},body:JSON.stringify(body),signal});if(!response.ok){const error=new Error('Request unavailable ('+response.status+')');error.status=response.status;throw error}return response.json();}
+export async function call(action,current,body,signal){const response=await fetch('/api/name-logo/'+action,{method:'POST',headers:{'Content-Type':'application/json',...headers(current)},body:JSON.stringify(body),signal});if(!response.ok){
+  // The server's reason travels with the error, so the page can say what went wrong.
+  let reason='';
+  try{const body=await response.json();if(typeof body?.error==='string')reason=body.error.slice(0,200)}catch{}
+  const error=new Error(reason||('Request unavailable ('+response.status+')'));
+  error.status=response.status;error.reason=reason;
+  throw error;
+}return response.json();}
 export async function imageUrl(current,id,signal){const response=await fetch('/api/name-logo/image?id='+id,{headers:headers(current),signal});if(!response.ok)throw new Error('Image unavailable');return URL.createObjectURL(await response.blob());}
