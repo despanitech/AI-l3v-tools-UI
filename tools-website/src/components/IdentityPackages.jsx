@@ -294,13 +294,20 @@ export default function IdentityPackages({request,name,designs=[]}){
    videosTotal:delivered?0:videosTotal,
   }:null;
   window.dispatchEvent(new CustomEvent('identity:purchase-state',{detail}));
- },[purchaseStage,paidFor,delivered,bundleReady,paidPackageName,generatedItems.length,progressTotal,entitlement?.downloadedAt,videosReady,videosTotal]);
+ },[purchaseStage,paidFor,delivered,bundleReady,paidPackageName,generatedItems.length,progressTotal,entitlement?.downloadedAt,videosReady,videosTotal,videosBlocked]);
 
  useEffect(()=>{
   const download=()=>{if(delivered)downloadStoredBundle();else if(bundleReady)bundleAndDownload(generatedItems,'bundle')};
   window.addEventListener('identity:download-bundle',download);
   return()=>window.removeEventListener('identity:download-bundle',download);
  },[bundleReady,generatedItems,bundling]);
+ // The banner at the top carries the retry too; the panel with the clips is far below the package cards.
+ const retryRef=useRef(null);
+ useEffect(()=>{
+  const retry=()=>{if(videosBlocked)retryRef.current?.()};
+  window.addEventListener('identity:retry-videos',retry);
+  return()=>window.removeEventListener('identity:retry-videos',retry);
+ },[videosBlocked,videos]);
 
  // Test mode only: a paid request can never show Pay again, so without this
  // the payment flow cannot be exercised twice without generating a new
@@ -359,6 +366,7 @@ export default function IdentityPackages({request,name,designs=[]}){
   for(const [,item] of Object.entries(videos))if(item.status==='failed'&&item.mode)startedModes.current.delete(item.mode);
   setRetryTick(tick=>tick+1);
  }
+ retryRef.current=retryVideos;
  useEffect(()=>{
   if(!paidFor||!videosTotal||!request?.access)return;
   for(const mode of designModes.slice(0,videosTotal)){
