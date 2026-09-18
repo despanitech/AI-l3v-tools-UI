@@ -37,6 +37,7 @@ function PurchaseBanner({state}){
    {!waiting&&!failed&&state.total>0&&<small>{state.ready} of {state.total} ready{state.videosTotal?` · videos ${state.videosReady} of ${state.videosTotal}${state.videosRunning?` (${state.videosRunning} rendering${state.videosStartedAt?` since ${new Date(state.videosStartedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`:''})`:state.videosFailed?` (${state.videosFailed} failed)`:''}`:''}{state.packageName?` · ${state.packageName}`:''}</small>}
   </div>
   {done&&<button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:download-bundle'))}>{state.downloadedAt?'Download again':'Download bundle'}</button>}
+  {state.stage==='videos-failed'&&state.videosFailedReasons?.length>0&&<ul className="identity-purchase-reasons" aria-label="Why the videos failed">{state.videosFailedReasons.map((reason,index)=><li key={index}>{reason}</li>)}</ul>}
   {state.stage==='videos-failed'&&<button type="button" className="is-retry" onClick={()=>window.dispatchEvent(new CustomEvent('identity:retry-videos'))}>Retry the failed videos</button>}
  </aside>;
 }

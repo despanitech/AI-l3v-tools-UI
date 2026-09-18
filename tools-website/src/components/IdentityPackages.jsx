@@ -295,6 +295,8 @@ export default function IdentityPackages({request,name,designs=[]}){
    // What the clips are doing right now, so the banner never reads as dead.
    videosRunning:delivered?0:videoList.filter(item=>!['succeeded','failed'].includes(item.status)).length,
    videosFailed:delivered?0:videosFailed,
+   // The reasons themselves, so the banner can quote them instead of "did not complete".
+   videosFailedReasons:delivered?[]:videoList.filter(item=>item.status==='failed').map(item=>item.error).filter(Boolean).slice(0,3),
    videosStartedAt:delivered?null:Math.min(...videoList.map(item=>item.startedAt||Infinity).filter(Number.isFinite),Infinity)===Infinity?null:Math.min(...videoList.map(item=>item.startedAt||Infinity).filter(Number.isFinite)),
   }:null;
   window.dispatchEvent(new CustomEvent('identity:purchase-state',{detail}));
