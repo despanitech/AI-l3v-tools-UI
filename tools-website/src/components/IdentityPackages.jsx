@@ -348,6 +348,9 @@ export default function IdentityPackages({request,name,designs=[]}){
  // in - not after the whole set. Motion-friendly products are preferred when
  // more than one has finished. A design whose images all failed gets no clip.
  const startedModes=useRef(new Set()),startAttempts=useRef({});
+ // Clips are submitted one after another: three at once raced on the
+ // purchase record at the edge and two of them were forgotten.
+ const startQueue=useRef(Promise.resolve());
  const [retryTick,setRetryTick]=useState(0);
  // Clear the failed clips and let the start effect submit them again.
  function retryVideos(){
@@ -367,7 +370,9 @@ export default function IdentityPackages({request,name,designs=[]}){
    const pick=pickVideoSubjects(finished,1)[0];
    startedModes.current.add(mode);
    setVideos(current=>({...current,[pick.id]:{status:'starting',mode,name:pick.name}}));
-   call('visualization-video',request,{id:jobs[pick.id].id})
+   const started=startQueue.current.catch(()=>{}).then(()=>call('visualization-video',request,{id:jobs[pick.id].id}));
+   startQueue.current=started;
+   started
     .then(created=>setVideos(current=>({...current,[pick.id]:{...current[pick.id],jobId:created.id,status:['queued','running','succeeded'].includes(created.status)?created.status:'queued',video:created.video||null}})))
     .catch(error=>{
      // A refused start cost nothing. The preview may simply not be stored

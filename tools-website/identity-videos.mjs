@@ -36,16 +36,25 @@ const key = (requestId, mode) => `purchase:${mode}:${requestId}`;
 
 /** Remember a created clip on the purchase record: one entry per source preview,
  * so a retried clip replaces the failed one instead of using up the allowance. */
-export async function attachVideo(store, requestId, mode, {jobId, source}) {
-  const raw = await store.get(key(requestId, mode));
-  if (!raw) return null;
-  let record;
-  try { record = JSON.parse(raw); } catch { return null; }
-  const videos = Array.isArray(record.videos) ? record.videos : [];
-  const index = videos.findIndex(item => item.source === source);
-  if (index < 0) videos.push({jobId, source, createdAt: new Date().toISOString()});
-  else if (videos[index].jobId !== jobId) videos[index] = {jobId, source, createdAt: new Date().toISOString(), replaced: videos[index].jobId};
-  const updated = {...record, videos};
-  await store.put(key(requestId, mode), JSON.stringify(updated));
+export async function attachVideo(store, requestId, mode, {jobId, source}, attempts = 3) {
+  let updated = null;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const raw = await store.get(key(requestId, mode));
+    if (!raw) return null;
+    let record;
+    try { record = JSON.parse(raw); } catch { return null; }
+    const videos = Array.isArray(record.videos) ? record.videos : [];
+    const index = videos.findIndex(item => item.source === source);
+    if (index < 0) videos.push({jobId, source, createdAt: new Date().toISOString()});
+    else if (videos[index].jobId !== jobId) videos[index] = {jobId, source, createdAt: new Date().toISOString(), replaced: videos[index].jobId};
+    updated = {...record, videos};
+    await store.put(key(requestId, mode), JSON.stringify(updated));
+    // The three clips start within the same second, and KV has no compare-and-set:
+    // another clip's write can land on top of this one and drop it. Read back; if
+    // this entry is gone, merge into whatever is there now and write again.
+    let after = null;
+    try { after = JSON.parse(await store.get(key(requestId, mode)) || 'null'); } catch { after = null; }
+    if (Array.isArray(after?.videos) && after.videos.some(item => item.source === source && item.jobId === jobId)) return after;
+  }
   return updated;
 }
