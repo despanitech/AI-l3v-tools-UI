@@ -1,3 +1,4 @@
+import {recordRecent, listRecent, recentImage} from './recent-feed.mjs';
 import videoWorker from './video-worker.mjs';
 import {invitationAccount} from './invitation-worker.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
@@ -104,7 +105,7 @@ function gatewayCaller(env, traceId, requestId) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url=new URL(request.url), prefix='/api/name-logo/';
     if(url.pathname.startsWith('/invite/'))return invitationShare(request,env);
     if(url.pathname==='/api/admin/invitations')return issueInvitation(request,env);
@@ -166,6 +167,9 @@ export default {
     if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs','/api/capacity-status'].includes(url.pathname)) return videoWorker.fetch(request,env);
     if(!url.pathname.startsWith(prefix)) return env.ASSETS.fetch(request);
     const action=url.pathname.slice(prefix.length);
+    // The shared feed of the latest generations, same for every visitor.
+    if(action==='recent'){if(request.method!=='GET')return json({error:'Invalid method'},405);return json({items:await listRecent(env,12)},200,{'Cache-Control':'private, max-age=20'})}
+    if(action==='recent-image'){const id=url.searchParams.get('id');if(!/^[a-f0-9]{32}$/.test(id||''))return json({error:'Invalid image'},400);const object=await recentImage(env,id);if(!object)return json({error:'Not found'},404);return new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||'image/png','Cache-Control':'private, max-age=86400, immutable','X-Content-Type-Options':'nosniff'}})}
     if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded','fulfil','purchase-reset','bundle-build','bundle-list','bundle','visualization-video','visualization-video-status'].includes(action)) return json({error:'Not found'},404);
     if(isSimulated(mode)&&!env.IDENTITY_BUNDLES)return json({error:'Simulation storage is not configured'},503);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
@@ -375,6 +379,14 @@ export default {
       if(!response.ok)return json({error:response.status===404?'Design not found or expired':'The design service could not complete this request'},[400,403,404,409,429].includes(response.status)?response.status:503);
       const isImage=action==='image'||action==='visualization-image';
       const bytes=await bounded(response,isImage?25*1024*1024:150000);
+      // A real preview that a page just loaded joins the shared feed (once per id).
+      if(action==='visualization-image'&&!isSimulated(mode)&&env.IDENTITY_BUNDLES&&env.INVITATIONS){
+        const work=(async()=>{try{
+          const state=await gatewayCaller(env,traceId,access.requestId)('visualization-status',{access,id:payload.id});
+          await recordRecent(env,{id:payload.id,bytes,contentType:bytes[0]===0xFF?'image/jpeg':'image/png',template:state?.output?.template||''});
+        }catch(error){console.warn('name-logo recent-feed',JSON.stringify({traceId,error:String(error?.message||error).slice(0,120)}))}})();
+        if(ctx?.waitUntil)ctx.waitUntil(work);else await work;
+      }
       if(action==='image' && payload.format==='svg') {
         const svg=new TextDecoder().decode(bytes);
         if(!svg.startsWith('<svg ')||/<(?:script|image|foreignObject)\b|\bon\w+\s*=|(?:href|url)\s*[:=(]/i.test(svg))throw new Error('Invalid vector');

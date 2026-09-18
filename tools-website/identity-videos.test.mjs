@@ -73,3 +73,11 @@ test('three clips attached back to back all survive', async () => {
   for (const [jobId, source] of [['j1', 's1'], ['j2', 's2'], ['j3', 's3']]) await attachVideo(store, 'b'.repeat(32), 'test', {jobId, source});
   assert.deepEqual(JSON.parse(data.get('purchase:test:' + 'b'.repeat(32))).videos.map(v => v.jobId), ['j1', 'j2', 'j3']);
 });
+
+test('the tattoo is never picked for a clip while another product exists, and refused products are skipped', () => {
+  const items = [{id: 'upper-arm-tattoo'}, {id: 'business-card'}, {id: 'hoodie'}];
+  assert.deepEqual(pickVideoSubjects(items, 1).map(i => i.id), ['hoodie']);
+  assert.deepEqual(pickVideoSubjects(items, 3).map(i => i.id), ['hoodie', 'business-card'], 'the tattoo is left out entirely');
+  assert.deepEqual(pickVideoSubjects([{id: 'upper-arm-tattoo'}], 1).map(i => i.id), ['upper-arm-tattoo'], 'unless it is all there is');
+  assert.deepEqual(pickVideoSubjects(items, 1, ['hoodie']).map(i => i.id), ['business-card'], 'a refused product is skipped');
+});

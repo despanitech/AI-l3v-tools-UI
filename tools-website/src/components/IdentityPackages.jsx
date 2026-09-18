@@ -3,14 +3,14 @@ import {zip,safeEntryName} from '../lib/zip.mjs';
 import './IdentityPackages.css';
 import {call,headers} from '../lib/name-logo-request.mjs';
 import {accessFetch} from '../lib/master-access.mjs';
-import {pickVideoSubjects} from '../lib/video-picks.mjs';
+import {pickVideoSubjects,MOTION_FRIENDLY,NOT_FOR_VIDEO} from '../lib/video-picks.mjs';
 import {ARTWORK_SHORT,artworkCounts,balanceArtwork,nextArtwork} from '../lib/artwork-mix.mjs';
 import {failureText,retryText,isContentRejected} from '../lib/failure-copy.mjs';
 import {INCLUDED_PREVIEWS} from '../../generation-allowance.mjs';
 import {applicationArtwork,applicationGroups,applicationPreviewImage,applicationPreviewStyle,applicationSubjects,recommendedApplications,selectionSubjects} from './identityApplicationSubjects';
 
 const packages=[
- {id:'free',count:5,kicker:'FREE',price:'$0',name:'Try it',headline:'5 included previews',description:'Your five generated real-world previews are included.',features:['Your generated random applications','No extra generation required','Standard resolution'],image:'/assets/signature-demos/david-villi-large-scale-signature-collage.png',position:'left bottom',example:'Tattoo preview',modalCopy:'Five real-world applications generated with your identity.'},
+ {id:'free',count:3,kicker:'FREE',price:'$0',name:'Try it',headline:'3 included previews',description:'Your three generated real-world previews are included.',features:['Your generated random applications','No extra generation required','Standard resolution'],image:'/assets/signature-demos/david-villi-large-scale-signature-collage.png',position:'left bottom',example:'Tattoo preview',modalCopy:'Three real-world applications generated with your identity.'},
  {id:'creator',count:10,videos:0,kicker:'MOST POPULAR',price:'$5.99',oldPrice:'$9.99',name:'Creator set',headline:'10-image collection',description:'Receive 10 different application images built around your design.',features:['Distinct products and use cases','No recolors counted as another example','HD image downloads'],image:'/assets/signature-demos/david-villi-three-signatures-product-collage.png',position:'right top',example:'Perfume identity',modalCopy:'Ten different product and personal applications in HD.',recommended:true},
  {id:'studio',count:15,videos:2,kicker:'COMPLETE',price:'$9.99',oldPrice:'$19.99',name:'Signature studio',headline:'15 images + 2 videos',description:'Receive 15 distinct application images, two 5-second videos and production-ready files.',features:['Distinct products, spaces, and use cases','No recolors counted as another example','4K image downloads','Two 5-second product and reveal videos'],image:'/assets/signature-demos/david-villi-large-scale-signature-collage.png',position:'left top',example:'Full brand rollout',modalCopy:'Fifteen distinct applications plus two short cinematic videos.'},
 ];
@@ -365,6 +365,9 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
  // in - not after the whole set. Motion-friendly products are preferred when
  // more than one has finished. A design whose images all failed gets no clip.
  const startedModes=useRef(new Set()),startAttempts=useRef({});
+ // Previews the video provider refused (its content filter, e.g. a photo of
+ // bare skin) are not offered again for that design; the clip is re-picked once.
+ const refusedSubjects=useRef({}),refusalCount=useRef({}),fallbackSource=useRef({});
  // Clips are submitted one after another: three at once raced on the
  // purchase record at the edge and two of them were forgotten.
  const startQueue=useRef(Promise.resolve());
@@ -372,7 +375,7 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
  // Clear the failed clips and let the start effect submit them again.
  function retryVideos(){
   setVideos(current=>Object.fromEntries(Object.entries(current).filter(([,item])=>item.status!=='failed')));
-  for(const [,item] of Object.entries(videos))if(item.status==='failed'&&item.mode)startedModes.current.delete(item.mode);
+  for(const [subject,item] of Object.entries(videos))if(item.status==='failed'&&item.mode){startedModes.current.delete(item.mode);refusalCount.current[item.mode]=0;if(isContentRejected(item.error))refusedSubjects.current[item.mode]=[...(refusedSubjects.current[item.mode]||[]),subject]}
   setRetryTick(tick=>tick+1);
  }
  retryRef.current=retryVideos;
@@ -380,12 +383,25 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
   if(!paidFor||!videosTotal||!request?.access)return;
   for(const mode of designModes.slice(0,videosTotal)){
    if(startedModes.current.has(mode))continue;
-   const finished=generatedItems.filter(item=>artworkFor(item.id)===mode&&jobs[item.id]?.id);
+   // After a refusal the clip for this design may be made from a product that
+   // carries the initials instead (they cannot offend); the clip still counts for the design.
+   const sourceMode=fallbackSource.current[mode]||mode;
+   const bySource=generatedItems.filter(item=>artworkFor(item.id)===sourceMode&&jobs[item.id]?.id);
+   const finished=bySource.length||sourceMode===mode?bySource:generatedItems.filter(item=>jobs[item.id]?.id);
    if(!finished.length){
     if(imagesReady){startedModes.current.add(mode);setVideos(current=>({...current,['none-'+mode]:{status:'failed',mode,name:`${ARTWORK_SHORT[mode]||mode} video`,error:'No finished image to make this video from.'}}))}
     continue;
    }
-   const pick=pickVideoSubjects(finished,1)[0];
+   // A flat-lay shirt makes a still clip. Wait for a motion-friendly product of
+   // this design (a van, a balloon, a storefront) unless the design's products
+   // are all done and there is none - then the best available.
+   const refused=refusedSubjects.current[mode]||[];
+   const candidates=finished.filter(item=>!refused.includes(item.id)&&!NOT_FOR_VIDEO.includes(item.id));
+   const modeSubjects=trackedSubjects.filter(id=>artworkFor(id)===mode);
+   const modeSettled=modeSubjects.every(id=>['succeeded','failed'].includes(jobs[id]?.status));
+   if(!candidates.some(item=>MOTION_FRIENDLY.includes(item.id))&&!modeSettled)continue;
+   const pick=pickVideoSubjects(finished,1,refused)[0];
+   if(!pick)continue;
    startedModes.current.add(mode);
    setVideos(current=>({...current,[pick.id]:{status:'starting',mode,name:pick.name,startedAt:Date.now()}}));
    const started=startQueue.current.catch(()=>{}).then(()=>call('visualization-video',request,{id:jobs[pick.id].id}));
@@ -400,7 +416,7 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
      setVideos(current=>({...current,[pick.id]:{...current[pick.id],status:'failed',error:error.status===403?'Not included in your package.':'This video could not be started.'}}));
     });
   }
- },[paidFor,videosTotal,imagesReady,generatedItems.length,request?.access?.requestId,retryTick]);
+ },[paidFor,videosTotal,imagesReady,generatedItems.length,progressSettled,request?.access?.requestId,retryTick]);
  // Poll every clip that is still work, five seconds apart, until none is.
  useEffect(()=>{
   const pending=Object.entries(videos).filter(([,item])=>item.jobId&&['queued','running'].includes(item.status));
@@ -412,7 +428,20 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
      // Only queued and running are still work. Anything else the backend
      // reports - failed, ambiguous, expired - is over, or the wait never ends.
      const status=state.status==='succeeded'?(state.video?'succeeded':'running'):['queued','running'].includes(state.status)?state.status:'failed';
-     setVideos(items=>({...items,[subject]:{...items[subject],status,video:state.video||null,error:status==='failed'?failureText(state.diagnostic,state.error||'This video could not be completed.'):null}}))}
+     const refused=status==='failed'&&(isContentRejected(state.diagnostic)||isContentRejected(state.error));
+     if(refused&&item.mode){
+      // The provider refused the image (a photo it will not animate, or a name it
+      // will not show). Say nothing; pick again - another product of this design
+      // first, then a product carrying the initials, which can never offend.
+      const tries=(refusalCount.current[item.mode]||0)+1;refusalCount.current[item.mode]=tries;
+      refusedSubjects.current[item.mode]=[...(refusedSubjects.current[item.mode]||[]),subject];
+      if(tries<=2){
+       fallbackSource.current[item.mode]=tries===2?'initials':null;
+       setVideos(items=>{const next={...items};delete next[subject];return next});
+       startedModes.current.delete(item.mode);setRetryTick(tick=>tick+1);continue;
+      }
+     }
+     setVideos(items=>({...items,[subject]:{...items[subject],status,video:state.video||null,error:status==='failed'?(refused?'The video provider refused this preview image. Retry picks another product.':failureText(state.diagnostic,state.error||'This video could not be completed.')):null}}))}
     catch(error){if(error.name==='AbortError')return;if(error.status===404)setVideos(items=>({...items,[subject]:{...items[subject],status:'failed',error:'This video expired.'}}))}
    }
   },5000);
@@ -510,10 +539,10 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
    </header>
    {purchaseStage!=='confirming'&&purchaseStage!=='unconfirmed'&&<div className={`identity-generation-progress${videosBlocked?' is-failed':''}`}>
     <div className="identity-generation-bar"><i style={{width:`${stepsTotal?Math.round(stepsDone/stepsTotal*100):0}%`}}/></div>
-    <p><strong>{progress.done}</strong> of {progressTotal} images ready{progressParts.length?` - ${progressParts.join(', ')}`:''}{videosTotal?` · ${videosReady} of ${videosTotal} videos`:''}</p>
+    <p><strong>{progress.done}</strong> of {progressTotal} images ready{progressParts.length?` - ${progressParts.join(', ')}`:''}{videosTotal?` · ${videosReady} of ${videosTotal} videos${videosRunning?` (${videoList.filter(item=>!['succeeded','failed'].includes(item.status)).length} rendering)`:''}${videosFailed?` (${videosFailed} failed)`:''}`:''}</p>
     {purchaseStage!=='ready'&&<small>Each image is generated by a provider and takes a little while. This page can be left open.</small>}
    </div>}
-   {videosTotal>0&&<div className={`identity-purchase-videos${videosBlocked?' is-failed':''}`}><p><strong>{videosReady}</strong> of {videosTotal} videos ready{videosRunning?' - each takes a minute or two':''}{videosBlocked&&<> · <b>{videosFailed} failed</b></>}{videosBlocked&&<button type="button" className="identity-retry-videos" onClick={retryVideos}>Retry the failed videos</button>}</p><div className="identity-video-grid">{Object.entries(videos).map(([subject,item])=><figure key={subject}>{item.video?<video src={item.video} controls muted playsInline preload="metadata"/>:<div className={`identity-video-pending${item.status==='failed'?' is-failed':''}`}>{item.status==='failed'?(item.error||'Not completed'):item.status==='starting'?'Starting...':`Rendering${item.startedAt?` · started ${new Date(item.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`:''}`}</div>}<figcaption><strong>{item.name||applicationSubjects.find(s=>s.id===subject)?.name||subject}</strong>{item.mode&&<small> · {ARTWORK_SHORT[item.mode]||item.mode}</small>}</figcaption></figure>)}</div></div>}
+   {videosTotal>0&&<div className={`identity-purchase-videos${videosBlocked?' is-failed':''}`}><p><strong>{videosReady}</strong> of {videosTotal} videos ready{videosRunning?' - each takes a minute or two':''}{videosBlocked&&<> · <b>{videosFailed} failed</b></>}{videosBlocked&&<button type="button" className="identity-retry-videos" onClick={retryVideos}>Retry the failed videos</button>}</p><div className="identity-video-grid">{Object.entries(videos).map(([subject,item])=><figure key={subject}>{item.video?<video src={item.video} controls muted playsInline preload="metadata"/>:<div className={`identity-video-pending${item.status==='failed'?' is-failed':''}`}>{item.status==='failed'?(item.error||'Not completed'):item.status==='starting'?'Starting...':`Rendering${item.startedAt?` · started ${new Date(item.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`:''}`}</div>}<figcaption><strong>{item.name||applicationSubjects.find(s=>s.id===subject)?.name||subject}</strong>{item.mode&&<small> · {ARTWORK_SHORT[item.mode]||item.mode}</small>}{item.note&&<small className="identity-video-note"> · {item.note}</small>}</figcaption></figure>)}</div></div>}
    {purchasedReady.length>0&&<div className="identity-purchase-grid">{purchasedReady.map(item=><figure className="identity-viewable-image" key={item.id}><img src={item.imageUrl} alt={`${item.name} visualization`}/><button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${item.name} visualization`}}))}>View</button><figcaption><strong>{item.name}</strong></figcaption></figure>)}</div>}
    {delivered&&<button type="button" className="identity-order-again" onClick={()=>window.dispatchEvent(new CustomEvent('identity:order-again'))}>Start a new identity</button>}
    {entitlement?.mode==='test'&&!delivered&&<button type="button" className="identity-reset-purchase" onClick={resetPurchase}>Clear this test purchase</button>}

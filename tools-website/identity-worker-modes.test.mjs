@@ -176,17 +176,17 @@ test('generation is gated at the edge: nine included, more only with an undelive
     const {designs}=await (await post('status',{id},lane)).json();
     const design=designs[0].id;
     const templates=['upper-arm-tattoo','canvas-tote','backpack','baseball-cap','beanie','leather-wallet','phone-case','keychain','luggage-tag','t-shirt','hoodie'];
-    for(const template of templates.slice(0,5)){
+    for(const template of templates.slice(0,3)){
       assert.equal((await post('visualization-generate',{designId:design,template},lane)).status,200,template);
     }
-    const again=await post('visualization-generate',{designId:design,template:'beanie'},lane);
+    const again=await post('visualization-generate',{designId:design,template:'backpack'},lane);
     assert.equal(again.status,200,'an existing pair is free');
-    const tenth=await post('visualization-generate',{designId:design,template:templates[5]},lane);
-    assert.equal(tenth.status,403,'the sixth needs a purchase');
+    const tenth=await post('visualization-generate',{designId:design,template:templates[3]},lane);
+    assert.equal(tenth.status,403,'the fourth needs a purchase');
     const body=await tenth.json();
-    assert.equal(body.gated,true);assert.equal(body.reason,'included-used');assert.equal(body.used,5);assert.equal(body.allowance,5);
+    assert.equal(body.gated,true);assert.equal(body.reason,'included-used');assert.equal(body.used,3);assert.equal(body.allowance,3);
     assert.equal((await post('checkout',{packageId:'creator'},lane)).status,200,'dev purchase');
-    assert.equal((await post('visualization-generate',{designId:design,template:templates[5]},lane)).status,200,'paid: allowed');
+    assert.equal((await post('visualization-generate',{designId:design,template:templates[3]},lane)).status,200,'paid: allowed');
     const entitlement=await (await post('entitlement',{},lane)).json();
     assert.equal(entitlement.packageId,'creator');
     await post('fulfil',{},lane);
