@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {accessFetch,requestReceipt} from '../lib/master-access.mjs';
 import {importAccountWork,savedReceipts} from '../lib/video-receipt.mjs';
 import {savedRequest,headers as nameLogoHeaders} from '../lib/name-logo-request.mjs';
@@ -20,26 +20,43 @@ const previewTitle=row=>{const template=row.template||row.output?.template||'';r
 // receipt, so nothing is cached in this browser beyond the object URLs.
 function AssetPreviews({rows,all=false,onOpen,onMore}){
  const [items,setItems]=useState([]),[settled,setSettled]=useState(false);
- useEffect(()=>{let live=true;const objects=[],controller=new AbortController();setSettled(false);
+ // Loaded tiles are kept by resource id, so opening everything adds the rest
+ // in small batches instead of fetching all 36 again and decoding them in one
+ // go - which is what froze the page. Object URLs are released on unmount.
+ const cache=useRef(new Map()),objects=useRef([]);
+ useEffect(()=>()=>{objects.current.forEach(URL.revokeObjectURL);objects.current=[];cache.current.clear()},[rows[0]?.request_id]);
+ useEffect(()=>{let live=true;const controller=new AbortController();setSettled(false);
+  const publish=order=>{if(!live)return;setItems(order.map(id=>cache.current.get(id)).filter(Boolean))};
   async function load(){
    try{
     const root=rows[0],receipt=await requestReceipt(root.request_id),access={requestId:root.request_id,receipt};
     if(root.scope==='name-logo'){
      const designs=rows.filter(isDesign),previews=rows.filter(isPreview),clips=rows.filter(isClip);
-     const wanted=all?[...designs,...previews]:[...designs.slice(0,3),...previews.slice(0,6)];
-     const loadedClips=(await Promise.all((all?clips:clips.slice(0,2)).map(async row=>{
-      const response=await fetch('/api/name-logo/visualization-video-status',{method:'POST',headers:{'Content-Type':'application/json',...nameLogoHeaders({access})},body:JSON.stringify({id:row.resource_id}),signal:controller.signal});
-      if(!response.ok)return null;const data=await response.json();
-      return data.video?{kind:'video',src:data.video,label:'Video'}:null;
-     }))).filter(Boolean);
-     const loaded=(await Promise.all(wanted.map(async row=>{
+     const wantedImages=all?[...designs,...previews]:[...designs.slice(0,3),...previews.slice(0,6)];
+     const wantedClips=all?clips:clips.slice(0,2);
+     const order=[...wantedImages,...wantedClips].map(row=>row.resource_id);
+     publish(order);
+     const loadImage=async row=>{
+      if(cache.current.has(row.resource_id))return;
       const path=isDesign(row)?'image':'visualization-image';
       const response=await fetch(`/api/name-logo/${path}?id=${encodeURIComponent(row.resource_id)}`,{headers:nameLogoHeaders({access}),signal:controller.signal});
-      if(!response.ok)return null;
-      const src=URL.createObjectURL(await response.blob());objects.push(src);
-      return {kind:'image',src,label:isDesign(row)?stageLabel(row):previewTitle(row),design:isDesign(row)};
-     }))).filter(Boolean);
-     if(live){setItems([...loaded,...loadedClips]);setSettled(true)}
+      if(!response.ok)return;
+      const src=URL.createObjectURL(await response.blob());objects.current.push(src);
+      cache.current.set(row.resource_id,{kind:'image',src,label:isDesign(row)?stageLabel(row):previewTitle(row),design:isDesign(row)});
+     };
+     const loadClip=async row=>{
+      if(cache.current.has(row.resource_id))return;
+      const response=await fetch('/api/name-logo/visualization-video-status',{method:'POST',headers:{'Content-Type':'application/json',...nameLogoHeaders({access})},body:JSON.stringify({id:row.resource_id}),signal:controller.signal});
+      if(!response.ok)return;const data=await response.json();
+      if(data.video)cache.current.set(row.resource_id,{kind:'video',src:data.video,label:'Video'});
+     };
+     const pending=[...wantedImages.filter(row=>!cache.current.has(row.resource_id)),...wantedClips.filter(row=>!cache.current.has(row.resource_id))];
+     for(let index=0;index<pending.length;index+=6){
+      await Promise.all(pending.slice(index,index+6).map(row=>isClip(row)?loadClip(row):loadImage(row)));
+      publish(order);
+      if(!live)return;
+     }
+     if(live)setSettled(true);
      return;
     }
     const jobs=rows.filter(row=>row.resource_kind==='video-job').slice(-6),loaded=[];
@@ -51,19 +68,20 @@ function AssetPreviews({rows,all=false,onOpen,onMore}){
      else if(typeof data.image==='string'&&data.image.startsWith('data:image/'))loaded.push({kind:'image',src:data.image,label:'First frame'});
     }
     if(live){setItems(loaded.reverse());setSettled(true)}
-   }catch(error){if(error.name!=='AbortError'&&live){setItems([]);setSettled(true)}}
+   }catch(error){if(error.name!=='AbortError'&&live){setSettled(true)}}
   }
   load();
-  return()=>{live=false;controller.abort();objects.forEach(URL.revokeObjectURL)};
+  return()=>{live=false;controller.abort()};
  },[rows,all]);
  if(!items.length)return <p className="asset-gallery-empty" role="status">{settled?(all?'These images are no longer available here. The stored bundle, if there is one, still is.':'The images have aged out of the gateway; a stored bundle is still here if you downloaded one.'):'Loading images...'}</p>;
  const total=rows.filter(row=>isDesign(row)||isPreview(row)||isClip(row)).length,more=all?0:Math.max(0,total-items.length);
+ const loadingMore=all&&!settled;
  return <div className={all?'asset-grid is-all':'asset-grid'} aria-label={all?'All saved images':'Saved work previews'}>{items.map((item,index)=><figure key={item.src+index} className={`asset-tile${item.design?' is-design':''}${item.kind==='video'?' is-video':''}`}>
   {item.kind==='video'
    ?<><video src={item.src} muted playsInline preload="metadata" controls aria-label={item.label}/><span className="asset-tile-badge">▶ VIDEO</span></>
-   :<button type="button" onClick={()=>onOpen?.(item)} aria-label={`View ${item.label} full size`}><img src={item.src} alt={item.label}/></button>}
+   :<button type="button" onClick={()=>onOpen?.(item)} aria-label={`View ${item.label} full size`}><img src={item.src} alt={item.label} loading="lazy" decoding="async"/></button>}
   <figcaption>{item.label}</figcaption>
- </figure>)}{more>0&&<figure className="asset-tile asset-tile-more"><button type="button" onClick={onMore} aria-label={`Show all ${total} items`}>+{more}<small>more</small></button><figcaption>Open everything</figcaption></figure>}</div>;
+ </figure>)}{more>0&&<figure className="asset-tile asset-tile-more"><button type="button" onClick={onMore} aria-label={`Show all ${total} items`}>+{more}<small>more</small></button><figcaption>Open everything</figcaption></figure>}{loadingMore&&<figure className="asset-tile asset-tile-more is-loading" aria-live="polite"><div><span className="style-spinner" aria-hidden="true"/><small>{items.length} of {total}</small></div><figcaption>Loading the rest</figcaption></figure>}</div>;
 }
 
 export default function MyWork({hidden}){
