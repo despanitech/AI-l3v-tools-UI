@@ -51,9 +51,12 @@ export default function IdentityGenerationStage({
   const previewBatchFailed=failedPreviews===previewTotal;
 
   // The same advancement control is rendered above and below the content.
-  const nextBar=className=><div className={className}>
-    <div><small>{previewBatchFailed?'PREVIEWS NEED ATTENTION':'NEXT'}</small><strong>{previewBatchFailed?'The preview batch did not complete. Retry it without regenerating your identity.':'Now select your package.'}</strong></div>
-    <button type="button" onClick={previewBatchFailed?()=>location.reload():onNext}>{previewBatchFailed?'Retry previews':'Next'}</button>
+  // Step 4 is built on the nine previews, so the way forward opens only once
+  // they have all settled - it must not invite the buyer to skip them.
+  const previewsPending=!sample&&!previewBatchFailed&&(previews.length<previewTotal||previews.some(item=>!['succeeded','failed','expired'].includes(item.status)));
+  const nextBar=className=><div className={`${className}${previewsPending?' is-waiting':''}`}>
+    <div><small>{previewBatchFailed?'PREVIEWS NEED ATTENTION':previewsPending?'PREVIEWS IN PROGRESS':'NEXT'}</small><strong>{previewBatchFailed?'The preview batch did not complete. Retry it without regenerating your identity.':previewsPending?`Preparing your ${previewTotal} previews - ${readyPreviews} of ${previewTotal} ready. Your package options open when they are in.`:'Now select your package.'}</strong></div>
+    <button type="button" disabled={previewsPending} aria-disabled={previewsPending} onClick={previewBatchFailed?()=>location.reload():previewsPending?undefined:onNext}>{previewBatchFailed?'Retry previews':previewsPending?`${readyPreviews} / ${previewTotal}`:'Next'}</button>
   </div>;
   const readyActions=className=><div className={className}>
     <div><small>STEP 3 COMPLETE</small><strong>Your identity is ready. Now select your package.</strong></div>
@@ -106,8 +109,8 @@ export default function IdentityGenerationStage({
       <div className="identity-step3-workspace">
         <aside className="identity-step3-design-rail">
           <div><p className="eyebrow">YOUR ACTIVE SET</p><h2>{personName(request)}</h2><p>Your generated designs are saved.</p></div>
-          {shown.map((design,index)=><figure key={design.id}>
-            <img src={assets[design.id]?.png} alt={`${slots[index].label} result`}/>
+          {shown.map((design,index)=><figure key={design.id} className="identity-viewable-image">
+            {assets[design.id]?.png?<button type="button" className="identity-design-open" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:assets[design.id].png,alt:`${slots[index].label} - ${styleName(design)}`}}))} aria-label={`View ${slots[index].label} full size`}><img src={assets[design.id].png} alt={`${slots[index].label} result`}/></button>:<img src={assets[design.id]?.png} alt={`${slots[index].label} result`}/>}
             <figcaption><strong>{slots[index].label}</strong><small>{styleName(design)}</small></figcaption>
           </figure>)}
         </aside>
@@ -118,7 +121,7 @@ export default function IdentityGenerationStage({
           <div className="identity-step3-application-grid">
             {(previews.length?previews:Array.from({length:9},(_,index)=>({key:`waiting-${index}`,status:'waiting'}))).map(item=><figure key={item.key}>
               <div style={!item.imageUrl&&item.id?applicationPreviewStyle(item):undefined}>{item.imageUrl?<button type="button" className="identity-preview-open" onClick={()=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:`${previewTitle(item)} visualization`}}))} aria-label={`View ${previewTitle(item)} full size`}><img src={item.imageUrl} alt={`${previewTitle(item)} visualization`}/></button>:<span className={item.status==='failed'?'is-failed':''}>{item.status!=='failed'&&<i className="identity-preview-spinner"/>}{item.status==='failed'?'Preview needs attention':'Adding your identity…'}</span>}</div>
-              <figcaption><strong>{item.id?previewTitle(item):'Selecting application'}</strong><small title={item.status==='failed'?failureText(item.diagnostic):item.retry?retryText(item.retry):undefined} className={item.retry&&item.status!=='succeeded'&&item.status!=='failed'?'is-retrying':''}>{item.status==='succeeded'?'Ready':item.status==='failed'?failureText(item.diagnostic,'Not completed.'):item.retry?`Retrying ${item.retry.attempt}${item.retry.of?`/${item.retry.of}`:''}`:'In progress'}</small></figcaption>
+              <figcaption><strong>{item.id?previewTitle(item):'Preparing preview'}</strong><small title={item.status==='failed'?failureText(item.diagnostic):item.retry?retryText(item.retry):undefined} className={item.retry&&item.status!=='succeeded'&&item.status!=='failed'?'is-retrying':''}>{item.status==='succeeded'?'Ready':item.status==='failed'?failureText(item.diagnostic,'Not completed.'):item.retry?`Retrying ${item.retry.attempt}${item.retry.of?`/${item.retry.of}`:''}`:'In progress'}</small></figcaption>
             </figure>)}
           </div>
           {nextBar('identity-step3-next')}
