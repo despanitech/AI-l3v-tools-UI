@@ -202,3 +202,21 @@ test('entitlement still entitles an undelivered purchase',async()=>{
   assert.equal(body.fulfilledAt,null);
   assert.equal(body.fulfilledPackageId,null);
 });
+
+test('a loaded real-lane preview joins the shared latest-generations feed and is served back',async()=>{
+ const original=globalThis.fetch;const png=Uint8Array.from([137,80,78,71,13,10,26,10,1]);
+ const kv=new Map(),r2=new Map();
+ const feedEnv={...env,APP_MODE:'live',INVITATIONS:{get:async k=>kv.get(k)??null,put:async(k,v)=>{kv.set(k,v)}},IDENTITY_BUNDLES:{put:async(k,v,o)=>{r2.set(k,{body:v,httpMetadata:o?.httpMetadata})},get:async k=>r2.get(k)??null}};
+ globalThis.fetch=async(url)=>String(url).includes('visualization-status')?Response.json({status:'succeeded',output:{template:'baseball-cap'}}):new Response(png,{headers:{'Content-Type':'image/png'}});
+ try{
+  const headers={'X-L3V-Request-Id':'a'.repeat(32),'X-L3V-Request-Receipt':'b'.repeat(64)};
+  assert.equal((await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/visualization-image?id='+'d'.repeat(32),{headers}),feedEnv)).status,200);
+  const list=await (await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/recent'),feedEnv)).json();
+  assert.equal(list.items.length,1);assert.equal(list.items[0].template,'baseball-cap');assert.equal(list.items[0].url,'/api/name-logo/recent-image?id='+'d'.repeat(32));
+  const image=await worker.fetch(new Request('https://tools.l3v.ai'+list.items[0].url),feedEnv);
+  assert.equal(image.status,200);assert.equal(image.headers.get('Content-Type'),'image/png');
+  assert.equal((await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/recent-image?id=nope'),feedEnv)).status,400);
+  assert.equal((await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/recent-image?id='+'e'.repeat(32)),feedEnv)).status,404);
+  assert.equal((await worker.fetch(new Request('https://tools.l3v.ai/api/name-logo/recent',{method:'POST'}),feedEnv)).status,405);
+ }finally{globalThis.fetch=original}
+});

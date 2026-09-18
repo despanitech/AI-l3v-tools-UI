@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useState} from 'react';
 import {applicationSubjects,demoPreviewImage} from '../lib/application-templates.mjs';
+import {accessFetch} from '../lib/master-access.mjs';
 
 // The rail shows what it says: the previews of the identity being made, as
 // they land, newest first. Before any exist it shows John Smith demos, and
@@ -39,14 +40,26 @@ export default function RecentIdentityVisualizations(){
   window.addEventListener('identity:previews',update);
   return()=>{cancelled=true;window.removeEventListener('identity:previews',update)};
  },[]);
+ // The shared feed: the newest real previews across every visitor, kept for
+ // good on the edge. This browser's own previews go first, then the feed, and
+ // the demos only while no one has generated anything yet.
+ const [feed,setFeed]=useState([]);
+ useEffect(()=>{
+  let stopped=false;
+  const load=async()=>{try{const response=await accessFetch('/api/name-logo/recent');if(!response.ok)return;const data=await response.json();if(stopped)return;
+   setFeed((data.items||[]).map(item=>({key:'recent:'+item.id,name:applicationSubjects.find(s=>s.id===item.template)?.name||(item.template||'preview').replace(/-/g,' ').replace(/^\w/,c=>c.toUpperCase()),imageUrl:item.url})))}catch{}};
+  load();const timer=setInterval(load,30000);
+  return()=>{stopped=true;clearInterval(timer)};
+ },[]);
  const demos=useMemo(()=>demoSamples(8),[]);
- const shown=live.length?live:demos;
+ const merged=[...live,...feed.filter(item=>!live.some(own=>own.key===item.key))].slice(0,12);
+ const shown=merged.length?merged:demos;
  const open=item=>window.dispatchEvent(new CustomEvent('identity:open-image',{detail:{src:item.imageUrl,alt:item.name}}));
- return <aside className="identity-showcase" aria-label={live.length?'Recent visualizations':'Demo visualizations'}>
-  <p className="eyebrow">{live.length?'RECENT VISUALIZATIONS':'DEMO VISUALIZATIONS'}</p>
+ return <aside className="identity-showcase" aria-label={merged.length?'Latest generations':'Demo visualizations'}>
+  <p className="eyebrow">{merged.length?'LATEST GENERATIONS':'DEMO VISUALIZATIONS'}</p>
   <div className="identity-showcase-strip"><div className="identity-showcase-track">{[...shown,...shown].map((item,index)=><figure key={`${item.key}-${index}`}>
    <button type="button" onClick={()=>open(item)} aria-label={`View ${item.name} full size`}><img src={item.imageUrl} alt={item.name} loading="lazy"/></button>
   </figure>)}</div></div>
-  {!live.length&&<small className="identity-showcase-note">John Smith demos. Yours appear here as they are made.</small>}
+  {!merged.length&&<small className="identity-showcase-note">John Smith demos. Real generations appear here as they are made.</small>}
  </aside>;
 }
