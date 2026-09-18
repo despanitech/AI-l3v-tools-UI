@@ -367,7 +367,7 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
  const startedModes=useRef(new Set()),startAttempts=useRef({});
  // Previews the video provider refused (its content filter, e.g. a photo of
  // bare skin) are not offered again for that design; the clip is re-picked once.
- const refusedSubjects=useRef({}),replacedNote=useRef({});
+ const refusedSubjects=useRef({}),refusalCount=useRef({}),fallbackSource=useRef({});
  // Clips are submitted one after another: three at once raced on the
  // purchase record at the edge and two of them were forgotten.
  const startQueue=useRef(Promise.resolve());
@@ -375,7 +375,7 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
  // Clear the failed clips and let the start effect submit them again.
  function retryVideos(){
   setVideos(current=>Object.fromEntries(Object.entries(current).filter(([,item])=>item.status!=='failed')));
-  for(const [subject,item] of Object.entries(videos))if(item.status==='failed'&&item.mode){startedModes.current.delete(item.mode);if(isContentRejected(item.error))refusedSubjects.current[item.mode]=[...(refusedSubjects.current[item.mode]||[]),subject]}
+  for(const [subject,item] of Object.entries(videos))if(item.status==='failed'&&item.mode){startedModes.current.delete(item.mode);refusalCount.current[item.mode]=0;if(isContentRejected(item.error))refusedSubjects.current[item.mode]=[...(refusedSubjects.current[item.mode]||[]),subject]}
   setRetryTick(tick=>tick+1);
  }
  retryRef.current=retryVideos;
@@ -383,7 +383,11 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
   if(!paidFor||!videosTotal||!request?.access)return;
   for(const mode of designModes.slice(0,videosTotal)){
    if(startedModes.current.has(mode))continue;
-   const finished=generatedItems.filter(item=>artworkFor(item.id)===mode&&jobs[item.id]?.id);
+   // After a refusal the clip for this design may be made from a product that
+   // carries the initials instead (they cannot offend); the clip still counts for the design.
+   const sourceMode=fallbackSource.current[mode]||mode;
+   const bySource=generatedItems.filter(item=>artworkFor(item.id)===sourceMode&&jobs[item.id]?.id);
+   const finished=bySource.length||sourceMode===mode?bySource:generatedItems.filter(item=>jobs[item.id]?.id);
    if(!finished.length){
     if(imagesReady){startedModes.current.add(mode);setVideos(current=>({...current,['none-'+mode]:{status:'failed',mode,name:`${ARTWORK_SHORT[mode]||mode} video`,error:'No finished image to make this video from.'}}))}
     continue;
@@ -399,7 +403,7 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
    const pick=pickVideoSubjects(finished,1,refused)[0];
    if(!pick)continue;
    startedModes.current.add(mode);
-   setVideos(current=>({...current,[pick.id]:{status:'starting',mode,name:pick.name,startedAt:Date.now(),note:replacedNote.current[mode]||null}}));
+   setVideos(current=>({...current,[pick.id]:{status:'starting',mode,name:pick.name,startedAt:Date.now()}}));
    const started=startQueue.current.catch(()=>{}).then(()=>call('visualization-video',request,{id:jobs[pick.id].id}));
    startQueue.current=started;
    started
@@ -425,14 +429,19 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
      // reports - failed, ambiguous, expired - is over, or the wait never ends.
      const status=state.status==='succeeded'?(state.video?'succeeded':'running'):['queued','running'].includes(state.status)?state.status:'failed';
      const refused=status==='failed'&&(isContentRejected(state.diagnostic)||isContentRejected(state.error));
-     if(refused&&item.mode&&!replacedNote.current[item.mode]){
-      // The filter refused this preview image, not the name: drop it, remember it, and pick another product for this design.
+     if(refused&&item.mode){
+      // The provider refused the image (a photo it will not animate, or a name it
+      // will not show). Say nothing; pick again - another product of this design
+      // first, then a product carrying the initials, which can never offend.
+      const tries=(refusalCount.current[item.mode]||0)+1;refusalCount.current[item.mode]=tries;
       refusedSubjects.current[item.mode]=[...(refusedSubjects.current[item.mode]||[]),subject];
-      replacedNote.current[item.mode]=`${item.name||subject} was refused by the video provider's content filter (it rejects photos of bare skin, not your name), so this product was used instead.`;
-      setVideos(items=>{const next={...items};delete next[subject];return next});
-      startedModes.current.delete(item.mode);setRetryTick(tick=>tick+1);continue;
+      if(tries<=2){
+       fallbackSource.current[item.mode]=tries===2?'initials':null;
+       setVideos(items=>{const next={...items};delete next[subject];return next});
+       startedModes.current.delete(item.mode);setRetryTick(tick=>tick+1);continue;
+      }
      }
-     setVideos(items=>({...items,[subject]:{...items[subject],status,video:state.video||null,error:status==='failed'?(refused?`The video provider's content filter refused this preview image (it rejects photos of bare skin) - not your name. Retry picks another product.`:failureText(state.diagnostic,state.error||'This video could not be completed.')):null}}))}
+     setVideos(items=>({...items,[subject]:{...items[subject],status,video:state.video||null,error:status==='failed'?(refused?'The video provider refused this preview image. Retry picks another product.':failureText(state.diagnostic,state.error||'This video could not be completed.')):null}}))}
     catch(error){if(error.name==='AbortError')return;if(error.status===404)setVideos(items=>({...items,[subject]:{...items[subject],status:'failed',error:'This video expired.'}}))}
    }
   },5000);

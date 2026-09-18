@@ -18,7 +18,7 @@ const PURCHASE_COPY={
  preparing:{title:'Thanks for your payment',body:'Your bundle is being prepared. This page can be left open.'},
  ready:{title:'Thanks for your payment',body:'Your bundle is ready to download.'},
  'videos-failed':{title:'Your videos did not complete',body:'The images are ready, but the videos failed and nothing has been delivered. Retry them to finish your set.'},
- 'videos-rejected':{title:'The video provider refused a preview image',body:'Its content filter rejects some photographs (bare skin, for example) - not your name. Retry to make the video from another product.'},
+ 'videos-rejected':{title:'Your videos did not complete',body:'The video provider refused the preview it was given. Retry makes the video from another product.'},
  delivered:{title:'Saved to My assets',body:'Your bundle is stored in the library and stays available there.'},
  downloaded:{title:'Your bundle has been downloaded',body:'It stays available here. Download it again any time.'},
  unconfirmed:{title:'Payment not confirmed yet',body:'Nothing was prepared and you have not been charged twice. Reload in a moment, or contact support with your request reference.'},
