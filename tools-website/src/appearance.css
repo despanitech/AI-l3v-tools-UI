@@ -298,3 +298,20 @@ html {
 .generation-recovery.is-failed{border-color:#b3261e;background:#fff5f4}.generation-recovery.is-failed strong{color:#b3261e}.generation-recovery.is-failed button{border-color:#b3261e;background:#b3261e;color:#fff}
 .identity-purchase-banner button.is-retry{background:#b3261e;color:#fff}
 .identity-purchase-reasons{grid-column:2;margin:6px 0 0;padding:0 0 0 18px;color:#b3261e;font-size:12.5px;line-height:1.45}.identity-purchase-reasons li{margin:2px 0}.identity-purchase-reasons strong{color:inherit}
+/* Purchase banner: room below it, and a card that reads as the one thing happening on the page. */
+.identity-purchase-banner{position:relative;overflow:hidden;margin:20px auto 24px;padding:20px 24px 20px 28px;gap:18px;border:1px solid color-mix(in srgb,var(--accent) 42%,var(--border));border-radius:16px;background:linear-gradient(115deg,color-mix(in srgb,var(--accent) 14%,var(--panel)) 0%,var(--panel) 55%,color-mix(in srgb,var(--package-gold,#c9a24a) 12%,var(--panel)) 100%);box-shadow:0 18px 40px -22px color-mix(in srgb,var(--accent) 55%,transparent),0 1px 2px #10251b14}
+.identity-purchase-banner::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--accent)}
+.identity-purchase-banner strong{font-size:1.18rem;font-weight:600;letter-spacing:-.2px;color:var(--foreground)}
+.identity-purchase-banner span{font-size:.92rem;line-height:1.45}
+.identity-purchase-banner small{font-size:.78rem;letter-spacing:.2px}
+.identity-purchase-mark{width:44px;height:44px;font-size:1.15rem;box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 8%,transparent)}
+.identity-purchase-banner.preparing .identity-purchase-mark,.identity-purchase-banner.confirming .identity-purchase-mark{border-width:3px}
+.identity-purchase-meter{height:7px;border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.identity-purchase-meter i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 60%,var(--package-gold,#c9a24a)));transition:width .5s ease}
+.identity-purchase-banner.confirming::before{background:var(--package-gold,#c9a24a)}
+.identity-purchase-banner.ready::before,.identity-purchase-banner.delivered::before{background:#34714a}
+.identity-purchase-banner.ready,.identity-purchase-banner.delivered{background:linear-gradient(115deg,color-mix(in srgb,#34714a 12%,var(--panel)),var(--panel) 60%)}
+.identity-purchase-banner.videos-failed::before,.identity-purchase-banner.unconfirmed::before{background:#b3261e}
+.identity-purchase-banner.videos-failed{border-color:color-mix(in srgb,#b3261e 45%,var(--border));background:linear-gradient(115deg,color-mix(in srgb,#b3261e 9%,var(--panel)),var(--panel) 60%)}
+.identity-purchase-banner button{padding:12px 20px;border-radius:10px;font-weight:600;box-shadow:0 8px 18px -10px #10251b66}
+@media(max-width:700px){.identity-purchase-banner{margin:14px auto 18px;padding:16px 16px 16px 20px}.identity-purchase-banner strong{font-size:1.05rem}}
