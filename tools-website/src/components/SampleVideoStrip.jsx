@@ -6,6 +6,9 @@ import {accessFetch} from '../lib/master-access.mjs';
 const ARTWORK = {logo: 'Name logo', initials: 'Initials', signature: 'Signature'};
 const nameFor = template => applicationSubjects.find(s => s.id === template)?.name
   || (template || '').replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()) || 'Sample video';
+// Feed clips are behind the invitation header, which a plain <video src> cannot
+// send, so each is fetched with the header once and held as an object URL.
+const clipBlobs = new Map();
 
 // "See it move": a live, accumulating strip of real sample clips. Each real
 // generation adds one; the edge keeps the newest 20 and rotates the rest out.
@@ -22,7 +25,18 @@ export default function SampleVideoStrip() {
         if (!response.ok) return;
         const data = await response.json();
         if (stopped) return;
-        setFeed((data.items || []).map(item => ({src: item.url, mode: '', name: nameFor(item.template)})));
+        const next = [];
+        for (const item of (data.items || []).slice(0, 10)) {
+          let src = clipBlobs.get(item.id);
+          if (!src) {
+            const clip = await accessFetch(item.url);
+            if (!clip.ok) continue;
+            src = URL.createObjectURL(await clip.blob());
+            clipBlobs.set(item.id, src);
+          }
+          next.push({src, mode: '', name: nameFor(item.template)});
+        }
+        if (!stopped && next.length) setFeed(next);
       } catch {}
     };
     load();

@@ -238,11 +238,12 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
  const videosFailed=videoList.filter(item=>item.status==='failed').length;
  // Every clip that was paid for has to be in. A failed clip does not settle
  // the set - it stops delivery and is offered for retry.
+ const [acceptPartial,setAcceptPartial]=useState(false);
  const videosSettled=videosTotal===0||videosReady>=videosTotal;
- const videosBlocked=videosTotal>0&&imagesReady&&!videosRunning&&videosFailed>0&&videosReady<videosTotal;
+ const videosBlocked=videosTotal>0&&imagesReady&&!videosRunning&&videosFailed>0&&videosReady<videosTotal&&!acceptPartial;
  // Nothing says "ready" - not the bar, not the banner, not Download - until
  // the clips are in as well. A set with clips still rendering is not done.
- const bundleReady=imagesReady&&videosSettled;
+ const bundleReady=imagesReady&&(videosSettled||acceptPartial);
  const stepsTotal=progressTotal+videosTotal,stepsDone=progressSettled+videosReady;
  const generationFinished=progressTotal>0&&progressSettled===progressTotal&&generatedItems.length>0;
  const purchasedSubjects=purchaseIntent?.subjects||[];
@@ -314,8 +315,10 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
  const retryRef=useRef(null);
  useEffect(()=>{
   const retry=()=>{if(videosBlocked)retryRef.current?.()};
+  const deliverPartial=()=>setAcceptPartial(true);
   window.addEventListener('identity:retry-videos',retry);
-  return()=>window.removeEventListener('identity:retry-videos',retry);
+  window.addEventListener('identity:deliver-partial',deliverPartial);
+  return()=>{window.removeEventListener('identity:retry-videos',retry);window.removeEventListener('identity:deliver-partial',deliverPartial)};
  },[videosBlocked,videos]);
 
  // Test mode only: a paid request can never show Pay again, so without this
@@ -337,7 +340,7 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
  // once fulfilled, so doing it the other way round could leave a buyer with
  // neither an entitlement nor a bundle.
  useEffect(()=>{
-  if(!paidFor||!bundleReady||!videosSettled||!request?.access||deliveryStarted.current)return;
+  if(!paidFor||!bundleReady||!request?.access||deliveryStarted.current)return;
   deliveryStarted.current=true;
   (async()=>{
    try{
@@ -400,7 +403,7 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
    if(!pick)continue;
    startedModes.current.add(mode);
    setVideos(current=>({...current,[pick.id]:{status:'starting',mode,name:pick.name,startedAt:Date.now()}}));
-   const started=startQueue.current.catch(()=>{}).then(()=>call('visualization-video',request,{id:jobs[pick.id].id}));
+   const started=startQueue.current.catch(()=>{}).then(()=>call('visualization-video',request,{id:jobs[pick.id].id,mode}));
    startQueue.current=started;
    started
     .then(created=>setVideos(current=>({...current,[pick.id]:{...current[pick.id],jobId:created.id,status:['queued','running','succeeded'].includes(created.status)?created.status:'queued',video:created.video||null}})))
@@ -409,7 +412,7 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
      // yet, so try again a few times before giving up on this clip.
      const attempts=(startAttempts.current[mode]||0)+1;startAttempts.current[mode]=attempts;
      if(error.status!==403&&attempts<4){setVideos(current=>({...current,[pick.id]:{...current[pick.id],status:'starting',error:null}}));setTimeout(()=>{startedModes.current.delete(mode);setRetryTick(tick=>tick+1)},15000);return}
-     setVideos(current=>({...current,[pick.id]:{...current[pick.id],status:'failed',error:error.status===403?'Not included in your package.':'This video could not be started.'}}));
+     setVideos(current=>({...current,[pick.id]:{...current[pick.id],status:'failed',error:error.status===403?(error.reason||'Videos are included with Signature studio.'):'This video could not be started.'}}));
     });
   }
  },[paidFor,videosTotal,imagesReady,generatedItems.length,progressSettled,request?.access?.requestId,retryTick]);
