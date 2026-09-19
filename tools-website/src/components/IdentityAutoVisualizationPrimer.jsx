@@ -56,6 +56,13 @@ export default function IdentityAutoVisualizationPrimer({request,designs=[],asse
     }else if(tattooDesign){
       picks[0]={...picks[0],id:'upper-arm-tattoo',name:'Upper-arm tattoo',designId:tattooDesign.id};
     }
+    // Free is a fixed set of previews (one per design). Drop any stored entry
+    // that is not a current pick, so an earlier run's tiles do not linger.
+    const currentKeys=new Set(picks.map(item=>`${item.designId}:${item.id}`));
+    for(const key of Object.keys(saved)){
+      if(!currentKeys.has(key)){delete saved[key];onUpdate(key,null);}
+    }
+    sessionStorage.setItem(storageKey,JSON.stringify(saved));
     picks.forEach(item=>{
       const key=`${item.designId}:${item.id}`;
       const prior=saved[key];
