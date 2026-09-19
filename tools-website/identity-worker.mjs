@@ -1,6 +1,7 @@
 import {recordRecent, listRecent, recentImage, recordRecentClip, listRecentClips, recentClip} from './recent-feed.mjs';
 import videoWorker from './video-worker.mjs';
 import {invitationAccount} from './invitation-worker.mjs';
+import {sessionAccount, startOAuth, completeOAuth, accountForEmail, sessionCookie, clearSessionCookie, clearStateCookie, readCookie} from './account-auth.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
 import {invitationShare} from './invitation-share.mjs';
 import {buildBundle,listBundles,getBundle} from './bundle-store.mjs';
@@ -148,7 +149,7 @@ export default {
       return json({mode:stored});
     }
     const api=url.pathname.startsWith('/api/');
-    const account=api?await invitationAccount(request,env):null;
+    const account=api?((await sessionAccount(request,env))?.accountId||await invitationAccount(request,env)):null;
     if(url.pathname==='/api/invitation/validate'){
       const ip=request.headers.get('CF-Connecting-IP');
       if(env.INVITATION_LIMITER&&(!ip||!(await env.INVITATION_LIMITER.limit({key:ip})).success))return json({error:'Please wait before trying again'},429);
@@ -170,6 +171,28 @@ export default {
       const response=await fetch(target,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+env.HERMES_TOKEN},body:JSON.stringify({accountId:account,access:{requestId,receipt}}),redirect:'manual',signal:AbortSignal.timeout(15000)});
       if(!response.ok)return json({error:'Request not found or expired'},response.status===404?404:503);
       return json({claimed:true});
+    }
+    if(url.pathname==='/api/account/login'){
+      const start=await startOAuth(env,url.searchParams.get('provider')||'google',{origin:url.origin,returnTo:url.searchParams.get('return')||'/'});
+      if(!start)return json({error:'Sign-in is not configured'},503);
+      return new Response(null,{status:302,headers:{Location:start.redirect,'Set-Cookie':start.setCookie}});
+    }
+    if(url.pathname==='/api/account/callback'){
+      const result=await completeOAuth(env,{origin:url.origin,code:url.searchParams.get('code'),state:url.searchParams.get('state'),stateCookie:readCookie(request,'l3v_oauth')});
+      if(result.error)return new Response(null,{status:302,headers:{Location:'/?signin='+encodeURIComponent(result.error),'Set-Cookie':clearStateCookie()}});
+      const accountId=await accountForEmail(env,result.email);
+      const headers=new Headers({Location:result.returnTo||'/'});
+      headers.append('Set-Cookie',await sessionCookie(env,{accountId,email:result.email}));
+      headers.append('Set-Cookie',clearStateCookie());
+      return new Response(null,{status:302,headers});
+    }
+    if(url.pathname==='/api/account/session'){
+      const s=await sessionAccount(request,env);
+      return json(s?{signedIn:true,accountId:s.accountId,email:s.email}:{signedIn:false});
+    }
+    if(url.pathname==='/api/account/logout'){
+      if(request.method!=='POST')return json({error:'Invalid method'},405);
+      return new Response(JSON.stringify({signedOut:true}),{status:200,headers:{'Content-Type':'application/json','Cache-Control':'no-store','Set-Cookie':clearSessionCookie()}});
     }
     if(api&&env.INVITATION_ONLY==='true'&&!account)return json({error:'Invitation required'},403);
     if(['/api/analyzer/config','/api/analyze','/api/first-frame','/api/image-to-video','/api/jobs','/api/capacity-status'].includes(url.pathname)) return videoWorker.fetch(request,env);
