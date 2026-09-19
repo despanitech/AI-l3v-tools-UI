@@ -3,7 +3,7 @@ import {zip,safeEntryName} from '../lib/zip.mjs';
 import './IdentityPackages.css';
 import {call,headers} from '../lib/name-logo-request.mjs';
 import {accessFetch} from '../lib/master-access.mjs';
-import {pickVideoSubjects,MOTION_FRIENDLY,NOT_FOR_VIDEO} from '../lib/video-picks.mjs';
+import {pickVideoSubjects} from '../lib/video-picks.mjs';
 import {ARTWORK_SHORT,artworkCounts,balanceArtwork,nextArtwork} from '../lib/artwork-mix.mjs';
 import {failureText,retryText,isContentRejected} from '../lib/failure-copy.mjs';
 import {INCLUDED_PREVIEWS} from '../../generation-allowance.mjs';
@@ -392,14 +392,10 @@ export default function IdentityPackages({request,name,designs=[],designAssets={
     if(imagesReady){startedModes.current.add(mode);setVideos(current=>({...current,['none-'+mode]:{status:'failed',mode,name:`${ARTWORK_SHORT[mode]||mode} video`,error:'No finished image to make this video from.'}}))}
     continue;
    }
-   // A flat-lay shirt makes a still clip. Wait for a motion-friendly product of
-   // this design (a van, a balloon, a storefront) unless the design's products
-   // are all done and there is none - then the best available.
+   // Submit the clip the moment the first image for this design is ready, so it
+   // renders alongside the remaining images instead of waiting for them. The
+   // pick still prefers a motion-friendly product among whatever has finished.
    const refused=refusedSubjects.current[mode]||[];
-   const candidates=finished.filter(item=>!refused.includes(item.id)&&!NOT_FOR_VIDEO.includes(item.id));
-   const modeSubjects=trackedSubjects.filter(id=>artworkFor(id)===mode);
-   const modeSettled=modeSubjects.every(id=>['succeeded','failed'].includes(jobs[id]?.status));
-   if(!candidates.some(item=>MOTION_FRIENDLY.includes(item.id))&&!modeSettled)continue;
    const pick=pickVideoSubjects(finished,1,refused)[0];
    if(!pick)continue;
    startedModes.current.add(mode);
