@@ -20,7 +20,10 @@ export default function NameLogoGenerator({first,last,visible,onFirst,onLast,int
  const [visualizations,setVisualizations]=useState({});
  const [autoVisualizations,setAutoVisualizations]=useState(false);
  const [regenerationWarning,setRegenerationWarning]=useState(null);
- const updateVisualization=useCallback((key,patch)=>setVisualizations(current=>({...current,[key]:{...current[key],...patch}})),[]);
+ const updateVisualization=useCallback((key,patch)=>setVisualizations(current=>{
+  if(patch===null){const next={...current};delete next[key];return next;}
+  return {...current,[key]:{...current[key],...patch}};
+ }),[]);
  useEffect(()=>setVisualizations({}),[request?.id]);
  // The rail beside the steps shows these as they land.
  useEffect(()=>{window.dispatchEvent(new CustomEvent('identity:previews',{detail:{items:Object.entries(visualizations).map(([key,item])=>({key,name:item?.name||item?.id,imageUrl:item?.imageUrl,status:item?.status}))}}))},[visualizations]);
