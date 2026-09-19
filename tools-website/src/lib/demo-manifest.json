@@ -1,5 +1,7 @@
 {
- "name": "John Smith",
+ "name": "l3v Dvalo",
+ "first": "l3v",
+ "last": "Dvalo",
  "logo": [
   "apron",
   "backpack",
@@ -230,5 +232,52 @@
   "wayfinding-sign",
   "wine-bottle",
   "workwear-patch"
+ ],
+ "clips": [
+  {
+   "mode": "initials",
+   "template": "candle-jar",
+   "src": "/assets/identity-subjects/demo/clips/initials-candle-jar.mp4"
+  },
+  {
+   "mode": "initials",
+   "template": "coffee-cup",
+   "src": "/assets/identity-subjects/demo/clips/initials-coffee-cup.mp4"
+  },
+  {
+   "mode": "initials",
+   "template": "wine-bottle",
+   "src": "/assets/identity-subjects/demo/clips/initials-wine-bottle.mp4"
+  },
+  {
+   "mode": "logo",
+   "template": "city-bus",
+   "src": "/assets/identity-subjects/demo/clips/logo-city-bus.mp4"
+  },
+  {
+   "mode": "logo",
+   "template": "delivery-van",
+   "src": "/assets/identity-subjects/demo/clips/logo-delivery-van.mp4"
+  },
+  {
+   "mode": "logo",
+   "template": "hot-air-balloon",
+   "src": "/assets/identity-subjects/demo/clips/logo-hot-air-balloon.mp4"
+  },
+  {
+   "mode": "signature",
+   "template": "beach-flag",
+   "src": "/assets/identity-subjects/demo/clips/signature-beach-flag.mp4"
+  },
+  {
+   "mode": "signature",
+   "template": "boat-sail",
+   "src": "/assets/identity-subjects/demo/clips/signature-boat-sail.mp4"
+  },
+  {
+   "mode": "signature",
+   "template": "festival-stage",
+   "src": "/assets/identity-subjects/demo/clips/signature-festival-stage.mp4"
+  }
  ]
 }

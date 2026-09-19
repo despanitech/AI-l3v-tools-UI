@@ -1,290 +1,634 @@
 [
-  {
-    "category": "logo",
-    "styleId": "soft-angular",
-    "styleName": "Soft angular",
-    "job": "logo-01-soft-angular",
-    "target": "John",
-    "src": "/review/john-smith-34/logo-01-soft-angular.png"
-  },
-  {
-    "category": "logo",
-    "styleId": "tall-stems",
-    "styleName": "Tall stems",
-    "job": "logo-02-tall-stems",
-    "target": "John",
-    "src": "/review/john-smith-34/logo-02-tall-stems.png"
-  },
-  {
-    "category": "logo",
-    "styleId": "flowing-curves",
-    "styleName": "Flowing curves",
-    "job": "logo-03-flowing-curves",
-    "target": "John",
-    "src": "/review/john-smith-34/logo-03-flowing-curves.png"
-  },
-  {
-    "category": "logo",
-    "styleId": "hard-angular",
-    "styleName": "Hard angular",
-    "job": "logo-04-hard-angular",
-    "target": "John",
-    "src": "/review/john-smith-34/logo-04-hard-angular.png"
-  },
-  {
-    "category": "logo",
-    "styleId": "geometric-emblem",
-    "styleName": "Geometric emblem",
-    "job": "logo-05-geometric-emblem",
-    "target": "John",
-    "src": "/review/john-smith-34/logo-05-geometric-emblem.png"
-  },
-  {
-    "category": "logo",
-    "styleId": "angular-open",
-    "styleName": "Angular (open)",
-    "job": "logo-06-angular-open",
-    "target": "John",
-    "src": "/review/john-smith-34/logo-06-angular-open.png"
-  },
-  {
-    "category": "logo",
-    "styleId": "gothic-weave-logo",
-    "styleName": "Gothic weave",
-    "job": "logo-07-gothic-weave-logo",
-    "target": "John",
-    "src": "/review/john-smith-34/logo-07-gothic-weave-logo.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "heritage-ornament",
-    "styleName": "Heritage Ornament",
-    "job": "initials-01-heritage-ornament",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-01-heritage-ornament.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "geometric-lock",
-    "styleName": "Geometric Lock",
-    "job": "initials-02-geometric-lock",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-02-geometric-lock.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "deco-lines",
-    "styleName": "Deco Lines",
-    "job": "initials-03-deco-lines",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-03-deco-lines.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "gothic-weave",
-    "styleName": "Gothic Weave",
-    "job": "initials-04-gothic-weave",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-04-gothic-weave.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "script-ligature",
-    "styleName": "Script Ligature",
-    "job": "initials-05-script-ligature",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-05-script-ligature.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "pen-mark",
-    "styleName": "Pen Mark",
-    "job": "initials-06-pen-mark",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-06-pen-mark.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "ini-gothic-roundel",
-    "styleName": "Gothic Roundel",
-    "job": "initials-07-ini-gothic-roundel",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-07-ini-gothic-roundel.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "ini-leaf-weave",
-    "styleName": "Leaf Weave",
-    "job": "initials-08-ini-leaf-weave",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-08-ini-leaf-weave.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "ini-engraved-spine",
-    "styleName": "Engraved Spine",
-    "job": "initials-09-ini-engraved-spine",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-09-ini-engraved-spine.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "ini-loop-nest",
-    "styleName": "Loop Nest",
-    "job": "initials-10-ini-loop-nest",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-10-ini-loop-nest.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "ini-twin-sweep",
-    "styleName": "Twin Sweep",
-    "job": "initials-11-ini-twin-sweep",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-11-ini-twin-sweep.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "ini-cathedral-nest",
-    "styleName": "Cathedral Nest",
-    "job": "initials-12-ini-cathedral-nest",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-12-ini-cathedral-nest.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "ini-oval-diagonal",
-    "styleName": "Oval Diagonal",
-    "job": "initials-13-ini-oval-diagonal",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-13-ini-oval-diagonal.png"
-  },
-  {
-    "category": "initials",
-    "styleId": "ini-ribbon-knot",
-    "styleName": "Ribbon Knot",
-    "job": "initials-14-ini-ribbon-knot",
-    "target": "JS",
-    "src": "/review/john-smith-34/initials-14-ini-ribbon-knot.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "executive-edge",
-    "styleName": "Executive Edge",
-    "job": "signature-01-executive-edge",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-01-executive-edge.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "orbital-flourish",
-    "styleName": "Orbital Flourish",
-    "job": "signature-02-orbital-flourish",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-02-orbital-flourish.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "couture-sweep",
-    "styleName": "Couture Sweep",
-    "job": "signature-03-couture-sweep",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-03-couture-sweep.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "compact-autograph",
-    "styleName": "Compact Autograph",
-    "job": "signature-04-compact-autograph",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-04-compact-autograph.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-open-horizon",
-    "styleName": "Open Horizon",
-    "job": "signature-05-sig-open-horizon",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-05-sig-open-horizon.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-twin-pillars",
-    "styleName": "Twin Pillars",
-    "job": "signature-06-sig-twin-pillars",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-06-sig-twin-pillars.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-low-tide",
-    "styleName": "Low Tide",
-    "job": "signature-07-sig-low-tide",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-07-sig-low-tide.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-bookend-thread",
-    "styleName": "Bookend Thread",
-    "job": "signature-08-sig-bookend-thread",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-08-sig-bookend-thread.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-tucked-ribbon",
-    "styleName": "Tucked Ribbon",
-    "job": "signature-09-sig-tucked-ribbon",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-09-sig-tucked-ribbon.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-shared-crossbar",
-    "styleName": "Shared Crossbar",
-    "job": "signature-10-sig-shared-crossbar",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-10-sig-shared-crossbar.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-angular-envelope",
-    "styleName": "Angular Envelope",
-    "job": "signature-11-sig-angular-envelope",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-11-sig-angular-envelope.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-stem-cadence",
-    "styleName": "Stem Cadence",
-    "job": "signature-12-sig-stem-cadence",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-12-sig-stem-cadence.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-delta-bridge",
-    "styleName": "Delta Bridge",
-    "job": "signature-13-sig-delta-bridge",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-13-sig-delta-bridge.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-knot-and-release",
-    "styleName": "Knot and Release",
-    "job": "signature-14-sig-knot-and-release",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-14-sig-knot-and-release.png"
-  },
-  {
-    "category": "signature",
-    "styleId": "sig-tilted-orbit",
-    "styleName": "Tilted Orbit",
-    "job": "signature-15-sig-tilted-orbit",
-    "target": "J. Smith",
-    "src": "/review/john-smith-34/signature-15-sig-tilted-orbit.png"
-  }
+ {
+  "category": "initials",
+  "styleId": "deco-lines",
+  "styleName": "Deco Lines",
+  "job": "initials-deco-lines",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-deco-lines.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "geometric-lock",
+  "styleName": "Geometric Lock",
+  "job": "initials-geometric-lock",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-geometric-lock.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "gothic-weave",
+  "styleName": "Gothic Weave",
+  "job": "initials-gothic-weave",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-gothic-weave.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "heritage-ornament",
+  "styleName": "Heritage Ornament",
+  "job": "initials-heritage-ornament",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-heritage-ornament.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-arc-bridge",
+  "styleName": "Arc Bridge",
+  "job": "initials-ini-arc-bridge",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-arc-bridge.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-architectural-nest",
+  "styleName": "Architectural Nest",
+  "job": "initials-ini-architectural-nest",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-architectural-nest.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-bar-and-bowl",
+  "styleName": "Bar and Bowl",
+  "job": "initials-ini-bar-and-bowl",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-bar-and-bowl.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-blackletter-drift",
+  "styleName": "Blackletter Drift",
+  "job": "initials-ini-blackletter-drift",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-blackletter-drift.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-canopy-lock",
+  "styleName": "Canopy Lock",
+  "job": "initials-ini-canopy-lock",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-canopy-lock.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-cathedral-nest",
+  "styleName": "Cathedral Nest",
+  "job": "initials-ini-cathedral-nest",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-cathedral-nest.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-contour-fusion",
+  "styleName": "Contour Fusion",
+  "job": "initials-ini-contour-fusion",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-contour-fusion.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-crossbar-seal",
+  "styleName": "Crossbar Seal",
+  "job": "initials-ini-crossbar-seal",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-crossbar-seal.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-diagonal-duet",
+  "styleName": "Diagonal Duet",
+  "job": "initials-ini-diagonal-duet",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-diagonal-duet.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-double-line-spiral",
+  "styleName": "Double-Line Spiral",
+  "job": "initials-ini-double-line-spiral",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-double-line-spiral.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-engraved-spine",
+  "styleName": "Engraved Spine",
+  "job": "initials-ini-engraved-spine",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-engraved-spine.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-filigree-diagonal",
+  "styleName": "Filigree Diagonal",
+  "job": "initials-ini-filigree-diagonal",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-filigree-diagonal.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-gesture-ligature",
+  "styleName": "Gesture Ligature",
+  "job": "initials-ini-gesture-ligature",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-gesture-ligature.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-gothic-roundel",
+  "styleName": "Gothic Roundel",
+  "job": "initials-ini-gothic-roundel",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-gothic-roundel.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-hook-nest",
+  "styleName": "Hook Nest",
+  "job": "initials-ini-hook-nest",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-hook-nest.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-leaf-weave",
+  "styleName": "Leaf Weave",
+  "job": "initials-ini-leaf-weave",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-leaf-weave.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-loop-nest",
+  "styleName": "Loop Nest",
+  "job": "initials-ini-loop-nest",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-loop-nest.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-medallion-script",
+  "styleName": "Medallion Script",
+  "job": "initials-ini-medallion-script",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-medallion-script.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-modular-stack",
+  "styleName": "Modular Stack",
+  "job": "initials-ini-modular-stack",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-modular-stack.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-ornament-axis",
+  "styleName": "Ornament Axis",
+  "job": "initials-ini-ornament-axis",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-ornament-axis.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-ornament-frame",
+  "styleName": "Ornament Frame",
+  "job": "initials-ini-ornament-frame",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-ornament-frame.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-oval-diagonal",
+  "styleName": "Oval Diagonal",
+  "job": "initials-ini-oval-diagonal",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-oval-diagonal.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-parallel-lock",
+  "styleName": "Parallel Lock",
+  "job": "initials-ini-parallel-lock",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-parallel-lock.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-ribbon-knot",
+  "styleName": "Ribbon Knot",
+  "job": "initials-ini-ribbon-knot",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-ribbon-knot.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-ribbon-relief",
+  "styleName": "Ribbon Relief",
+  "job": "initials-ini-ribbon-relief",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-ribbon-relief.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-serif-spine",
+  "styleName": "Serif Spine",
+  "job": "initials-ini-serif-spine",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-serif-spine.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-shelter-nest",
+  "styleName": "Shelter Nest",
+  "job": "initials-ini-shelter-nest",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-shelter-nest.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-thread-loop",
+  "styleName": "Thread Loop",
+  "job": "initials-ini-thread-loop",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-thread-loop.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-twin-descenders",
+  "styleName": "Twin Descenders",
+  "job": "initials-ini-twin-descenders",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-twin-descenders.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "ini-twin-sweep",
+  "styleName": "Twin Sweep",
+  "job": "initials-ini-twin-sweep",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-ini-twin-sweep.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "pen-mark",
+  "styleName": "Pen Mark",
+  "job": "initials-pen-mark",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-pen-mark.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "script-ligature",
+  "styleName": "Script Ligature",
+  "job": "initials-script-ligature",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-script-ligature.png"
+ },
+ {
+  "category": "initials",
+  "styleId": "woven-serif",
+  "styleName": "Woven Serif",
+  "job": "initials-woven-serif",
+  "target": "LD",
+  "src": "/assets/style-examples/initials-woven-serif.png"
+ },
+ {
+  "category": "logo",
+  "styleId": "angular-open",
+  "styleName": "Angular (open)",
+  "job": "logo-angular-open",
+  "target": "l3v",
+  "src": "/assets/style-examples/logo-angular-open.png"
+ },
+ {
+  "category": "logo",
+  "styleId": "flowing-curves",
+  "styleName": "Flowing curves",
+  "job": "logo-flowing-curves",
+  "target": "l3v",
+  "src": "/assets/style-examples/logo-flowing-curves.png"
+ },
+ {
+  "category": "logo",
+  "styleId": "geometric-emblem",
+  "styleName": "Geometric emblem",
+  "job": "logo-geometric-emblem",
+  "target": "l3v",
+  "src": "/assets/style-examples/logo-geometric-emblem.png"
+ },
+ {
+  "category": "logo",
+  "styleId": "gothic-weave-logo",
+  "styleName": "Gothic weave",
+  "job": "logo-gothic-weave-logo",
+  "target": "l3v",
+  "src": "/assets/style-examples/logo-gothic-weave-logo.png"
+ },
+ {
+  "category": "logo",
+  "styleId": "hard-angular",
+  "styleName": "Hard angular",
+  "job": "logo-hard-angular",
+  "target": "l3v",
+  "src": "/assets/style-examples/logo-hard-angular.png"
+ },
+ {
+  "category": "logo",
+  "styleId": "soft-angular",
+  "styleName": "Soft angular",
+  "job": "logo-soft-angular",
+  "target": "l3v",
+  "src": "/assets/style-examples/logo-soft-angular.png"
+ },
+ {
+  "category": "logo",
+  "styleId": "tall-stems",
+  "styleName": "Tall stems",
+  "job": "logo-tall-stems",
+  "target": "l3v",
+  "src": "/assets/style-examples/logo-tall-stems.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "compact-autograph",
+  "styleName": "Compact Autograph",
+  "job": "signature-compact-autograph",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-compact-autograph.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "couture-sweep",
+  "styleName": "Couture Sweep",
+  "job": "signature-couture-sweep",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-couture-sweep.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "executive-edge",
+  "styleName": "Executive Edge",
+  "job": "signature-executive-edge",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-executive-edge.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "orbital-flourish",
+  "styleName": "Orbital Flourish",
+  "job": "signature-orbital-flourish",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-orbital-flourish.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "quiet-line",
+  "styleName": "Quiet Line",
+  "job": "signature-quiet-line",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-quiet-line.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-angular-envelope",
+  "styleName": "Angular Envelope",
+  "job": "signature-sig-angular-envelope",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-angular-envelope.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-bookend-thread",
+  "styleName": "Bookend Thread",
+  "job": "signature-sig-bookend-thread",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-bookend-thread.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-capital-lattice",
+  "styleName": "Capital Lattice",
+  "job": "signature-sig-capital-lattice",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-capital-lattice.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-counter-chain",
+  "styleName": "Counter Chain",
+  "job": "signature-sig-counter-chain",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-counter-chain.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-crossed-bowl",
+  "styleName": "Crossed Bowl",
+  "job": "signature-sig-crossed-bowl",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-crossed-bowl.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-delta-bridge",
+  "styleName": "Delta Bridge",
+  "job": "signature-sig-delta-bridge",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-delta-bridge.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-descending-bridge",
+  "styleName": "Descending Bridge",
+  "job": "signature-sig-descending-bridge",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-descending-bridge.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-diagonal-flight",
+  "styleName": "Diagonal Flight",
+  "job": "signature-sig-diagonal-flight",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-diagonal-flight.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-double-orbit",
+  "styleName": "Double Orbit",
+  "job": "signature-sig-double-orbit",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-double-orbit.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-grand-initial",
+  "styleName": "Grand Initial",
+  "job": "signature-sig-grand-initial",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-grand-initial.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-high-crown",
+  "styleName": "High Crown",
+  "job": "signature-sig-high-crown",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-high-crown.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-hooked-advance",
+  "styleName": "Hooked Advance",
+  "job": "signature-sig-hooked-advance",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-hooked-advance.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-knot-and-release",
+  "styleName": "Knot and Release",
+  "job": "signature-sig-knot-and-release",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-knot-and-release.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-loop-and-launch",
+  "styleName": "Loop and Launch",
+  "job": "signature-sig-loop-and-launch",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-loop-and-launch.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-low-loop-cluster",
+  "styleName": "Low Loop Cluster",
+  "job": "signature-sig-low-loop-cluster",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-low-loop-cluster.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-low-tide",
+  "styleName": "Low Tide",
+  "job": "signature-sig-low-tide",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-low-tide.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-needle-line",
+  "styleName": "Needle Line",
+  "job": "signature-sig-needle-line",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-needle-line.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-offset-whisper",
+  "styleName": "Offset Whisper",
+  "job": "signature-sig-offset-whisper",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-offset-whisper.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-open-horizon",
+  "styleName": "Open Horizon",
+  "job": "signature-sig-open-horizon",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-open-horizon.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-open-staircase",
+  "styleName": "Open Staircase",
+  "job": "signature-sig-open-staircase",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-open-staircase.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-paired-bowls",
+  "styleName": "Paired Bowls",
+  "job": "signature-sig-paired-bowls",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-paired-bowls.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-rising-oval",
+  "styleName": "Rising Oval",
+  "job": "signature-sig-rising-oval",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-rising-oval.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-shared-crossbar",
+  "styleName": "Shared Crossbar",
+  "job": "signature-sig-shared-crossbar",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-shared-crossbar.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-shared-roof",
+  "styleName": "Shared Roof",
+  "job": "signature-sig-shared-roof",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-shared-roof.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-staggered-steps",
+  "styleName": "Staggered Steps",
+  "job": "signature-sig-staggered-steps",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-staggered-steps.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-stem-cadence",
+  "styleName": "Stem Cadence",
+  "job": "signature-sig-stem-cadence",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-stem-cadence.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-tilted-orbit",
+  "styleName": "Tilted Orbit",
+  "job": "signature-sig-tilted-orbit",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-tilted-orbit.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-tucked-ribbon",
+  "styleName": "Tucked Ribbon",
+  "job": "signature-sig-tucked-ribbon",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-tucked-ribbon.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-twin-canopy",
+  "styleName": "Twin Canopy",
+  "job": "signature-sig-twin-canopy",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-twin-canopy.png"
+ },
+ {
+  "category": "signature",
+  "styleId": "sig-twin-pillars",
+  "styleName": "Twin Pillars",
+  "job": "signature-sig-twin-pillars",
+  "target": "L. Dvalo",
+  "src": "/assets/style-examples/signature-sig-twin-pillars.png"
+ }
 ]
