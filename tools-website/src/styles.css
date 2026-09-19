@@ -78,4 +78,14 @@
 .identity-video-strip figcaption strong{font-size:11px}
 .identity-video-strip figcaption small{color:var(--muted);font-size:9px;letter-spacing:1.2px;text-transform:uppercase}
 .identity-entry-aside{display:flex;flex-direction:column;align-items:center}
+@media(min-width:901px){#logo-panel .identity-entry-layout{grid-template-columns:200px minmax(0,1fr) 200px}}
+.identity-video-open{display:block;width:100%;padding:0;border:0;background:#0d100c;cursor:zoom-in;position:relative;border-radius:8px 8px 0 0;overflow:hidden}
+.identity-video-open video{display:block;width:100%;height:112px;object-fit:cover;pointer-events:none}
+.identity-video-play{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:20px;opacity:0;transition:opacity .15s ease;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+.identity-video-open:hover .identity-video-play,.identity-video-open:focus-visible .identity-video-play{opacity:.95}
+.identity-video-modal{position:fixed;inset:0;z-index:3200;display:grid;place-items:center;background:rgba(12,14,10,.82);padding:24px}
+.identity-video-modal-inner{max-width:900px;width:100%;display:grid;gap:10px;justify-items:center}
+.identity-video-modal video{width:100%;max-height:80vh;border-radius:10px;background:#000}
+.identity-video-modal p{margin:0;color:#fff;font-size:13px}
+.identity-video-modal-close{justify-self:end;padding:8px 15px;border:1px solid #fff6;border-radius:999px;background:#fff;color:#17221d;font:700 12px inherit;cursor:pointer}
 @media(max-width:900px){.identity-video-strip{display:none}}
