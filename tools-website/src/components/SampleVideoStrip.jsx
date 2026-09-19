@@ -20,14 +20,18 @@ export default function SampleVideoStrip() {
   return <>
     <aside className="identity-video-strip" aria-label={`${demoIdentityName} sample videos`}>
       <p className="eyebrow">SEE IT MOVE</p>
-      <div className="identity-video-strip-track">
-        {clips.map(clip => <figure key={clip.src}>
-          <button type="button" className="identity-video-open" onClick={() => setOpen(clip)} aria-label={`Play ${clip.name} full size`}>
-            <video src={clip.src} muted loop autoPlay playsInline preload="metadata" tabIndex={-1}/>
-            <span className="identity-video-play" aria-hidden="true">▶</span>
-          </button>
-          <figcaption><strong>{clip.name}</strong><small>{ARTWORK[clip.mode] || clip.mode}</small></figcaption>
-        </figure>)}
+      <div className="identity-video-strip-viewport">
+        {/* Duplicated so the auto-scroll loops seamlessly; it pauses on hover so
+            a clip can be clicked. All clips are shown, newest run and all. */}
+        <div className="identity-video-strip-track">
+          {[...clips, ...clips].map((clip, index) => <figure key={`${clip.src}-${index}`} aria-hidden={index >= clips.length}>
+            <button type="button" className="identity-video-open" onClick={() => setOpen(clip)} aria-label={`Play ${clip.name} full size`} tabIndex={index >= clips.length ? -1 : 0}>
+              <video src={clip.src} muted loop autoPlay playsInline preload="metadata" tabIndex={-1}/>
+              <span className="identity-video-play" aria-hidden="true">▶</span>
+            </button>
+            <figcaption><strong>{clip.name}</strong><small>{ARTWORK[clip.mode] || clip.mode}</small></figcaption>
+          </figure>)}
+        </div>
       </div>
     </aside>
     {open && typeof document !== 'undefined' && createPortal(
