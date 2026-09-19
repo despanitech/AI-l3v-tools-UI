@@ -33,6 +33,22 @@ export const recommendedApplications = {
 
 const stableNumber=value=>Array.from(value).reduce((hash,char)=>((hash*33)^char.charCodeAt(0))>>>0,5381);
 
+// The exact set of previews the free tier includes: one per ready design, with
+// the tattoo forced onto one design. Pure and deterministic, so generation,
+// post-reload recovery, and pruning all agree on the same set (a mismatch is
+// what let stale tiles from an earlier run pile up past three).
+export function freePreviewPlan(readyDesigns=[]){
+  const picks=automaticApplicationPicks(readyDesigns);
+  const tattooDesign=readyDesigns.find(d=>d?.mode==='logo')||readyDesigns.find(d=>d?.mode==='initials')||readyDesigns.find(Boolean);
+  const tattooIndex=picks.findIndex(item=>item.id==='upper-arm-tattoo');
+  if(tattooDesign&&tattooIndex>=0)picks[tattooIndex]={...picks[tattooIndex],designId:tattooDesign.id};
+  else if(tattooDesign&&picks[0])picks[0]={...picks[0],id:'upper-arm-tattoo',name:'Upper-arm tattoo',designId:tattooDesign.id};
+  return picks;
+}
+export function freePreviewKeys(readyDesigns=[]){
+  return new Set(freePreviewPlan(readyDesigns).map(item=>`${item.designId}:${item.id}`));
+}
+
 export function automaticApplicationPicks(designs=[]){
   return designs.flatMap((design,designIndex)=>{
     if(!/^[a-f0-9]{32}$/.test(design?.id))return [];
@@ -47,4 +63,4 @@ export function automaticApplicationPicks(designs=[]){
     });
   });
 }
-import exampleLibrary from '../lib/identity-example-library.json';
+import exampleLibrary from '../lib/identity-example-library.json' with {type: 'json'};
