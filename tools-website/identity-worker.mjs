@@ -178,7 +178,9 @@ export default {
       return new Response(null,{status:302,headers:{Location:start.redirect,'Set-Cookie':start.setCookie}});
     }
     if(url.pathname==='/api/account/callback'){
-      const result=await completeOAuth(env,{origin:url.origin,code:url.searchParams.get('code'),state:url.searchParams.get('state'),stateCookie:readCookie(request,'l3v_oauth')});
+      let cbCode=url.searchParams.get('code'),cbState=url.searchParams.get('state');
+      if(request.method==='POST'){try{const form=new URLSearchParams(await request.text());cbCode=form.get('code');cbState=form.get('state')}catch{}}
+      const result=await completeOAuth(env,{origin:url.origin,code:cbCode,state:cbState,stateCookie:readCookie(request,'l3v_oauth')});
       if(result.error)return new Response(null,{status:302,headers:{Location:'/?signin='+encodeURIComponent(result.error),'Set-Cookie':clearStateCookie()}});
       const accountId=await accountForEmail(env,result.email);
       const headers=new Headers({Location:result.returnTo||'/'});
