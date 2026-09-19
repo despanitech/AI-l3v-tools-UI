@@ -181,11 +181,11 @@ export default {
     // The shared feed of the latest sample clips, capped and rotating.
     if(action==='recent-clips'){if(request.method!=='GET')return json({error:'Invalid method'},405);return json({items:await listRecentClips(env,20)},200,{'Cache-Control':'private, max-age=20'})}
     if(action==='recent-clip'){const id=url.searchParams.get('id');if(!/^[a-f0-9]{32}$/.test(id||''))return json({error:'Invalid clip'},400);const object=await recentClip(env,id);if(!object)return json({error:'Not found'},404);return new Response(object.body,{headers:{'Content-Type':'video/mp4','Cache-Control':'private, max-age=86400, immutable','X-Content-Type-Options':'nosniff'}})}
-    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded','fulfil','purchase-reset','bundle-build','bundle-list','bundle','visualization-video','visualization-video-status'].includes(action)) return json({error:'Not found'},404);
+    if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded','fulfil','purchase-reset','bundle-build','bundle-list','bundle','visualization-video','visualization-video-status','visualization-video-file'].includes(action)) return json({error:'Not found'},404);
     if(isSimulated(mode)&&!env.IDENTITY_BUNDLES)return json({error:'Simulation storage is not configured'},503);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
     if(!ready) return action==='catalog' ? json({enabled:false,styles:[]}) : json({error:'Name generation is not available yet'},503);
-    if(request.method !== (['catalog','health','image','visualization-image','bundle'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
+    if(request.method !== (['catalog','health','image','visualization-image','visualization-video-file','bundle'].includes(action)?'GET':'POST'))return json({error:'Invalid method'},405);
     if(request.method==='POST' && request.headers.get('Origin')!==url.origin)return json({error:'Open the form on this website'},403);
     try {
       const access={requestId:request.headers.get('X-L3V-Request-Id'),receipt:request.headers.get('X-L3V-Request-Receipt')};
@@ -249,6 +249,15 @@ export default {
         const purchase=record&&!record.fulfilledAt?record:null;
         // `mode` here is the Stripe mode; the lane is read again by name.
         return json({enabled:Boolean(env.INVITATIONS)&&(paymentSimulated(lane)||checkoutReady(env)),mode,appMode:lane,packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null,downloadedAt:record?.downloadedAt||null,downloadCount:record?.downloadCount||0,fulfilledAt:record?.fulfilledAt||null,fulfilledPackageId:record?.fulfilledAt?record.packageId:null});
+      }
+      if(action==='visualization-video-file'){
+        const id=url.searchParams.get('id');
+        if(!/^[a-f0-9]{32}$/.test(id||''))return json({error:'Invalid video'},400);
+        const state=await identityVideo(env,{mode,action:'visualization-video-status',access,account,origin:url.origin,id,traceId});
+        if(state.error||state.status!=='succeeded'||!state.video)return json({error:state.status==='failed'?'This video could not be completed':'Video not ready'},state.status==='failed'?409:404);
+        const clip=await fetchClip(env,url.origin,state.video);
+        if(!clip.bytes)return json({error:'Video unavailable'},502);
+        return new Response(clip.bytes,{headers:{'Content-Type':'video/mp4','Cache-Control':'private, max-age=3600','X-Content-Type-Options':'nosniff'}});
       }
       if(action==='visualization-video'||action==='visualization-video-status'){
         const vkeys=Object.keys(body).sort().join(',');

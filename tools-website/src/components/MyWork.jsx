@@ -47,9 +47,12 @@ function AssetPreviews({rows,all=false,onOpen,onMore}){
      };
      const loadClip=async row=>{
       if(cache.current.has(row.resource_id))return;
-      const response=await fetch('/api/name-logo/visualization-video-status',{method:'POST',headers:{'Content-Type':'application/json',...nameLogoHeaders({access})},body:JSON.stringify({id:row.resource_id}),signal:controller.signal});
-      if(!response.ok)return;const data=await response.json();
-      if(data.video)cache.current.set(row.resource_id,{kind:'video',src:data.video,label:'Video'});
+      // Play the clip through the edge (same origin, with the invitation header),
+      // since the raw provider URL is not fetchable from the browser.
+      const response=await fetch('/api/name-logo/visualization-video-file?id='+encodeURIComponent(row.resource_id),{headers:nameLogoHeaders({access})});
+      if(!response.ok)return;
+      const src=URL.createObjectURL(await response.blob());objects.current.push(src);
+      cache.current.set(row.resource_id,{kind:'video',src,label:'Video'});
      };
      const pending=[...wantedImages.filter(row=>!cache.current.has(row.resource_id)),...wantedClips.filter(row=>!cache.current.has(row.resource_id))];
      for(let index=0;index<pending.length;index+=6){
