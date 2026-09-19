@@ -1,6 +1,6 @@
 import {useEffect,useRef} from 'react';
 import {call,headers} from '../lib/name-logo-request.mjs';
-import {automaticApplicationPicks} from './identityApplicationSubjects';
+import {freePreviewPlan, freePreviewKeys} from './identityApplicationSubjects';
 
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const terminal=new Set(['succeeded','failed','cancelled']);
@@ -21,9 +21,11 @@ export default function IdentityAutoVisualizationPrimer({request,designs=[],asse
     (async()=>{
       try{
         const response=await call('visualization-list',request,{},controller.current.signal);
+        const planned=freePreviewKeys(readyDesigns);
         for(const job of response?.visualizations||[]){
           if(cancelled||job.status!=='succeeded'||!job.output?.sourceDesignId||!job.output?.template)continue;
           const key=`${job.output.sourceDesignId}:${job.output.template}`;
+          if(!planned.has(key))continue;  // an earlier run's preview, not part of the current set
           const imageResponse=await fetch(`/api/name-logo/visualization-image?id=${encodeURIComponent(job.id)}`,{headers:headers(request),signal:controller.current.signal});
           if(!imageResponse.ok)continue;
           const imageUrl=URL.createObjectURL(await imageResponse.blob());
@@ -38,7 +40,7 @@ export default function IdentityAutoVisualizationPrimer({request,designs=[],asse
       }catch(error){if(error?.name!=='AbortError')console.warn('Could not recover completed visualizations')}
     })();
     return()=>{cancelled=true};
-  },[request?.id,storageKey,onUpdate]);
+  },[request?.id,storageKey,onUpdate,readyKey]);
 
   useEffect(()=>{
     let saved={};
@@ -48,14 +50,7 @@ export default function IdentityAutoVisualizationPrimer({request,designs=[],asse
       sessionStorage.setItem(storageKey,JSON.stringify(saved));
       onUpdate(key,saved[key]);
     };
-    const picks=automaticApplicationPicks(readyDesigns);
-    const tattooDesign=readyDesigns.find(design=>design?.mode==='logo')||readyDesigns.find(design=>design?.mode==='initials')||readyDesigns.find(Boolean);
-    const tattooIndex=picks.findIndex(item=>item.id==='upper-arm-tattoo');
-    if(tattooDesign&&tattooIndex>=0){
-      picks[tattooIndex]={...picks[tattooIndex],designId:tattooDesign.id};
-    }else if(tattooDesign){
-      picks[0]={...picks[0],id:'upper-arm-tattoo',name:'Upper-arm tattoo',designId:tattooDesign.id};
-    }
+    const picks=freePreviewPlan(readyDesigns);
     // Free is a fixed set of previews (one per design). Drop any stored entry
     // that is not a current pick, so an earlier run's tiles do not linger.
     const currentKeys=new Set(picks.map(item=>`${item.designId}:${item.id}`));
