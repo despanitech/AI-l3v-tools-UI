@@ -43,3 +43,44 @@ export async function recentImage(env, id) {
   if (!entry) return null;
   return env.IDENTITY_BUNDLES.get(KEY_PREFIX + id + (entry.type === 'image/jpeg' ? '.jpg' : '.png'));
 }
+
+// The shared "latest clips" feed: the newest real sample videos across every
+// visitor, capped and rotating (oldest drops out). Each clip's mp4 lives in R2
+// under recent-clip/<id>.mp4, the rolling list in KV, served publicly so the
+// strip can play it with a plain <video src>.
+const CLIP_LIST_KEY = 'recent-clips';
+const CLIP_PREFIX = 'recent-clip/';
+const CLIP_KEEP = 20;
+const CLIP_MAX_BYTES = 25 * 1024 * 1024;
+
+async function readClipList(env) {
+  try { const raw = await env.INVITATIONS.get(CLIP_LIST_KEY); const list = raw ? JSON.parse(raw) : []; return Array.isArray(list) ? list : []; }
+  catch { return []; }
+}
+
+/** Remember a finished clip. Idempotent per id; newest first; keeps the last 20. */
+export async function recordRecentClip(env, {id, bytes, template}) {
+  if (!env?.IDENTITY_BUNDLES || !env?.INVITATIONS || !validId(id) || !bytes?.length || bytes.length > CLIP_MAX_BYTES) return null;
+  const list = await readClipList(env);
+  if (list.some(item => item.id === id)) return list;
+  await env.IDENTITY_BUNDLES.put(CLIP_PREFIX + id + '.mp4', bytes, {httpMetadata: {contentType: 'video/mp4'}});
+  const entry = {id, template: /^[a-z0-9-]{1,64}$/.test(template || '') ? template : '', at: new Date().toISOString()};
+  const next = [entry, ...list].slice(0, CLIP_KEEP);
+  const dropped = list.slice(CLIP_KEEP - 1);  // ids rotating out
+  await env.INVITATIONS.put(CLIP_LIST_KEY, JSON.stringify(next));
+  for (const old of dropped) { try { await env.IDENTITY_BUNDLES.delete(CLIP_PREFIX + old.id + '.mp4'); } catch {} }
+  return next;
+}
+
+/** The newest clips with the URL the strip plays each from. */
+export async function listRecentClips(env, limit = 20) {
+  if (!env?.INVITATIONS) return [];
+  const list = await readClipList(env);
+  return list.slice(0, limit).map(item => ({id: item.id, template: item.template || '', at: item.at, url: '/api/name-logo/recent-clip?id=' + item.id}));
+}
+
+/** The stored clip, or null. */
+export async function recentClip(env, id) {
+  if (!env?.IDENTITY_BUNDLES || !validId(id)) return null;
+  return env.IDENTITY_BUNDLES.get(CLIP_PREFIX + id + '.mp4');
+}
