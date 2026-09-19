@@ -71,7 +71,10 @@
 @media(max-width:900px){.my-work:has(.identity-entry-layout){width:min(980px,calc(100% - 40px))}.my-work .identity-entry-layout{grid-template-columns:1fr}.my-work .identity-showcase{display:none}}
 .identity-video-strip{width:200px;margin:18px 0 0;text-align:left}
 .identity-video-strip>.eyebrow{margin:0 0 9px;font-size:9px;letter-spacing:1.7px;text-align:center}
-.identity-video-strip-track{display:grid;gap:10px}
+.identity-video-strip-viewport{height:min(72vh,560px);overflow:hidden;mask-image:linear-gradient(to bottom,transparent,#000 6%,#000 94%,transparent);-webkit-mask-image:linear-gradient(to bottom,transparent,#000 6%,#000 94%,transparent)}
+.identity-video-strip-track{display:grid;gap:10px;animation:identity-rail-scroll 60s linear infinite}
+.identity-video-strip-viewport:hover .identity-video-strip-track{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){.identity-video-strip-track{animation:none}.identity-video-strip-viewport{overflow-y:auto}}
 .identity-video-strip figure{margin:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--panel)}
 .identity-video-strip video{display:block;width:100%;height:112px;object-fit:cover;background:#0d100c}
 .identity-video-strip figcaption{display:grid;gap:2px;padding:6px 8px}

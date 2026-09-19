@@ -1,4 +1,4 @@
-import {recordRecent, listRecent, recentImage} from './recent-feed.mjs';
+import {recordRecent, listRecent, recentImage, recordRecentClip, listRecentClips, recentClip} from './recent-feed.mjs';
 import videoWorker from './video-worker.mjs';
 import {invitationAccount} from './invitation-worker.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
@@ -178,6 +178,9 @@ export default {
     // The shared feed of the latest generations, same for every visitor.
     if(action==='recent'){if(request.method!=='GET')return json({error:'Invalid method'},405);return json({items:await listRecent(env,12)},200,{'Cache-Control':'private, max-age=20'})}
     if(action==='recent-image'){const id=url.searchParams.get('id');if(!/^[a-f0-9]{32}$/.test(id||''))return json({error:'Invalid image'},400);const object=await recentImage(env,id);if(!object)return json({error:'Not found'},404);return new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||'image/png','Cache-Control':'private, max-age=86400, immutable','X-Content-Type-Options':'nosniff'}})}
+    // The shared feed of the latest sample clips, capped and rotating.
+    if(action==='recent-clips'){if(request.method!=='GET')return json({error:'Invalid method'},405);return json({items:await listRecentClips(env,20)},200,{'Cache-Control':'private, max-age=20'})}
+    if(action==='recent-clip'){const id=url.searchParams.get('id');if(!/^[a-f0-9]{32}$/.test(id||''))return json({error:'Invalid clip'},400);const object=await recentClip(env,id);if(!object)return json({error:'Not found'},404);return new Response(object.body,{headers:{'Content-Type':'video/mp4','Cache-Control':'private, max-age=86400, immutable','X-Content-Type-Options':'nosniff'}})}
     if(!['catalog','health','generate','status','image','visualization-generate','visualization-status','visualization-list','visualization-image','checkout','entitlement','downloaded','fulfil','purchase-reset','bundle-build','bundle-list','bundle','visualization-video','visualization-video-status'].includes(action)) return json({error:'Not found'},404);
     if(isSimulated(mode)&&!env.IDENTITY_BUNDLES)return json({error:'Simulation storage is not configured'},503);
     const ready=env.NAME_LOGO_ENABLED==='true' && env.NAME_LOGO_RECEIPTS_READY==='true' && env.NAME_LOGO_URL && env.NAME_LOGO_TOKEN && env.NAME_LOGO_SESSION_SECRET && env.TURNSTILE_SECRET && env.TURNSTILE_SITEKEY && env.NAME_LOGO_LIMITER;
@@ -272,6 +275,15 @@ export default {
         const result=await identityVideo(env,{mode,action:todo,access,account,origin:url.origin,id,traceId});
         if(result.error&&!result.id)return json({error:result.error},result.status||502);
         if(todo==='visualization-video'&&env.INVITATIONS)await attachVideo(env.INVITATIONS,access.requestId,stripeMode,{jobId:result.id,source:body.id});
+        // A finished clip joins the shared latest-clips feed (once per clip).
+        if(!isSimulated(mode)&&result.status==='succeeded'&&result.video&&env.IDENTITY_BUNDLES&&env.INVITATIONS){
+          const work=(async()=>{try{
+            const clip=await fetchClip(env,url.origin,result.video);
+            if(clip.bytes){let template='';try{const st=await gatewayCaller(env,traceId,access.requestId)('visualization-status',{access,id:body.id});template=st?.output?.template||''}catch{}
+              await recordRecentClip(env,{id:result.id,bytes:clip.bytes,template})}
+          }catch(error){console.warn('name-logo recent-clip',JSON.stringify({traceId,error:String(error?.message||error).slice(0,120)}))}})();
+          if(ctx?.waitUntil)ctx.waitUntil(work);else await work;
+        }
         return json({id:result.id,status:result.status,video:result.video||null,error:result.error||null,diagnostic:result.diagnostic||null,source:body.id},200,{'X-L3V-Trace-Id':traceId});
       }
       if(action==='checkout'){
