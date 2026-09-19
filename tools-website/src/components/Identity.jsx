@@ -18,7 +18,7 @@ const PURCHASE_COPY={
  confirming:{title:'Confirming your payment',body:'Waiting for Stripe to confirm. This only takes a moment.'},
  preparing:{title:'Thanks for your payment',body:'Your bundle is being prepared. This page can be left open.'},
  ready:{title:'Thanks for your payment',body:'Your bundle is ready to download.'},
- 'videos-failed':{title:'Your videos did not complete',body:'The images are ready, but the videos failed and nothing has been delivered. Retry them to finish your set.'},
+ 'videos-failed':{title:'Your videos did not complete',body:'The images are ready, but a video did not finish. Retry it, or deliver your set now without it.'},
  'videos-rejected':{title:'Your videos did not complete',body:'The video provider refused the preview it was given. Retry makes the video from another product.'},
  delivered:{title:'Saved to My assets',body:'Your bundle is stored in the library and stays available there.'},
  downloaded:{title:'Your bundle has been downloaded',body:'It stays available here. Download it again any time.'},
@@ -41,6 +41,7 @@ function PurchaseBanner({state}){
   {done&&<button type="button" onClick={()=>window.dispatchEvent(new CustomEvent('identity:download-bundle'))}>{state.downloadedAt?'Download again':'Download bundle'}</button>}
   {state.stage==='videos-failed'&&state.videosFailedReasons?.length>0&&<ul className="identity-purchase-reasons" aria-label="Why the videos failed">{state.videosFailedReasons.map((reason,index)=><li key={index}>{reason}</li>)}</ul>}
   {state.stage==='videos-failed'&&<button type="button" className="is-retry" onClick={()=>window.dispatchEvent(new CustomEvent('identity:retry-videos'))}>{state.videosContentRejected?'Retry with another product':'Retry the failed videos'}</button>}
+  {state.stage==='videos-failed'&&<button type="button" className="is-deliver-anyway" onClick={()=>window.dispatchEvent(new CustomEvent('identity:deliver-partial'))}>Deliver without it</button>}
  </aside>;
 }
 

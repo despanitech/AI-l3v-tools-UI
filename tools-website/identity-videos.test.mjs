@@ -81,3 +81,18 @@ test('the tattoo is never picked for a clip while another product exists, and re
   assert.deepEqual(pickVideoSubjects([{id: 'upper-arm-tattoo'}], 1).map(i => i.id), ['upper-arm-tattoo'], 'unless it is all there is');
   assert.deepEqual(pickVideoSubjects(items, 1, ['hoodie']).map(i => i.id), ['business-card'], 'a refused product is skipped');
 });
+
+test('the allowance is per design: a re-pick to another product replaces the slot, not adds one', async () => {
+  const map = new Map([['purchase:test:' + 'a'.repeat(32), JSON.stringify({packageId: 'studio', videos: []})]]);
+  const store = {get: async k => map.get(k) ?? null, put: async (k, v) => { map.set(k, v); }};
+  await attachVideo(store, 'a'.repeat(32), 'test', {jobId: 'j1', source: 's1', designMode: 'logo'});
+  const after = await attachVideo(store, 'a'.repeat(32), 'test', {jobId: 'j2', source: 's2', designMode: 'logo'});
+  assert.equal(after.videos.length, 1, 'the logo design keeps one slot after a re-pick');
+  assert.equal(after.videos[0].source, 's2');
+  const both = await attachVideo(store, 'a'.repeat(32), 'test', {jobId: 'j3', source: 's3', designMode: 'initials'});
+  assert.equal(both.videos.length, 2, 'a different design gets its own slot');
+  const purchase = {packageId: 'studio', videos: both.videos};
+  assert.equal(gateVideo(purchase, 'e'.repeat(32), 'logo').reason, 'replace-design', 'the logo design can be re-picked, not gated');
+  assert.equal(gateVideo(purchase, 'f'.repeat(32), 'signature').reason, 'videos-complete', 'a third design is gated at the 2-video allowance');
+  assert.equal(gateVideo(purchase, 'e'.repeat(32), 'logo').used, 2, 'used counts distinct designs');
+});

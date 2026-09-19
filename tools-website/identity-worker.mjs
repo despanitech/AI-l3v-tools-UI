@@ -251,13 +251,14 @@ export default {
         return json({enabled:Boolean(env.INVITATIONS)&&(paymentSimulated(lane)||checkoutReady(env)),mode,appMode:lane,packageId:purchase?.packageId||null,paidAt:purchase?.paidAt||null,downloadedAt:record?.downloadedAt||null,downloadCount:record?.downloadCount||0,fulfilledAt:record?.fulfilledAt||null,fulfilledPackageId:record?.fulfilledAt?record.packageId:null});
       }
       if(action==='visualization-video'||action==='visualization-video-status'){
-        if(Object.keys(body).join(',')!=='id'||!/^[a-f0-9]{32}$/.test(body.id||''))return json({error:'Invalid video'},400);
+        const vkeys=Object.keys(body).sort().join(',');
+        if((vkeys!=='id'&&vkeys!=='id,mode')||!/^[a-f0-9]{32}$/.test(body.id||'')||(body.mode!==undefined&&!['logo','initials','signature'].includes(body.mode)))return json({error:'Invalid video'},400);
         const stripeMode=stripeConfig(env).mode;
         let id=body.id,todo=action;
         if(action==='visualization-video'){
           // Studio only, undelivered, three per identity, one per preview - from the purchase record, never from the client.
           const purchase=env.INVITATIONS?await purchaseFor(env.INVITATIONS,access.requestId,stripeMode):null;
-          const gate=gateVideo(purchase,body.id);
+          const gate=gateVideo(purchase,body.id,body.mode||'');
           if(!gate.allowed){
             console.log(JSON.stringify({event:'name-logo.video-gated',reason:gate.reason,used:gate.used,allowance:gate.allowance,traceId}));
             return json({error:gate.reason==='videos-complete'?'Your videos are complete.':'Videos are included with Signature studio.',gated:true,reason:gate.reason},403);
@@ -274,7 +275,7 @@ export default {
         }
         const result=await identityVideo(env,{mode,action:todo,access,account,origin:url.origin,id,traceId});
         if(result.error&&!result.id)return json({error:result.error},result.status||502);
-        if(todo==='visualization-video'&&env.INVITATIONS)await attachVideo(env.INVITATIONS,access.requestId,stripeMode,{jobId:result.id,source:body.id});
+        if(todo==='visualization-video'&&env.INVITATIONS)await attachVideo(env.INVITATIONS,access.requestId,stripeMode,{jobId:result.id,source:body.id,designMode:body.mode||''});
         // A finished clip joins the shared latest-clips feed (once per clip).
         if(!isSimulated(mode)&&result.status==='succeeded'&&result.video&&env.IDENTITY_BUNDLES&&env.INVITATIONS){
           const work=(async()=>{try{
