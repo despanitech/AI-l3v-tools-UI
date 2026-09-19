@@ -98,11 +98,18 @@ export const demoIdentityName = demoManifest.name || 'Demo';
 // A demo of one product carrying one artwork type, generated with the real
 // pipeline. When the library holds that product in the chosen style, that
 // image is used; otherwise the mode's default style.
+const DEMO_MODES = ['logo', 'initials', 'signature'];
 export function demoPreviewImage(subject, mode, styleId) {
-  const styled = styleId && demoManifest.byStyle?.[mode]?.[styleId];
-  if (Array.isArray(styled) && styled.includes(subject.id)) return `/assets/identity-subjects/demo/${mode}/${styleId}/${subject.id}.jpg`;
-  const list = demoManifest[mode];
-  return Array.isArray(list) && list.includes(subject.id) ? `/assets/identity-subjects/demo/${mode}/${subject.id}.jpg` : null;
+  if (!subject?.id) return null;
+  // With no mode (a placeholder tile before the artwork is known) try each, so
+  // a pending or failed tile still shows a sample of that product.
+  for (const m of (mode ? [mode] : DEMO_MODES)) {
+    const styled = styleId && demoManifest.byStyle?.[m]?.[styleId];
+    if (Array.isArray(styled) && styled.includes(subject.id)) return `/assets/identity-subjects/demo/${m}/${styleId}/${subject.id}.jpg`;
+    const list = demoManifest[m];
+    if (Array.isArray(list) && list.includes(subject.id)) return `/assets/identity-subjects/demo/${m}/${subject.id}.jpg`;
+  }
+  return null;
 }
 
 // Falls back to another product of the same group in the same artwork, so a
