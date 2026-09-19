@@ -113,3 +113,12 @@ export function applicationPreviewImage(subject, mode, styleId){
   const sibling = applicationSubjects.find(item => item.group === subject.group && demoPreviewImage(item, mode));
   return sibling ? demoPreviewImage(sibling, mode) : null;
 }
+
+// The l3v Dvalo sample clips, if the manifest carries any, each with the
+// product's display name. Empty until a video run has been imported.
+export function demoClips() {
+  return (Array.isArray(demoManifest.clips) ? demoManifest.clips : []).map(clip => ({
+    ...clip,
+    name: applicationSubjects.find(subject => subject.id === clip.template)?.name || clip.template.replace(/-/g, ' '),
+  }));
+}

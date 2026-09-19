@@ -69,3 +69,13 @@
 /* My assets carries the same rail as the identity pages; the page widens to make room. */
 .my-work:has(.identity-entry-layout){width:min(1220px,calc(100% - 64px))}.my-work .identity-entry-main{min-width:0}.my-work .identity-showcase{margin-top:52px}
 @media(max-width:900px){.my-work:has(.identity-entry-layout){width:min(980px,calc(100% - 40px))}.my-work .identity-entry-layout{grid-template-columns:1fr}.my-work .identity-showcase{display:none}}
+.identity-video-strip{width:200px;margin:18px 0 0;text-align:left}
+.identity-video-strip>.eyebrow{margin:0 0 9px;font-size:9px;letter-spacing:1.7px;text-align:center}
+.identity-video-strip-track{display:grid;gap:10px}
+.identity-video-strip figure{margin:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--panel)}
+.identity-video-strip video{display:block;width:100%;height:112px;object-fit:cover;background:#0d100c}
+.identity-video-strip figcaption{display:grid;gap:2px;padding:6px 8px}
+.identity-video-strip figcaption strong{font-size:11px}
+.identity-video-strip figcaption small{color:var(--muted);font-size:9px;letter-spacing:1.2px;text-transform:uppercase}
+.identity-entry-aside{display:flex;flex-direction:column;align-items:center}
+@media(max-width:900px){.identity-video-strip{display:none}}
