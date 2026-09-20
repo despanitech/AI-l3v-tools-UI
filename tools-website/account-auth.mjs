@@ -63,8 +63,8 @@ export function readCookie(request, name) {
   }
   return null;
 }
-const cookie = (name, value, {maxAge, clear} = {}) =>
-  `${name}=${clear ? '' : encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; ${clear ? 'Max-Age=0' : `Max-Age=${maxAge}`}`;
+const cookie = (name, value, {maxAge, clear, sameSite = 'Lax'} = {}) =>
+  `${name}=${clear ? '' : encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=${sameSite}; ${clear ? 'Max-Age=0' : `Max-Age=${maxAge}`}`;
 
 /** The account for a request from its session cookie, or null. */
 export async function sessionAccount(request, env) {
@@ -78,9 +78,32 @@ const PROVIDERS = {
   google: {
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token',
-    scope: 'openid email',
-    idFrom: 'GOOGLE_CLIENT_ID',
-    secretFrom: 'GOOGLE_CLIENT_SECRET',
+    scope: 'openid email', pkce: true, idToken: true,
+    idFrom: 'GOOGLE_CLIENT_ID', secretFrom: 'GOOGLE_CLIENT_SECRET',
+  },
+  microsoft: {
+    authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+    tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+    scope: 'openid email', pkce: true, idToken: true,
+    idFrom: 'MICROSOFT_CLIENT_ID', secretFrom: 'MICROSOFT_CLIENT_SECRET',
+  },
+  github: {
+    // GitHub is OAuth2 without an id token: exchange the code, then read the
+    // account's primary verified email from its API.
+    authUrl: 'https://github.com/login/oauth/authorize',
+    tokenUrl: 'https://github.com/login/oauth/access_token',
+    scope: 'user:email', pkce: false, idToken: false,
+    emailUrl: 'https://api.github.com/user/emails',
+    idFrom: 'GITHUB_CLIENT_ID', secretFrom: 'GITHUB_CLIENT_SECRET',
+  },
+  apple: {
+    // Apple: the client secret is an ES256 JWT we sign, and the callback is a
+    // cross-site form POST, so it uses response_mode=form_post and its state
+    // cookie is SameSite=None. Email arrives in the id token (first consent).
+    authUrl: 'https://appleid.apple.com/auth/authorize',
+    tokenUrl: 'https://appleid.apple.com/auth/token',
+    scope: 'name email', pkce: false, idToken: true, appleSecret: true, formPost: true,
+    idFrom: 'APPLE_CLIENT_ID', secretFrom: 'APPLE_PRIVATE_KEY',
   },
 };
 
@@ -89,6 +112,7 @@ export function providerConfig(env, provider) {
   if (!spec) return null;
   const clientId = env[spec.idFrom], clientSecret = env[spec.secretFrom];
   if (!clientId || !clientSecret) return null;
+  if (spec.appleSecret && !(env.APPLE_TEAM_ID && env.APPLE_KEY_ID)) return null;
   return {...spec, clientId, clientSecret};
 }
 
@@ -99,17 +123,19 @@ export async function startOAuth(env, provider, {origin, returnTo = '/'}) {
   const config = providerConfig(env, provider);
   if (!config) return null;
   const verifier = randomB64url(32);
-  const challenge = b64urlFromBytes(await crypto.subtle.digest('SHA-256', enc.encode(verifier)));
   const nonce = randomB64url(16);
   const state = await signToken(env.ACCOUNT_SESSION_SECRET, {provider, verifier, nonce, returnTo: safeReturn(returnTo)}, STATE_TTL);
   const redirectUri = origin + '/api/account/callback';
+  const params = {client_id: config.clientId, redirect_uri: redirectUri, response_type: 'code', scope: config.scope, state: nonce};
+  if (config.pkce) {
+    params.code_challenge = b64urlFromBytes(await crypto.subtle.digest('SHA-256', enc.encode(verifier)));
+    params.code_challenge_method = 'S256';
+    params.prompt = 'select_account';
+  }
+  if (config.formPost) params.response_mode = 'form_post';
   const authorize = new URL(config.authUrl);
-  authorize.search = new URLSearchParams({
-    client_id: config.clientId, redirect_uri: redirectUri, response_type: 'code',
-    scope: config.scope, code_challenge: challenge, code_challenge_method: 'S256',
-    state: nonce, access_type: 'online', prompt: 'select_account',
-  }).toString();
-  return {redirect: authorize.toString(), setCookie: cookie('l3v_oauth', state, {maxAge: STATE_TTL})};
+  authorize.search = new URLSearchParams(params).toString();
+  return {redirect: authorize.toString(), setCookie: cookie('l3v_oauth', state, {maxAge: STATE_TTL, sameSite: config.formPost ? 'None' : 'Lax'})};
 }
 
 // Only same-origin relative paths are honoured as a post-login destination.
@@ -121,19 +147,19 @@ export async function completeOAuth(env, {origin, code, state, stateCookie}) {
   if (!parsed || !safeEqual(parsed.nonce || '', state || '')) return {error: 'invalid-state'};
   const config = providerConfig(env, parsed.provider);
   if (!config || !code) return {error: 'not-configured'};
+  const clientSecret = config.appleSecret ? await appleClientSecret(env) : config.clientSecret;
+  if (!clientSecret) return {error: 'not-configured'};
+  const form = {client_id: config.clientId, client_secret: clientSecret, code, grant_type: 'authorization_code', redirect_uri: origin + '/api/account/callback'};
+  if (config.pkce) form.code_verifier = parsed.verifier;
   const response = await fetch(config.tokenUrl, {
-    method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: new URLSearchParams({
-      client_id: config.clientId, client_secret: config.clientSecret, code,
-      code_verifier: parsed.verifier, grant_type: 'authorization_code',
-      redirect_uri: origin + '/api/account/callback',
-    }),
+    method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json'},
+    body: new URLSearchParams(form),
   });
   if (!response.ok) return {error: 'token-exchange-failed'};
   const tokens = await response.json().catch(() => ({}));
-  const claims = decodeIdToken(tokens.id_token);
-  if (!claims?.email || claims.email_verified === false) return {error: 'no-verified-email'};
-  return {email: String(claims.email).toLowerCase(), returnTo: parsed.returnTo || '/'};
+  const email = config.idToken ? emailFromIdToken(tokens.id_token) : await emailFromUserInfo(config, tokens.access_token);
+  if (!email) return {error: 'no-verified-email'};
+  return {email: email.toLowerCase(), returnTo: parsed.returnTo || '/'};
 }
 
 // The id token comes straight from the provider's token endpoint over TLS with
@@ -141,6 +167,37 @@ export async function completeOAuth(env, {origin, code, state, stateCookie}) {
 export function decodeIdToken(idToken) {
   if (typeof idToken !== 'string' || idToken.split('.').length !== 3) return null;
   try { return JSON.parse(stringFromB64url(idToken.split('.')[1])); } catch { return null; }
+}
+function emailFromIdToken(idToken) {
+  const claims = decodeIdToken(idToken);
+  return claims?.email && claims.email_verified !== false ? String(claims.email) : null;
+}
+// Providers without an id token (GitHub): read the primary, verified email.
+async function emailFromUserInfo(config, accessToken) {
+  if (!accessToken) return null;
+  const response = await fetch(config.emailUrl, {headers: {Authorization: 'Bearer ' + accessToken, Accept: 'application/vnd.github+json', 'User-Agent': 'l3v-tools'}});
+  if (!response.ok) return null;
+  const list = await response.json().catch(() => null);
+  if (!Array.isArray(list)) return null;
+  const primary = list.find(item => item?.primary && item?.verified && item?.email);
+  const anyVerified = list.find(item => item?.verified && item?.email);
+  return (primary || anyVerified)?.email || null;
+}
+export const supportedProviders = env => Object.keys(PROVIDERS).filter(name => providerConfig(env, name));
+
+function pkcs8FromPem(pem) {
+  const body = String(pem).replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+  return bytesFromB64url(body.replace(/\+/g, '-').replace(/\//g, '_'));
+}
+// Apple's client secret: a short-lived ES256 JWT signed with the team's key.
+async function appleClientSecret(env) {
+  if (!(env.APPLE_PRIVATE_KEY && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_CLIENT_ID)) return null;
+  const key = await crypto.subtle.importKey('pkcs8', pkcs8FromPem(env.APPLE_PRIVATE_KEY), {name: 'ECDSA', namedCurve: 'P-256'}, false, ['sign']);
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64urlFromString(JSON.stringify({alg: 'ES256', kid: env.APPLE_KEY_ID}));
+  const payload = b64urlFromString(JSON.stringify({iss: env.APPLE_TEAM_ID, iat: now, exp: now + 300, aud: 'https://appleid.apple.com', sub: env.APPLE_CLIENT_ID}));
+  const signature = await crypto.subtle.sign({name: 'ECDSA', hash: 'SHA-256'}, key, enc.encode(header + '.' + payload));
+  return header + '.' + payload + '.' + b64urlFromBytes(signature);
 }
 
 /** The stable 64-hex accountId for an email, created on first sign-in. */

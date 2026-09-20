@@ -92,3 +92,9 @@
 .identity-video-modal p{margin:0;color:#fff;font-size:13px}
 .identity-video-modal-close{justify-self:end;padding:8px 15px;border:1px solid #fff6;border-radius:999px;background:#fff;color:#17221d;font:700 12px inherit;cursor:pointer}
 @media(max-width:900px){.identity-video-strip{display:none}}
+.sso-options{display:grid;gap:8px;margin:16px 0 4px}
+.sso-button{display:block;text-align:center;padding:11px 14px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--foreground);font-weight:600;text-decoration:none}
+.sso-button:hover{border-color:var(--accent)}
+.sso-google{border-color:#4285f4}
+.sso-apple{background:#000;color:#fff;border-color:#000}
+.sso-or{margin:6px 0 0;text-align:center;color:var(--muted);font-size:12px}
