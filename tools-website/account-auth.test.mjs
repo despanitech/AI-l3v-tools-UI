@@ -60,3 +60,22 @@ test('completeOAuth rejects a mismatched state before any token exchange', async
   const bad = await completeOAuth(env, {origin: 'https://tools.l3v.ai', code: 'x', state: 'wrong-nonce', stateCookie: decodeURIComponent(stateCookie)});
   assert.equal(bad.error, 'invalid-state');
 });
+
+test('supportedProviders lists only configured ones, and Apple needs its team and key ids', async () => {
+  const {supportedProviders} = await import('./account-auth.mjs');
+  assert.deepEqual(supportedProviders({ACCOUNT_SESSION_SECRET: SECRET}), []);
+  const env = {ACCOUNT_SESSION_SECRET: SECRET, GOOGLE_CLIENT_ID: 'g', GOOGLE_CLIENT_SECRET: 's',
+    APPLE_CLIENT_ID: 'com.l3v.web', APPLE_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----\nMIG-----END PRIVATE KEY-----'};
+  assert.deepEqual(supportedProviders(env), ['google'], 'apple without team/key id is not offered');
+  env.APPLE_TEAM_ID = 'TEAM'; env.APPLE_KEY_ID = 'KEY';
+  assert.deepEqual(supportedProviders(env).sort(), ['apple', 'google']);
+});
+
+test('apple sign-in uses form_post and a SameSite=None state cookie', async () => {
+  const {startOAuth} = await import('./account-auth.mjs');
+  const env = {ACCOUNT_SESSION_SECRET: SECRET, APPLE_CLIENT_ID: 'com.l3v.web', APPLE_TEAM_ID: 'T', APPLE_KEY_ID: 'K', APPLE_PRIVATE_KEY: 'x'};
+  const start = await startOAuth(env, 'apple', {origin: 'https://tools.l3v.ai'});
+  assert.match(start.redirect, /appleid\.apple\.com/);
+  assert.match(start.redirect, /response_mode=form_post/);
+  assert.match(start.setCookie, /SameSite=None/);
+});

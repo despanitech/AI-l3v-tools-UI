@@ -1,7 +1,7 @@
 import {recordRecent, listRecent, recentImage, recordRecentClip, listRecentClips, recentClip} from './recent-feed.mjs';
 import videoWorker from './video-worker.mjs';
 import {invitationAccount} from './invitation-worker.mjs';
-import {sessionAccount, startOAuth, completeOAuth, accountForEmail, sessionCookie, clearSessionCookie, clearStateCookie, readCookie} from './account-auth.mjs';
+import {sessionAccount, startOAuth, completeOAuth, accountForEmail, sessionCookie, clearSessionCookie, clearStateCookie, readCookie, supportedProviders} from './account-auth.mjs';
 import {issueInvitation} from './invitation-issuer.mjs';
 import {invitationShare} from './invitation-share.mjs';
 import {buildBundle,listBundles,getBundle} from './bundle-store.mjs';
@@ -188,7 +188,7 @@ export default {
     }
     if(url.pathname==='/api/account/session'){
       const s=await sessionAccount(request,env);
-      return json(s?{signedIn:true,accountId:s.accountId,email:s.email}:{signedIn:false});
+      return json({...(s?{signedIn:true,accountId:s.accountId,email:s.email}:{signedIn:false}),providers:supportedProviders(env)},200,{'Cache-Control':'no-store'});
     }
     if(url.pathname==='/api/account/logout'){
       if(request.method!=='POST')return json({error:'Invalid method'},405);
